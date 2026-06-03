@@ -100,12 +100,52 @@ Cuando se actualiza la DB, los clientes conectados ven los cambios al instante. 
 | Instalación | "Agregar a pantalla inicio" | Bajar de tienda |
 | Funciona en iOS + Android | Sí, con el mismo código | Hay que hacer 2 versiones |
 | Conocimiento requerido | Bajo | Alto (Swift/Kotlin/RN/Flutter) |
+| Espacio en celular | 1-5 MB | 50-200 MB |
+| Está en Play Store/App Store | ❌ No | ✅ Sí |
+
+### ¿Es "ejecutable" en el celular?
+
+**Técnicamente NO** es un .apk/.ipa, pero **funcionalmente SÍ**:
+- ✅ Tiene ícono en la pantalla de inicio
+- ✅ Abre en pantalla completa (sin barra de navegador)
+- ✅ Se siente como app nativa para el usuario
+- ✅ Para tus amigos = indistinguible de una app de tienda
 
 ### Cómo se "instala" una PWA
-1. Usuario abre la URL en Safari/Chrome
-2. Menú del navegador → "Agregar a pantalla de inicio"
-3. Aparece como ícono nativo, abre sin barra de navegador
-4. Se siente como app real
+
+**Android (Chrome)**:
+1. Abrir la URL
+2. Aparece popup automático "Instalar app"
+3. Tap Instalar → ícono en home
+
+**iPhone (Safari)**:
+1. Abrir la URL en Safari
+2. Botón Compartir (📤)
+3. "Agregar a pantalla de inicio"
+4. Tap Agregar → ícono en home
+
+### Mensaje listo para mandar a los amigos
+
+```
+📱 Cómo instalar Prode Mundial 26:
+
+📲 iPhone: Abrí en Safari → tocá Compartir (📤) → 
+   "Agregar a pantalla de inicio"
+
+🤖 Android: Abrí en Chrome → popup "Instalar" → tap
+
+Listo, queda con ícono propio como cualquier app 🎉
+```
+
+### Si DE VERDAD se necesitara un .apk/.ipa
+
+Existen opciones (PWABuilder de Microsoft, Capacitor, Cordova) pero:
+- ❌ Requiere cuentas dev de Apple/Google ($99/año + $25)
+- ❌ Proceso de revisión de tiendas (días/semanas)
+- ❌ Tiempo extra: 2-4 semanas
+- ❌ Innecesario para 8 amigos durante 1 mes
+
+**Veredicto**: PWA es la respuesta correcta. No re-discutir.
 
 ---
 

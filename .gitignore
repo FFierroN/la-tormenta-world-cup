@@ -1,0 +1,41 @@
+# 🚫 Archivos a ignorar en git
+
+# Credenciales y secretos (NUNCA subir)
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+credentials.json
+secrets/
+
+# Datos sensibles de usuarios
+pins.txt
+usuarios-reales.csv
+
+# Dependencias (si en algún momento agregas código)
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Build artifacts
+dist/
+build/
+.next/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Backups locales
+*.bak
+*.backup

@@ -2,102 +2,133 @@
 
 > App de pronósticos del Mundial de Fútbol 2026 para jugar entre 8 amigos.
 
-## 🎯 Objetivo
+---
 
-Crear una aplicación móvil (PWA) donde 8 amigos puedan:
-- Pronosticar los resultados de todos los partidos del Mundial 2026
-- Acumular puntos según reglas predefinidas
-- Ver una tabla de posiciones actualizada en tiempo real
-- Determinar un ganador al final del torneo
+## 📖 Cómo leer esta documentación
+
+> **⚠️ Si volves después de tiempo o sos una IA en nueva sesión: leé `contexto-proximas-sesiones.md` PRIMERO.**
+
+### Orden recomendado de lectura:
+1. 📄 **`README.md`** ← estás acá (visión general)
+2. 🧠 **`contexto-proximas-sesiones.md`** (handover para nuevas sesiones)
+3. ✅ **`decisiones-tomadas.md`** (todo lo cerrado, no re-discutir)
+4. ❓ **`pendientes.md`** (lo que falta decidir)
+5. 📋 **`plan-15-prompts.md`** (plan de desarrollo detallado)
+6. 🧠 **`faq-tecnico.md`** (aprendizajes técnicos clave)
+7. 📝 **`decisiones-clave.md`** (template original con preguntas)
+
+---
+
+## 🎯 ¿Qué es?
+
+Una aplicación móvil (PWA) donde 8 amigos pueden:
+- 📝 Pronosticar los resultados de todos los partidos del Mundial 2026
+- 🏆 Acumular puntos según reglas predefinidas
+- 📊 Ver una tabla de posiciones actualizada en tiempo real
+- 🥇 Determinar un ganador al final del torneo
+
+---
 
 ## 📋 Características clave
 
 - 👥 **Usuarios**: 8 amigos (cerrado, no público)
-- 📱 **Plataforma**: PWA (Progressive Web App) — funciona en iOS y Android sin pasar por App Store / Play Store
-- ⏱️ **Vida útil**: Desde el inicio hasta el final del Mundial 2026
-- 💰 **Costo**: $0 (todo gratis con planes free de Vercel + Supabase)
+- 📱 **Plataforma**: PWA (Progressive Web App) — funciona en iOS y Android sin App Store / Play Store
+- ⏱️ **Vida útil**: Mundial 2026 (11 jun - 19 jul)
+- 💰 **Costo**: $0 - $20 USD
+- 🔧 **Admin**: 1 jugador (Felipe) con permisos extra para cargar resultados
 
-## 🚨 Reality Check importante
+---
 
-### ❌ Stitch (Google) sola NO basta
-Stitch genera **diseños UI bonitos**, pero NO genera apps funcionales con backend, base de datos ni lógica. Es un complemento, no la solución completa.
+## 🛠️ Stack técnico
 
-### ❌ App nativa = mala idea para este caso
-Hacer una app descargable en App Store + Play Store implica:
-- 💰 Apple Developer: $99 USD/año (obligatorio)
-- 💰 Google Play: $25 USD una vez
-- 📝 Aprender Swift/Kotlin o React Native/Flutter
-- ⏳ Procesos de revisión que pueden tardar semanas
-- 🔄 Actualizar = volver a publicar
-
-**Para 8 amigos durante 1 mes, es matar moscas a cañonazos.**
-
-### ✅ Solución: PWA (Progressive Web App)
-- 🌐 Los amigos abren una URL en el celular
-- 📲 Le dan "Agregar a pantalla de inicio" → ícono como app nativa
-- 🚀 Sin tiendas, sin descargas, sin pagos
-- 🔄 Actualizas y todos ven cambios al instante
-- 📱 Funciona igual en iPhone y Android
-
-## 🛠️ Stack técnico recomendado
-
-| Componente | Herramienta | ¿Por qué? |
+| Componente | Herramienta | Plan |
 |---|---|---|
-| **Generador de app con IA** | [Lovable.dev](https://lovable.dev) ⭐ | Diseñada para no-coders, genera apps completas con DB y auth |
-| **Alternativas** | [Bolt.new](https://bolt.new) / [v0.dev](https://v0.dev) / [Replit Agent](https://replit.com) | Similares, según preferencia |
-| **Diseño UI** | [Stitch de Google](https://stitch.withgoogle.com) | Para mockups visuales que luego pasas a Lovable |
-| **Backend + Base de datos** | [Supabase](https://supabase.com) | Free tier generoso, perfecto para 8 usuarios |
-| **Hosting** | [Vercel](https://vercel.com) | Deploy con 1 click, gratis, soporta PWA |
-| **API de resultados (opcional)** | [API-Football](https://www.api-football.com) | Si quieres resultados automáticos. Si no, los cargas manualmente |
+| Generador con IA | [Lovable.dev](https://lovable.dev) | Free → Pro si hace falta |
+| Backend + DB | [Supabase](https://supabase.com) | Free (suficiente) |
+| Hosting | [Vercel](https://vercel.com) | Hobby (gratis) |
+
+---
 
 ## 🏗️ Arquitectura
 
 ```
 ┌─────────────────────────────────────┐
-│  📱 PWA (lo que ven tus amigos)     │
-│  - Login simple (nombre + PIN)      │
-│  - Ver fixture de partidos          │
-│  - Ingresar pronósticos             │
-│  - Ver tabla de posiciones          │
+│  📱 PWA generada por Lovable        │
+│  - Login con PIN                    │
+│  - Lista de partidos                │
+│  - Ingreso de pronósticos           │
+│  - Tabla de posiciones (realtime)   │
+│  - Panel admin (solo Felipe)        │
 └─────────────────────────────────────┘
               ↕️
 ┌─────────────────────────────────────┐
-│  ⚙️ Backend + DB (Supabase)         │
-│  - Usuarios (8 amigos)              │
-│  - Partidos (fixture mundial)       │
-│  - Pronósticos                      │
-│  - Resultados reales                │
-│  - Puntos calculados                │
+│  ⚙️ Supabase                        │
+│  - Tablas: usuarios, partidos,      │
+│    pronósticos, admin_log           │
+│  - Row Level Security (privacidad)  │
+│  - Realtime para leaderboard        │
+│  - Cálculo de puntos automático     │
 └─────────────────────────────────────┘
               ↕️
 ┌─────────────────────────────────────┐
-│  🌐 Hosting: Vercel (gratis)        │
+│  🌐 Hosting: Vercel                 │
 └─────────────────────────────────────┘
 ```
 
-## 📅 Plan de acción
+---
 
-| Etapa | Tarea | Tiempo estimado |
-|---|---|---|
-| **1** | Definir las 5 decisiones clave (ver `decisiones-clave.md`) | 1 semana |
-| **2** | Crear cuentas: Lovable.dev + Supabase + Vercel | 1 día |
-| **3** | Generar la app con prompt maestro en Lovable | 2 semanas |
-| **4** | Pruebas internas con 1-2 amigos | 1 semana |
-| **5** | Onboarding de los 8 amigos | Días antes del 11/Jun/2026 |
+## 📅 Plan de ejecución: 15 prompts en 3 días
 
-## 📂 Archivos de este proyecto
+| Día | Foco | Prompts | Estado al final |
+|---|---|---|---|
+| 1 | 🏗️ Cimientos | 5 | Login + DB + UI base |
+| 2 | ⚙️ Features core | 5 | Pronósticos + puntos + leaderboard |
+| 3 | ✨ Pulido + PWA | 5 | App instalable + admin panel |
 
-- `README.md` — Este archivo (visión general)
-- `decisiones-clave.md` — 5 decisiones que debes definir ANTES de programar
-- `prompt-maestro.md` — Plantilla de prompt para usar con Lovable.dev (a desarrollar)
-- `puntuacion.md` — Sistema de puntuación acordado con tus amigos (a definir)
+Detalle completo en `plan-15-prompts.md`.
 
-## ⚠️ Notas importantes
+---
 
-- 🏠 **El código real de la app debe vivir en tu PC personal**, no en la máquina corporativa donde se generó esta guía
-- 🔐 Nunca subir credenciales, API keys ni PINs de los amigos a un repositorio público
+## ✅ Decisiones cerradas (highlights)
+
+- ✅ **PWA**, no app nativa
+- ✅ **Stack Lovable + Supabase + Vercel**
+- ✅ **Carga manual de resultados** vía panel admin en la app
+- ✅ **Admin = cuenta jugador con permisos extra** (Opción B)
+- ✅ **Pronósticos privados hasta deadline** (regla crítica)
+- ✅ **Sistema antitrampa con log público**
+- ✅ **15 prompts en 3 días**
+
+Detalle completo en `decisiones-tomadas.md`.
+
+---
+
+## ❓ Decisiones pendientes (resumen)
+
+Antes de poder armar los 5 prompts del Día 1, falta:
+1. Nombre y estética de la app
+2. Nombres de los 8 jugadores
+3. Sistema de puntuación exacto
+4. Deadline en minutos
+5. Cómo cargar el fixture
+6. Idioma y zona horaria
+
+Detalle completo y formato para responder en `pendientes.md`.
+
+---
+
+## 🚨 Notas importantes
+
+- 🏠 **El código real de la app vive en PC personal**, no en máquina corporativa
+- 🔐 Nunca subir credenciales, API keys ni PINs a repositorios públicos
 - 💾 Backupear regularmente la base de datos de Supabase durante el mundial
+- 📂 Esta carpeta tiene solo **planificación**, no código del proyecto
 
-## 🐶 Generado con ayuda de Kira (Code Puppy)
+---
 
-Esta guía fue generada como **mentoría/asesoría**. El desarrollo del proyecto lo harás tú con herramientas IA en tu equipo personal. ¡Mucho éxito! ⚽🏆
+## 🐶 Generado y mantenido con Kira (Code Puppy)
+
+Mentoría conversacional para no-coders construyendo proyectos personales con IA.
+Esta carpeta es el "cerebro externo" del proyecto entre sesiones.
+
+¡Mucho éxito con el mundial! ⚽🏆

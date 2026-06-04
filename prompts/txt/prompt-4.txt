@@ -1,0 +1,105 @@
+Implementa las pantallas "Tabla" (tab 2) y "Mi cuenta" (tab 3). Manté la estética OneFootball del Prompt 1: fondo negro #000000, separadores hairline #1F1F1F, sin cards visibles innecesarias, outline blanco para activos, rojo #E3000F solo como acento de marca.
+
+TAB "TABLA" — TABLA DE POSICIONES
+
+Header:
+- Avatar + título "Tabla de Posiciones" 28px bold
+- Subtítulo: "Actualizada en tiempo real" 14px gris #9CA3AF
+- Botón pequeño "Sistema de desempate" arriba derecha (icono info) → abre modal con criterios
+
+Estructura de cada fila (sin cards, separadores hairline #1F1F1F):
+- Posición a la izquierda (#1, #2, ...) 20px bold
+- Top 3 con medalla emoji (oro, plata, bronce)
+- Nombre visible (seudonimo si existe, sino nombre_real) 17px semi-bold blanco
+- Puntos totales a la derecha 20px bold blanco
+- Variación con flecha (↑2 verde #22C55E, ↓3 rojo #EF4444, = gris)
+- Debajo del nombre, texto pequeño 12px gris: "12 exactos · 18 dif · 24 gan"
+
+Estilos especiales:
+- Fila del jugador logueado: borde izquierdo rojo #E3000F 3px (highlight discreto)
+- Top 3: fondo sutil #0F0F0F
+- Resto: fondo #000000
+
+Datos a mostrar:
+- Puntos totales: suma de puntos_obtenidos en todos sus pronósticos + puntos de predicciones especiales (puntos_campeon + puntos_finalistas + puntos_semifinalistas + puntos_goleador + puntos_mejor_jugador + puntos_mejor_arquero + puntos_mejor_joven)
+- Cantidad de marcadores exactos, diferencias acertadas, ganadores acertados
+
+ORDENAMIENTO (sistema de desempate)
+Aplicar este orden en SQL:
+1. puntos_totales DESC
+2. Cantidad de marcadores exactos DESC
+3. Cantidad de diferencias acertadas DESC
+4. Cantidad de ganadores acertados DESC
+5. Si sigue empate → comparten posición
+
+TAP EN FILA DE JUGADOR
+
+Abrir pantalla de detalle con:
+- Header: avatar grande (inicial sobre fondo rojo) + nombre + puntos totales + posición
+- Tabs: "Pronósticos" / "Predicciones especiales"
+- En "Pronósticos": lista de pronósticos del jugador SOLO de partidos cuyo deadline ya pasó (no se pueden ver pronósticos activos)
+- En "Predicciones especiales": las 8 predicciones (esto es público una vez iniciado el Mundial)
+
+MODAL "SISTEMA DE DESEMPATE"
+
+Fondo #0F0F0F, bordes redondeados.
+Mostrar la siguiente lista:
+1. Mayor cantidad de marcadores exactos
+2. Mayor cantidad de diferencias de goles acertadas
+3. Mayor cantidad de resultados acertados (ganador/empate)
+4. Mejor pronóstico de la final (exacto > diferencia > ganador)
+5. Si persiste el empate → comparten posición
+
+TAB "MI CUENTA" — PERFIL PERSONAL
+
+Header:
+- Avatar circular grande (inicial del nombre sobre fondo rojo #E3000F)
+- Nombre real + seudónimo entre paréntesis 20px bold
+- Botón pequeño "Editar seudónimo" (icono lápiz) → abre modal con input
+- Posición actual y puntos totales en grande
+
+Sección "Estadísticas":
+Grid de 2x2 con cards (fondo #0F0F0F, bordes redondeados):
+- Aciertos exactos: X / Y partidos
+- Diferencias acertadas: X
+- Ganadores acertados: X
+- Porcentaje de aciertos: XX%
+
+Sección "Mis predicciones especiales":
+Card con fondo #0F0F0F mostrando las 8 predicciones (lectura solamente):
+- Campeón: [equipo] — [X pts]
+- Finalistas: [equipo 1], [equipo 2] — [X pts]
+- Semifinalistas: [4 equipos] — [X pts]
+- Goleador: [nombre] — [X pts]
+- Mejor jugador: [nombre] — [X pts]
+- Mejor arquero: [nombre] — [X pts]
+- Mejor joven: [nombre] — [X pts]
+
+Si el Mundial NO empezó: mostrar texto "Estas predicciones se bloquean al iniciar el primer partido."
+
+Sección "Historial de pronósticos":
+Lista colapsable con todos los pronósticos del usuario:
+- Partido (equipos + fecha)
+- Tu pronóstico vs resultado real
+- Puntos obtenidos
+
+Sección "Actividad del admin":
+- Link/botón "Ver actividad del admin" → abre pantalla con log público (todas las acciones del admin con timestamp, ícono y descripción)
+
+Sección inferior:
+- Toggle modo claro/oscuro (default: oscuro)
+- Botón "Cerrar sesión" (rojo outline #E3000F, NO sólido)
+- Texto pequeño abajo: "La Tormenta Mundial 2026 v1.0"
+
+MODAL "EDITAR SEUDÓNIMO"
+- Fondo #0F0F0F
+- Input de texto (max 20 caracteres)
+- Botones "Cancelar" (outline) y "Guardar" (rojo)
+- Al guardar → UPDATE en usuarios.seudonimo y refrescar UI
+
+IMPORTANTE
+- Todos los cálculos deben hacerse con queries SQL (no en frontend) para performance
+- Usar Supabase Realtime para refrescar tabla cuando cambien puntos de algún jugador
+- Mobile-first, scrolling vertical fluido
+- NO implementar gráficos complejos aún (se evalúa en Prompt 5 si sobra margen)
+- Banderas circulares con flag-icons donde aplique

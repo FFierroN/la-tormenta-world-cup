@@ -1,0 +1,235 @@
+Implementa el panel admin completo + configuración PWA + pulido visual final. Mantené la estética OneFootball: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, rojo #E3000F solo como acento.
+
+TAB "ADMIN" (solo visible para es_admin = true)
+
+ESTRUCTURA DEL TAB ADMIN
+
+Pestañas internas: [Partidos] [Predicciones especiales] [Jugadores] [Log]
+
+SUB-TAB "PARTIDOS"
+
+Lista de todos los partidos del Mundial, agrupados por estado:
+
+Sección "EN VIVO" (partidos con estado_partido = 'en_vivo'):
+Para cada partido en vivo, mostrar panel de gestión en vivo (ver más abajo).
+
+Sección "PRÓXIMOS" (partidos pendientes ordenados por fecha):
+Cada fila: equipos con banderas circulares + fecha/hora + botones:
+- [Iniciar partido] → cambia estado_partido = 'en_vivo' y abre panel de gestión
+- [Carga rápida] → modal para cargar resultado final directo (sin eventos)
+
+Sección "FINALIZADOS" (partidos con estado_partido = 'finalizado'):
+Cada fila: equipos + marcador + botones:
+- [Editar resultado] → modal de edición con confirmación
+- [Ver eventos] → muestra timeline de eventos cargados
+
+PANEL DE GESTIÓN EN VIVO DE UN PARTIDO
+
+Cuando el admin inicia un partido o entra a uno ya en vivo:
+
+Header:
+- Botón "Volver" arriba izquierda
+- Banderas circulares (~60px) de ambos equipos
+- Marcador grande 48px bold blanco (resultado_local - resultado_visitante)
+- Badge "EN VIVO" pulsante rojo
+
+Botones de eventos (grid 2x2):
+- [+ Gol ARG] (botón outline blanco grande)
+- [+ Gol MEX]
+- [+ Autogol ARG] (texto pequeño debajo: "suma a MEX")
+- [+ Autogol MEX] (texto pequeño debajo: "suma a ARG")
+
+Steppers de tarjetas rojas:
+ARG: [- 0 +]   MEX: [- 1 +]
+- Botones circulares outline blanco para [-] y [+]
+- Número en grande en el medio
+
+Ganador por penales (solo visible si fase != 'Grupos' y resultado_local == resultado_visitante):
+Radio buttons con 3 opciones: ARG / MEX / Ninguno
+- Texto pequeño: "Solo display. NO afecta los puntos del juego."
+
+Timeline (lista de eventos cargados):
+- Cada evento: icono pelota + minuto + nombre del jugador + icono basurero a la derecha
+- Tap en basurero → confirmación → DELETE del evento + revertir marcador + log
+- Si es autogol: mostrar "(en contra)" después del nombre
+
+Botón "FINALIZAR PARTIDO" grande rojo #E3000F al final:
+1. Modal de confirmación: "¿Confirmás el resultado final [X-Y]? Esto disparará el cálculo de puntos de los pronósticos."
+2. Si confirma:
+   - UPDATE partidos.estado_partido = 'finalizado'
+   - UPDATE partidos.finalizado_at = NOW()
+   - INSERT en admin_log: "Partido finalizado: [equipo_local] X - Y [equipo_visitante]"
+   - (El cálculo real de puntos lo hacemos en backend en otro prompt — por ahora solo marcar como finalizado)
+   - Toast: "Partido finalizado"
+   - Volver al listado
+
+MODAL "AGREGAR GOL"
+
+Al tocar [+ Gol ARG] (o cualquier botón de gol/autogol), abrir modal pequeño:
+- Título: "Gol de Argentina" (o el equipo correspondiente)
+- Input numérico "Minuto" (1-120)
+- Input texto "Nombre del jugador"
+- Botones [Cancelar] [Guardar]
+
+Al guardar:
+1. INSERT en partido_eventos con tipo = 'gol_local' (o el que corresponda)
+2. UPDATE partidos.resultado_local += 1 (si es gol local o autogol visitante)
+3. UPDATE partidos.resultado_visitante += 1 (si es gol visitante o autogol local)
+4. INSERT en admin_log con detalle: "Gol de [equipo] al minuto X — [jugador]"
+5. Toast: "Gol cargado"
+6. Refrescar la UI (realtime se encarga de los jugadores)
+
+MODAL "CARGA RÁPIDA" (sin eventos)
+
+Para partidos pendientes cuando el admin no quiere cargar eventos uno a uno:
+- Banderas + nombres de los equipos
+- Inputs numéricos para marcador local y visitante (0-15)
+- Steppers de tarjetas rojas por equipo
+- Radio buttons "Ganador por penales" (si aplica)
+- Botones [Cancelar] [Guardar]
+
+Al guardar:
+- UPDATE resultado_local, resultado_visitante, tarjetas_rojas_*, ganador_penales
+- UPDATE estado_partido = 'finalizado', finalizado_at = NOW()
+- INSERT en admin_log: "Carga rápida: [equipo_local] X - Y [equipo_visitante]"
+- NO insertar eventos individuales en partido_eventos (timeline queda vacío)
+
+MODAL "EDITAR RESULTADO" (partidos ya finalizados)
+
+Confirmación primero:
+"Editar resultado ya cargado. Esto queda registrado en el log público. ¿Continuar?"
+[Cancelar] [Sí, continuar]
+
+Si confirma → form igual al de carga rápida con valores actuales.
+Al guardar: INSERT en admin_log con accion = 'editar_resultado' y bandera de edición.
+
+SUB-TAB "PREDICCIONES ESPECIALES"
+
+4 secciones (Goleador / Mejor jugador / Mejor arquero / Mejor joven).
+
+Para cada una, tabla:
+| Jugador | Su respuesta | Acertó (+10 pts) |
+| Felipe  | "Messi"      | [Switch ON/OFF]  |
+| Victor  | "Mbappé"     | [Switch ON/OFF]  |
+| ...     | ...          | ...              |
+
+Al activar switch: UPDATE en predicciones_especiales.puntos_[campo] = 10
+Al desactivar: volver a 0
+INSERT en admin_log: "Asignado punto de [categoría] a [jugador]" o "Removido punto..."
+
+Texto explicativo arriba de cada sección: "Marcá a quién acertó. Cada acierto = 10 pts. Podés cambiar la asignación en cualquier momento."
+
+SUB-TAB "JUGADORES"
+
+Lista de los 8 jugadores con:
+- Avatar circular + Nombre real + seudónimo
+- Estado: onboarding completado / pendiente (badge verde o amarillo)
+- Botón [Resetear PIN] → confirmación → reset a "1234" + log
+
+SUB-TAB "LOG"
+
+Lista cronológica descendente de TODAS las entradas de admin_log:
+- Timestamp en UTC-4
+- Icono según acción (📝 cargar / ✏️ editar / 🔑 resetear / ⚽ gol / 🟥 roja / 🏁 finalizar / 🌟 asignar punto)
+- Texto descriptivo
+- Si la acción es "editar_resultado" → bandera de edición visible
+
+LOG PÚBLICO (visible para TODOS los jugadores)
+
+En el tab "Mi cuenta" agregar un link "Ver actividad del admin" → abre pantalla con:
+- Mismo formato que el log del admin
+- Solo lectura
+- Sin posibilidad de editar nada
+- Texto introductorio: "Acá ves todas las acciones que hizo el admin. Esto garantiza la transparencia del juego."
+
+CONFIGURACIÓN PWA
+
+Manifest.json:
+{
+  "name": "La Tormenta Mundial 2026",
+  "short_name": "La Tormenta",
+  "description": "Pronósticos del Mundial FIFA 2026 entre amigos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#E3000F",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+
+Service Worker:
+- Cachear assets estáticos
+- Modo offline: pantalla "Sin conexión" con icono y mensaje amigable
+- NO cachear datos dinámicos (partidos, pronósticos) — siempre frescos
+
+Splash screen:
+- Fondo #000000
+- Logo grande "La Tormenta Mundial 2026" con ícono ⚡ centrado
+- Texto pequeño abajo: "Cargando..."
+
+Botón "Instalar app":
+- Detectar evento beforeinstallprompt
+- Mostrar banner discreto arriba: "Instalá la app en tu celular"
+- Botón "Instalar" rojo / "Más tarde" gris outline
+
+PULIDO FINAL
+
+Modo claro/oscuro:
+Toggle en "Mi cuenta" para alternar. Default: oscuro.
+
+Modo claro:
+- Fondo: #FFFFFF
+- Cards: #F5F5F5
+- Texto principal: #0A0A0A
+- Separadores: #E5E7EB
+- Rojo de marca #E3000F se mantiene igual
+- Mantener minimalismo OneFootball
+
+Persistir preferencia en localStorage.
+
+Loading states:
+Skeleton screens (NO spinners genéricos):
+- Tabla de posiciones: 8 filas skeleton
+- Lista de partidos: 5 filas skeleton
+- Detalle de partido: skeleton del hero + 3 cards de tabs
+
+Empty states:
+- "Aún no hay partidos cargados"
+- "Aún no hiciste ningún pronóstico"
+- "Aún no hay actividad del admin"
+- "Este partido no tuvo eventos cargados"
+
+Toasts:
+Posición: bottom center. Duración: 3 segundos.
+- Éxito: fondo verde #10B981
+- Error: fondo rojo #E3000F
+- Info: fondo gris #374151
+
+Animaciones:
+- Transiciones entre tabs: fade 200ms
+- Modales: slide-up desde abajo
+- Cards al cargar: fade-in escalonado (50ms entre cada una)
+- Nuevo evento en timeline (realtime): el evento aparece con animación fade-in + slide-down + pulso sutil
+- Cuando se asignan puntos: animación de números subiendo (count-up)
+
+Microinteracciones:
+- Confetti animado cuando un jugador gana +10 pts o más en un partido
+- Vibración háptica al guardar pronóstico (si el browser lo soporta)
+- Pull-to-refresh en lista de partidos
+- Badge "EN VIVO" con pulso continuo (animate-pulse)
+
+Mensajes de error amigables:
+- En lugar de "Error 500" → "Algo salió mal, intentá de nuevo en un momento"
+- Validaciones de form claras: "El PIN debe tener 4 dígitos"
+- Si Supabase está caído: "No pudimos conectar al servidor. Revisá tu internet."
+
+IMPORTANTE
+- NO romper nada de lo que ya funciona
+- Mantener consistencia visual con la estética OneFootball
+- Mobile-first, asegurar que TODO funcione en pantallas de 360px de ancho
+- Accesibilidad: contraste mínimo 4.5:1, tap targets de 44x44px mínimo
+- Comentarios en español
+- Todo en realtime: cuando el admin carga un evento, los jugadores lo ven en menos de 2 segundos sin recargar

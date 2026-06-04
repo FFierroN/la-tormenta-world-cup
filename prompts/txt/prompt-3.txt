@@ -1,0 +1,173 @@
+Implementa la pantalla "Partidos" con vista por fecha y por grupo, modal de pronóstico, y pantalla de detalle con timeline de eventos en realtime.
+
+LAYOUT GENERAL DE LA PANTALLA "PARTIDOS"
+
+Header (sticky arriba):
+- Avatar circular del usuario (~48px) a la izquierda
+- Título "Partidos" 28px bold blanco
+- 2 iconos circulares (~40px, fondo #0F0F0F) a la derecha
+- Debajo del header: toggle de vista con 2 pills:
+  - "Por fecha" (default activo, outline blanco)
+  - "Por grupo" (inactivo, sin borde)
+
+Sub-header dinámico según vista activa:
+
+Si vista = "Por fecha":
+Pills horizontal scrolleable con fechas:
+[Calendario] [Ayer] [Hoy] [Mañana] [sáb 13 jun] [dom 14 jun] ...
+- Pill activo: borde blanco 1px outline, sin fill
+- Pill inactivo: sin borde, texto gris #9CA3AF
+- Tap → filtra partidos por esa fecha
+
+Si vista = "Por grupo":
+Pills horizontal scrolleable con grupos:
+[Grupo A] [Grupo B] [Grupo C] [Grupo D] ... [Eliminatorias]
+
+VISTA "POR FECHA"
+
+Lista de partidos de la fecha seleccionada. SIN cards visibles, solo separadores hairline #1F1F1F entre filas.
+
+Estructura de cada fila de partido:
+- Banderas circulares 32px (usar librería flag-icons con código ISO de codigo_local y codigo_visitante)
+- Nombre del país: 17px semi-bold blanco
+- Equipos apilados verticalmente (NO "vs", solo apilados)
+- Hora 17px blanco a la derecha (formato 24h UTC-4)
+- Estrella outline 24px gris a la extrema derecha (favorito, por ahora solo decorativo)
+- Padding vertical generoso (~16px entre equipos)
+
+Badge de estado (arriba derecha de la fila):
+- EN VIVO (pulsante rojo): si estado_partido = 'en_vivo'
+- FIN (verde): si estado_partido = 'finalizado'
+- CIERRA PRONTO (amarillo): si kickoff entre ahora y ahora+10min
+- CERRADO (gris): si pasó deadline y no pronosticaste
+
+Marcador en vivo o final:
+Si estado_partido = 'en_vivo' o 'finalizado':
+- Reemplazar la hora por el marcador en grande
+- Marcador en blanco bold 24px
+
+Pronóstico del usuario (debajo de cada fila, si existe):
+Texto pequeño 12px gris debajo: "Tu pronóstico: 1-1 · 0 pts"
+Si todavía no pronosticó y el partido está abierto → texto en rojo: "Sin pronóstico · pulsá para predecir"
+
+VISTA "POR GRUPO"
+
+Cuando el usuario selecciona un grupo (ej: "Grupo A"):
+
+Header del grupo:
+GRUPO A
+4 selecciones · 6 partidos
+
+Mini-tabla del grupo:
+Tabla con: posición, bandera + país, PJ, G, E, P, GF, GC, DG, Pts.
+Solo calcular con partidos finalizados:
+- PJ = partidos jugados
+- G = ganados, E = empatados, P = perdidos
+- GF = goles a favor, GC = goles en contra
+- DG = diferencia de gol
+- Pts = puntos (3 por ganar, 1 por empate)
+
+Estilo: fondo #0F0F0F, texto blanco, separadores hairline.
+
+Lista de los 6 partidos del grupo:
+Mismo formato que vista por fecha, pero solo los partidos de ese grupo.
+
+MODAL DE PRONÓSTICO
+
+Tap en partido con estado_partido = 'pendiente' Y deadline NO pasado → abrir modal.
+
+Estructura:
+- Fondo del modal: #0F0F0F, bordes redondeados
+- Botón cerrar (X) arriba derecha
+- Título: "Tu pronóstico"
+- Equipos con banderas circulares + nombre + "vs"
+- Subtítulo: "17:00 UTC-4 · Grupo A"
+- Steppers 0-15: botones circulares outline blanco para [-] y [+]
+- Countdown al deadline: actualizado cada segundo ("Cierra en 2h 15m")
+- Botón "Guardar pronóstico": rojo #E3000F, ancho completo
+- Si ya pronosticó → cargar valores existentes en los steppers
+- Al guardar: UPSERT en pronosticos, toast "Pronóstico guardado"
+
+PANTALLA DE DETALLE DEL PARTIDO
+
+Tap en partido con estado_partido = 'en_vivo' o 'finalizado' → abrir pantalla completa.
+
+Hero arriba:
+- Imagen de fondo: cancha de fútbol verde (placeholder verde sólido o imagen de cancha)
+- Overlay oscuro 70% para legibilidad
+- Botones circulares back y compartir arriba (~40px, fondo #0F0F0F semitransparente)
+- Banderas circulares grandes (~80px)
+- Marcador gigante 56px bold
+- Estado del partido encima del marcador: "Final del Partido" / "EN VIVO" / "Inicio: 17:00 UTC-4"
+- Lista de goles con icono pelota + minuto + nombre del jugador
+- Si es autogol: agregar "(en contra)" después del nombre
+
+Tabs del detalle:
+Pills horizontales scrolleables: [Resumen] [Pronósticos] [Mi pronóstico]
+- Pill activo: outline blanco
+- Default: "Resumen"
+
+TAB "RESUMEN"
+
+Sección "Acontecimientos clave":
+Timeline con eventos del partido (consultar tabla partido_eventos):
+- ─── Final del Partido 2-1 ───
+- Eventos ordenados por minuto descendente (los más recientes arriba)
+- Eventos del equipo local: alineados a la izquierda
+- Eventos del equipo visitante: alineados a la derecha
+- Goles tipo 'autogol_local' o 'autogol_visitante': agregar "(en contra)" después del nombre
+- ─── Inicio del partido 17:00 ───
+- Si el partido aún no terminó: NO mostrar "Final del Partido"
+- REALTIME: suscribirse a cambios en partido_eventos para refrescar timeline automáticamente
+
+Sección "Estadísticas":
+- Tarjetas rojas local vs visitante (de partidos.tarjetas_rojas_local y tarjetas_rojas_visitante)
+- Total de goles
+
+Si ganador_penales no es NULL:
+"Ganador por penales: [equipo]"
+"(no afecta el puntaje del juego)"
+
+TAB "PRONÓSTICOS" (visible solo si pasó el deadline)
+
+Lista de los pronósticos de los 8 jugadores:
+- Felipe        2-1   Resultado exacto
+- Victor        1-1   Errado
+- Ignacio C.    2-0   Diferencia
+- ...
+
+- Indicador visual según acierto: exacto / diferencia / ganador / errado
+- Ordenar por puntos obtenidos en este partido (desc)
+- Si el deadline NO pasó: mostrar mensaje "Los pronósticos de los demás se revelan al cerrar la edición."
+
+TAB "MI PRONÓSTICO"
+
+Card grande con:
+- Tu pronóstico: 2-1
+- Resultado real (si finalizado): 2-1
+- Puntos obtenidos: 6 pts (Resultado exacto)
+- Si no pronosticaste: "Se te pasó este partido"
+
+LÓGICA DE DEADLINE
+- Deadline = partido.fecha_hora - 10 minutos
+- Solo permitir crear/editar pronósticos si NOW() < deadline
+- Si pasó deadline y no hay pronóstico → mostrar badge CERRADO
+
+VISUALIZACIÓN HORARIOS
+- Todas las fechas/horas en zona horaria UTC-4
+- Formato: "MIÉ 17 JUN 2026 — 17:00"
+- Para deadline countdown: formato dinámico "2h 15m" / "45 min" / "8 seg"
+
+REALTIME
+
+Suscribirse vía Supabase Realtime a:
+- Cambios en partido_eventos (para timeline en vivo)
+- Cambios en partidos.resultado_local / resultado_visitante / estado_partido
+- Cambios en pronosticos propios
+
+IMPORTANTE
+- NO implementar cálculo de puntos aún (es Prompt 6, backend SQL)
+- Los puntos_obtenidos por ahora se leen como están en DB (0 por defecto)
+- Mobile-first, scrolling fluido
+- Asegurar que el realtime no rompa la UX (transiciones suaves al aparecer nuevos eventos)
+- Mantener estética OneFootball del Prompt 1

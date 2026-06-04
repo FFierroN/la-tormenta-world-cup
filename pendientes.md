@@ -1,44 +1,43 @@
 # ❓ Decisiones Pendientes
 
-> Lo que aún falta cerrar antes de poder armar los 5 prompts del Día 1.
+> Lo último que falta cerrar antes de armar los 3 prompts del frontend para Lovable.
+
+> 🆕 **Update**: el sistema de puntuación ya está CERRADO (ver `decisiones-tomadas.md`).
+> Se incorporaron las reglas tomadas del prompt anterior de Felipe:
+> puntuación escalada por fase, bonus por marcador de riesgo, regla 90 min,
+> predicciones especiales pre-mundial y sistema de desempate.
 
 ---
 
-## 🔴 BLOQUEANTES para empezar (sin estos no puedo redactar los prompts)
+## 🔴 BLOQUEANTES para armar los 3 prompts de Lovable
 
 ### 1. 🎨 Identidad de la app
 
 #### a) Nombre
-**Opciones sugeridas**:
+**Opciones**:
 - "Prode Mundial 26"
 - "La Polla 2026"
 - "Pronóstico Crack"
-- "GoalMasters"
-- Nombre custom del grupo
+- "GoalMasters 26"
+- Custom: __________
 
 **Tu elección**: ____________________
 
-#### b) Estética visual
-- [ ] 🏟️ Estadio clásico (verde + dorado)
-- [ ] ⚡ Deportivo moderno (negro + neón)
-- [ ] 🌈 Festivo mundialista (rojo/azul/verde USA/MEX/CAN)
-- [ ] 🎮 Gaming/FIFA (oscuro + azul eléctrico)
-- [ ] 🍺 Casual entre amigos (tonos cálidos)
-- [ ] 🎨 Custom (especifica colores)
-
-#### c) Tono/personalidad
-- [ ] 🎓 Serio y profesional
-- [ ] 😄 Divertido y casual (jerga, emojis)
-- [ ] ⚽ Apasionado/futbolero
-- [ ] 🤝 Neutro y limpio
+#### b) Estética visual (elige UNA)
+- [ ] 🏟️ **Estadio clásico** — verde césped #0E7C3A + dorado #FFD700
+- [ ] ⚡ **Deportivo moderno** — negro #0A0A0A + neón azul/verde
+- [ ] 🌈 **Festivo mundialista** — rojo/verde/blanco (USA/MEX/CAN)
+- [ ] 🎮 **Gaming/FIFA** — oscuro + azul eléctrico #00D9FF
+- [ ] 🍺 **Casual entre amigos** — naranja cálido + crema
 
 ---
 
 ### 2. 👥 Los 8 jugadores
 
-⚠️ **Privacidad**: Si te incomoda compartir nombres reales acá, usa apodos o "Jugador 1, 2..." y los reemplazas en tu PC personal.
+- [ ] **A)** Paso los 8 nombres reales (van hardcodeados en el dropdown de login)
+- [ ] **B)** Uso placeholders "Jugador 1 ... Jugador 8" y los cambio después en Supabase
 
-**Lista**:
+**Si elegiste A, lista**:
 1. ____________________ (admin) 🔧
 2. ____________________
 3. ____________________
@@ -48,138 +47,77 @@
 7. ____________________
 8. ____________________
 
-#### Sistema de PINs
-- [ ] 🅰️ Yo (admin) los defino y reparto
-- [ ] 🅱️ La app genera PINs random
-- [ ] 🅲️ Cada uno elige su PIN en primer login
+---
+
+### 3. 🌍 Zona horaria
+
+¿En qué zona horaria se muestran los partidos?
+- [ ] GMT-3 (Argentina, Uruguay, Chile-verano)
+- [ ] GMT-5 (Colombia, Perú, México central)
+- [ ] GMT-6 (México DF, Centroamérica)
+- [ ] Otra: __________
 
 ---
 
-### 3. 🏆 Sistema de puntuación
+### 4. ⏰ Deadline de pronósticos (cierre antes del kickoff)
 
-⚠️ **Una vez iniciado el torneo, NO se pueden cambiar las reglas.**
-
-| Acción | Puntos |
-|---|---|
-| Acierto resultado exacto | ___ |
-| Acierto ganador + diferencia de goles | ___ |
-| Solo acierto ganador | ___ |
-| Acierto empate (sin marcador) | ___ |
-| Acierto empate con marcador exacto | ___ |
-| Bonus por acertar campeón mundial | ___ |
-| Bonus por acertar finalistas | ___ |
-| Bonus por acertar goleador del torneo | ___ |
-
-#### Ejemplo "estándar internacional" (por si no tienen nada)
-- Resultado exacto: 5 pts
-- Ganador + diferencia: 3 pts
-- Solo ganador: 1 pt
-- Empate sin marcador: 1 pt
-- Empate con marcador: 5 pts
-- Bonus campeón: 15 pts
-- Bonus finalistas: 5 pts c/u
-
----
-
-### 4. ⏰ Deadline de pronósticos
-
-¿Cuánto antes del kickoff se cierran?
-- [ ] 5 minutos antes
-- [ ] 15 minutos antes (recomendado) ⭐
-- [ ] 30 minutos antes
+- [ ] 5 min antes
+- [ ] **15 min antes** ⭐ (recomendado)
+- [ ] 30 min antes
 - [ ] 1 hora antes
 
 ---
 
-### 5. 📅 Carga del fixture
+### 5. 📅 Carga del fixture (104 partidos)
 
-¿Cómo cargar los 104 partidos del Mundial 2026?
-- [ ] 🅰️ Lovable los genera (riesgo: puede inventar datos)
-- [ ] 🅱️ Cargo manual desde Supabase con CSV (recomendado ⭐)
-- [ ] 🅲️ Conectar a API de fútbol (complejo)
-
-#### Fases a incluir
-- [ ] Solo fase de grupos (48 partidos)
-- [ ] Completo: grupos + eliminatorias (104 partidos) ⭐
-
----
-
-### 6. 🌍 Idioma y zona horaria
-
-- **Idioma**: ____________________ (sugerido: español)
-- **Zona horaria**: GMT-___ (sugerido para Latam: GMT-3 Argentina / GMT-5 Colombia/México / GMT-6 Centroamérica)
-
----
-
-## 🟡 OPCIONALES (no bloqueantes)
-
-### Features extra que podrías querer
-
-| Feature | ¿La quieres? | Costo en prompts |
-|---|---|---|
-| 💬 Chat entre jugadores | [ ] | +2-3 |
-| 🏆 Bonus de "predicción del campeón" | [ ] | +1 |
-| 📊 Estadísticas detalladas | [ ] | +1-2 |
-| 🔔 Notificaciones push | [ ] | +2-3 |
-| 🎭 Avatares personalizables | [ ] | +1-2 |
-| 🎉 Animación "ganaste puntos" | [ ] | +1 |
-| 📅 Vista de calendario | [ ] | +1 |
-| 🌙 Modo oscuro | [ ] | +0 (incluido) |
-
-⚠️ **Recordatorio**: tienes 15 prompts en el plan inicial. Cada feature opcional reduce margen para lo esencial. **Recomendación: NADA opcional en día 1, evaluar agregar en día 3 si sobra tiempo**.
-
----
-
-### Referencias visuales (opcional pero útil)
-
-- ¿Te gustó algo de Stitch?
-- ¿Apps de fútbol que te gusten visualmente?
-- ¿Colores/fuentes específicos?
-
-____________________
+¿Cómo cargamos los partidos del Mundial 2026?
+- [ ] 🅰️ Que Lovable los genere (riesgo: puede inventar fechas/sedes incorrectas)
+- [ ] 🅱️ **CSV manual desde Supabase** ⭐ (recomendado, más confiable)
+- [ ] 🅲️ Conectar a API deportiva (más complejo, +1 prompt extra)
 
 ---
 
 ## 🟢 YA DECIDIDO (no preguntar de nuevo)
 
-Ver `decisiones-tomadas.md` para la lista completa de lo cerrado.
+Ver `decisiones-tomadas.md` para la lista completa. Highlights:
+
+- ✅ PWA con Lovable + Supabase + Vercel
+- ✅ 8 amigos cerrados, login con PIN
+- ✅ Admin = jugador con permisos extra
+- ✅ Pronósticos privados hasta deadline
+- ✅ Carga manual de resultados por admin
+- ✅ **Sistema de puntuación completo** (escalado por fase + bonus por marcador de riesgo)
+- ✅ **Predicciones especiales pre-mundial** (campeón, finalistas, semifinalistas, goleador, mejor jugador, mejor arquero, mejor joven)
+- ✅ **Regla 90 min en eliminatorias** (sin tiempo extra ni penales)
+- ✅ **Sistema de desempate** (4 criterios escalonados)
+- ✅ Modo oscuro, mobile-first, idioma español, navegación bottom tabs
 
 ---
 
 ## 📝 Formato sugerido para responder
 
-Cuando quieras responder a Kira en próxima sesión, este es el copy/paste:
+Cuando quieras responder, copiá esto y completá:
 
 ```
 1. NOMBRE: ____________
 2. ESTÉTICA: ____________
-3. TONO: ____________
-4. JUGADORES:
+3. JUGADORES: A (van los nombres) / B (placeholders)
+   Si A:
    1. ____________ (admin)
    2-8. ____________
-5. PINs: A / B / C
-6. PUNTUACIÓN:
-   - Exacto: __
-   - Ganador+dif: __
-   - Solo ganador: __
-   - Empate: __
-   - Empate exacto: __
-   - Bonus campeón: __
-   - Bonus finalistas: __
-7. DEADLINE: __ minutos
-8. FIXTURE: A / B / C
-9. FASES: solo grupos / completo
-10. IDIOMA: __ / ZONA HORARIA: GMT__
-11. FEATURES OPCIONALES: ninguna / [listar]
-12. REFERENCIAS: ____________
+4. ZONA HORARIA: GMT-___
+5. DEADLINE: __ minutos
+6. FIXTURE: A (Lovable) / B (CSV manual) / C (API)
 ```
 
 ---
 
-## 🚨 Mínimos absolutos para empezar
+## 🚨 Mínimos absolutos para arrancar
 
-Si no hay tiempo de responder todo, lo CRÍTICO es:
-1. ✅ Nombre de la app
-2. ✅ Estética (al menos opción de lista)
-3. ✅ Sistema de puntuación (provisional ok)
-4. ✅ Si los nombres son reales o placeholder
+Si querés arrancar HOY con lo mínimo, lo crítico es:
+1. ✅ Nombre (1 palabra alcanza)
+2. ✅ Estética (1 opción de las 5)
+3. ✅ Jugadores: A o B
+4. ✅ Zona horaria
+
+El resto (deadline, fixture) puede ir con defaults (15 min / CSV manual).

@@ -1,0 +1,84 @@
+Agrega un wizard obligatorio de bienvenida que se muestra automáticamente la primera vez que cada usuario inicia sesión. Hasta que no lo complete, NO puede acceder a las tabs principales.
+
+COMPORTAMIENTO
+- Al hacer login, verificar el campo usuarios.onboarding_completado:
+  - Si es false → mostrar wizard (en lugar de las tabs principales)
+  - Si es true → mostrar tabs normales
+- Una vez completado el wizard, marcar onboarding_completado = true y crear el registro en predicciones_especiales
+
+ESTILO DEL WIZARD
+- Pantalla completa, fondo negro puro #000000
+- Card central con fondo #0F0F0F y padding generoso
+- Barra de progreso arriba (8 pasos, color rojo #E3000F sobre fondo #1F1F1F)
+- Botones "Anterior" y "Siguiente" abajo
+  - "Siguiente" rojo #E3000F (deshabilitado hasta completar el paso actual)
+  - "Anterior" outline blanco
+- Animación suave de transición entre pasos (fade o slide horizontal)
+- Tipografía Inter, títulos 24px bold, subtítulos 14px gris #9CA3AF
+
+LISTA DE LAS 48 SELECCIONES DEL MUNDIAL 2026
+
+Usa esta lista para los selectores de campeón / finalistas / semifinalistas:
+
+Argentina, Australia, Austria, Bélgica, Brasil, Camerún, Canadá, Chile, Colombia, Corea del Sur, Costa de Marfil, Costa Rica, Croacia, Dinamarca, Ecuador, Egipto, El Salvador, Escocia, España, Estados Unidos, Francia, Gales, Ghana, Holanda, Inglaterra, Irán, Italia, Jamaica, Japón, Marruecos, México, Nigeria, Noruega, Panamá, Paraguay, Perú, Polonia, Portugal, Qatar, República Checa, Senegal, Serbia, Suecia, Suiza, Turquía, Ucrania, Uruguay, Venezuela
+
+LOS 8 PASOS DEL WIZARD
+
+Paso 1: Seudónimo (opcional)
+- Título: "¿Cómo querés que te llamen en la tabla?"
+- Input de texto (max 20 caracteres)
+- Placeholder: "Tu seudónimo (o dejá vacío para usar tu nombre real)"
+- Texto pequeño: "Si lo dejás vacío, te van a ver como [nombre real]"
+
+Paso 2: Campeón del Mundo (30 pts)
+- Título: "¿Quién será el Campeón del Mundo?"
+- Dropdown searchable con las 48 selecciones (con bandera circular al lado de cada nombre)
+- Subtexto: "Acertar el campeón = 30 puntos"
+
+Paso 3: Finalistas (hasta 20 pts)
+- Título: "¿Quiénes serán los 2 finalistas?"
+- 2 dropdowns searchable con bandera (no se puede repetir selección)
+- Subtexto: "Acertar 1 = 5 pts | Acertar los 2 = 20 pts"
+
+Paso 4: Semifinalistas (hasta 15 pts)
+- Título: "¿Quiénes serán los 4 semifinalistas?"
+- 4 dropdowns searchable con bandera (no se puede repetir)
+- Subtexto: "1 acierto = 2 pts | 2 = 5 pts | 3 = 10 pts | 4 = 15 pts"
+
+Paso 5: Goleador del Mundial (10 pts)
+- Título: "¿Quién será el goleador del Mundial?"
+- Input de texto libre (placeholder: "Ej: Lionel Messi")
+- Subtexto: "Texto libre. El admin asignará puntos manualmente al final del torneo."
+
+Paso 6: Mejor Jugador del Mundial (10 pts)
+- Título: "¿Quién será el Mejor Jugador?"
+- Input de texto libre
+
+Paso 7: Mejor Arquero (10 pts)
+- Título: "¿Quién será el Mejor Arquero?"
+- Input de texto libre
+
+Paso 8: Mejor Jugador Joven (10 pts)
+- Título: "¿Quién será el Mejor Jugador Joven?"
+- Input de texto libre
+- Subtexto: "Jugadores nacidos en 2005 o después"
+
+PANTALLA FINAL (post-paso 8)
+- Animación de éxito (confetti o checkmark grande)
+- Título: "¡Listo, [seudónimo]! Tus predicciones quedaron registradas"
+- Resumen de las 8 predicciones en lista (con banderas circulares donde aplique)
+- Texto: "Estas predicciones quedan bloqueadas al iniciar el primer partido del Mundial."
+- Botón rojo "Empezar a pronosticar"
+
+AL HACER SUBMIT FINAL
+- INSERT en tabla predicciones_especiales
+- UPDATE usuarios.seudonimo con el valor del Paso 1 (si no vacío)
+- UPDATE usuarios.onboarding_completado = true
+- Redirigir a la pantalla principal (tab Partidos)
+
+IMPORTANTE
+- El wizard debe ser imposible de cerrar (sin botón X, sin atajos)
+- Si recargo la página a mitad de wizard, debe arrancar de cero (no guardar progreso parcial)
+- Validar que todos los campos obligatorios estén completos antes de submit final
+- Mobile-first: que se vea bien en 360px
+- Mantener consistencia con la estética OneFootball del Prompt 1 (minimalismo, fondo negro, outline blanco en pills)

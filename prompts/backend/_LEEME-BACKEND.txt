@@ -1,50 +1,84 @@
 PROMPTS DE BACKEND - LA TORMENTA MUNDIAL 2026
 ==============================================
 
-A DIFERENCIA DE LOS PROMPTS DE FRONTEND (Lovable), ESTOS VAN AL SQL EDITOR DE SUPABASE.
+ESTOS PROMPTS VAN AL SQL EDITOR DE SUPABASE, NO A LOVABLE.
 
 DONDE ENCONTRAR EL SQL EDITOR:
 1. Entrá a https://supabase.com y loguéate.
 2. Abrí tu proyecto.
-3. En el menú lateral izquierdo, click en "SQL Editor".
+3. Menú lateral izquierdo → click en "SQL Editor".
 4. Click en "+ New query" arriba a la derecha.
-5. Pegá el contenido del .sql correspondiente.
+5. Pegá el contenido del .sql.
 6. Click en "Run" (o Ctrl+Enter).
-7. Validá que no haya errores en el panel de abajo.
+7. Verificá que no haya errores abajo.
 
+======================================================
+ORDEN COMPLETO DE TODO LO QUE HAY QUE HACER EN SUPABASE
+======================================================
 
-ORDEN OBLIGATORIO:
+PASO B0 → B0-schema-extras.sql
+   QUÉ HACE: agrega columnas de avatar (4 URLs por jugador) y crea
+             la tabla "configuracion" para el toggle de predicciones.
+   CUÁNDO:   después del Prompt 1 de Lovable, ANTES del Prompt 6 de Lovable.
+   DÓNDE:    SQL Editor
 
-B1 → prompt-6.sql          → Función SQL para calcular puntos + Trigger automático
-B2 → prompt-7.sql          → Políticas de seguridad RLS + Índices + Realtime
-B3 → prompt-8-fixture-csv.md → Guía para cargar el fixture (104 partidos) desde CSV
+PASO B1 → prompt-6.sql
+   QUÉ HACE: función SQL para calcular puntos automáticamente + trigger
+             que se dispara cuando el admin finaliza un partido.
+   CUÁNDO:   después del Prompt 1 de Lovable. Idealmente mientras
+             Lovable ejecuta el Prompt 5 o 6.
+   DÓNDE:    SQL Editor
+   TESTS:    ver prompt-6-calculo-puntos.md para validar.
 
+PASO B2 → prompt-7.sql
+   QUÉ HACE: habilita RLS en todas las tablas, crea índices de
+             performance, habilita Realtime, crea vista usuarios_publica
+             (sin exponer pin_hash).
+   CUÁNDO:   después del Prompt 1 de Lovable. Antes de invitar amigos.
+   DÓNDE:    SQL Editor
+   TESTS:    ver prompt-7-rls-seguridad.md para validar.
 
-CUÁNDO EJECUTAR CADA UNO:
+PASO B3 → fixture-mundial-2026.csv (+ guía en prompt-8-fixture-csv.md)
+   QUÉ HACE: carga los 104 partidos del Mundial 2026 en la tabla partidos.
+   CUÁNDO:   después de B1 y B2.
+   DÓNDE:    Table Editor → tabla "partidos" → Import CSV
+   IMPORTANTE: el archivo fixture-mundial-2026.csv tiene la estructura
+               correcta pero muchos partidos dicen "Por definir". Completar
+               con el calendario oficial de https://www.fifa.com/worldcup
+               ANTES de importar.
 
-B1 (prompt-6.sql) → Ejecutar DESPUÉS del frontend Prompt 1 (necesita las tablas creadas).
-                    Ejecutar ANTES de cargar el fixture.
-                    Idealmente: mientras Lovable ejecuta el Prompt 5 o 6.
+PASO B4 → guia-storage-avatares.md
+   QUÉ HACE: guía para subir las 32 fotos de avatares a Supabase Storage
+             y obtener las URLs para pegarlas en el panel admin de la app.
+   CUÁNDO:   después del Prompt 6 de Lovable.
+   DÓNDE:    Storage (menú lateral de Supabase)
 
-B2 (prompt-7.sql) → En cualquier momento después del frontend Prompt 1.
-                    Recomendado: ANTES de invitar a los amigos.
+======================================================
+FLUJO RECOMENDADO (combinando Lovable + Supabase)
+======================================================
 
-B3 (fixture)      → Después de B1 y B2. Ver instrucciones en el .md.
-                    Completar fixture-template.csv con el calendario oficial de FIFA.
+  Lovable: Prompt 5 (admin + PWA) → ejecutar y esperar
+     ↓ mientras Lovable trabaja:
+  Supabase: B0 (schema extras) → Run
+  Supabase: B1 (cálculo puntos) → Run + tests
+  Supabase: B2 (RLS + realtime) → Run + tests
+     ↓
+  Lovable: Prompt 6 (puntos en vivo + avatares + toggle) → ejecutar
+     ↓
+  Supabase: Storage → crear bucket "avatares" → subir 32 fotos
+  App (panel admin): pegar URLs de avatares por jugador
+  Supabase: Table Editor → importar fixture-mundial-2026.csv
+     ↓
+  TEST END-TO-END: partido de prueba con marcador + verificar puntos
+     ↓
+  LANZAMIENTO: compartir URL a los 7 amigos con PIN 1234
 
+======================================================
+NOTAS IMPORTANTES
+======================================================
 
-NOTAS IMPORTANTES:
-
-- Los SQL son IDEMPOTENTES (podés ejecutarlos varias veces sin romper nada).
-- B1 incluye tests SQL para verificar que el cálculo de puntos es correcto.
-- B3 incluye el template CSV vacío (fixture-template.csv) y un ejemplo (fixture-ejemplo.csv).
-- NO ejecutes los .sql en producción sin antes leer el .md de guía asociado.
-- Si algo se rompe, screenshot del error y consultar a Kira.
-
-
-NOTA SOBRE NUMERACIÓN:
-
-Los archivos se llaman prompt-6.sql y prompt-7.sql por razones históricas.
-En el plan actual son los PROMPTS DE BACKEND B1 y B2.
-Los prompts de frontend son del 1 al 6 (en Lovable).
-No confundir.
+- Los SQL son IDEMPOTENTES: ejecutarlos varias veces no rompe nada.
+- Si algo da error, capturá el mensaje y consultá a Kira.
+- Las banderas de los países las maneja Lovable automáticamente
+  con la librería flag-icons. Solo necesitás el código ISO en el CSV.
+- Tabla de códigos ISO de las 48 selecciones: ver prompt-8-fixture-csv.md

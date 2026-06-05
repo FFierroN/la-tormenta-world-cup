@@ -14,9 +14,11 @@
 | 4 | `txt/prompt-4.txt` | Tabla posiciones + Mi cuenta | ✅ EJECUTADO |
 | 5 | `txt/prompt-5.txt` | Panel admin + PWA + Pulido final | ⏳ PENDIENTE |
 | 6 | `txt/prompt-6.txt` | Puntos en vivo + Toggle predicciones + Avatares | ⏳ PENDIENTE |
+| B0 | `backend/B0-schema-extras.sql` | SQL: Avatar columns + tabla configuracion | ⏳ PENDIENTE |
 | B1 | `backend/prompt-6.sql` | SQL: Cálculo automático de puntos + Trigger | ⏳ PENDIENTE |
 | B2 | `backend/prompt-7.sql` | SQL: RLS + Realtime + Índices de performance | ⏳ PENDIENTE |
-| B3 | `backend/prompt-8-fixture-csv.md` | Carga fixture: 104 partidos del Mundial | ⏳ PENDIENTE |
+| B3 | `backend/fixture-mundial-2026.csv` | Fixture: 104 partidos (completar con FIFA oficial) | ⏳ PENDIENTE |
+| B4 | `backend/guia-storage-avatares.md` | Storage: subir 32 fotos + pegar URLs en admin | ⏳ PENDIENTE |
 
 ---
 
@@ -32,26 +34,33 @@
 ## 🎯 Flujo de trabajo recomendado
 
 ```
-LOVABLE (frontend):
+LOVABLE:
   → Prompt 5 (panel admin + PWA + pulido)
   → Prompt 6 (puntos en vivo + avatares + toggle predicciones)
 
-MIENTRAS LOVABLE TRABAJA → ir a Supabase:
-  → backend/prompt-6.sql (cálculo de puntos - CRÍTICO)
-  → backend/prompt-7.sql (RLS + realtime + índices)
+MIENTRAS LOVABLE TRABAJA → Supabase SQL Editor:
+  → B0: B0-schema-extras.sql     (avatar cols + tabla configuracion)
+  → B1: prompt-6.sql             (cálculo de puntos - CRÍTICO)
+  → B2: prompt-7.sql             (RLS + realtime + índices)
 
-DATOS:
-  → Subir 32 fotos de avatares a Supabase Storage
-  → Pegar URLs en panel admin de la app
-  → Completar fixture-template.csv con 104 partidos del Mundial
-  → Importar CSV en Supabase
+SUPABASE STORAGE:
+  → Crear bucket "avatares" (público)
+  → Subir las 32 fotos de avatares
+  → Seguir guia-storage-avatares.md
 
-PRUEBA:
-  → Test end-to-end con partido de prueba
-  → Verificar cálculo de puntos con el SQL de test del backend/prompt-6-calculo-puntos.md
+APP (panel admin):
+  → Pegar las 4 URLs de avatar por cada jugador
+
+SUPABASE TABLE EDITOR:
+  → Completar fixture-mundial-2026.csv con calendario oficial de FIFA
+  → Importar CSV en tabla "partidos"
+
+PRUEBA END-TO-END:
+  → Crear partido de prueba + cargar resultado
+  → Verificar que los puntos se calcularon solos
 
 LANZAMIENTO:
-  → Compartir URL a los 7 amigos con PIN 1234
+  → Compartir URL + PIN 1234 a los 7 amigos por WhatsApp
 ```
 
 ---

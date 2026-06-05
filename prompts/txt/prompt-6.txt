@@ -1,0 +1,131 @@
+Agrega 3 nuevas features a la app. Mantené la estética OneFootball: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, rojo #E3000F solo como acento.
+
+PRIMERO: CAMBIOS EN LA BASE DE DATOS
+
+Ejecutá este SQL en Supabase antes de implementar las features:
+
+ALTER TABLE usuarios
+  ADD COLUMN IF NOT EXISTS avatar_pos1_url TEXT,
+  ADD COLUMN IF NOT EXISTS avatar_pos2_4_url TEXT,
+  ADD COLUMN IF NOT EXISTS avatar_pos5_7_url TEXT,
+  ADD COLUMN IF NOT EXISTS avatar_pos8_url TEXT;
+
+CREATE TABLE IF NOT EXISTS configuracion (
+  clave TEXT PRIMARY KEY,
+  valor TEXT NOT NULL DEFAULT 'false'
+);
+
+INSERT INTO configuracion (clave, valor)
+VALUES ('edicion_predicciones_habilitada', 'false')
+ON CONFLICT (clave) DO NOTHING;
+
+
+FEATURE 1: PUNTOS EN VIVO DURANTE PARTIDOS
+
+En la pantalla de detalle de partido (cuando estado_partido = 'en_vivo' o 'finalizado'), agregar una nueva sección debajo del hero llamada "Pronósticos - ¿Quién acierta?".
+
+Estructura visual de la sección:
+- Título "¿Quién acierta?" con subtítulo "Puntos si terminara ahora"
+- Lista de los 8 jugadores ordenada por puntos en vivo (descendente)
+- Separadores hairline entre filas (sin cards)
+
+Cada fila muestra:
+- Posición actual en este partido (#1, #2, etc.)
+- Avatar del jugador (ver Feature 3 para lógica del avatar)
+- Nombre visible del jugador (seudonimo o nombre_real)
+- Su pronóstico: "2-1"
+- Indicador de acierto vs resultado actual:
+  - Exacto: checkmark verde + "Exacto"
+  - Diferencia correcta: icono objetivo azul + "Diferencia"
+  - Ganador correcto: checkmark blanco + "Ganador"
+  - Errado: X roja + "Errado"
+- Puntos que sacaría si terminara ahora (calcular en el frontend según las reglas):
+  - Exacto en grupos = 6 pts (+ bonus por marcador de riesgo si aplica)
+  - Diferencia en grupos = 4 pts
+  - Ganador en grupos = 2 pts
+  - Errado = 0 pts
+  - Para otras fases: Octavos/Cuartos = 8/6/4, Semis = 10/8/6, Final = 12/10/8
+- Bonus por marcador de riesgo (solo si es exacto):
+  - Marcadores 0-0,1-0,0-1,1-1,2-0,0-2,2-1,1-2 = +0
+  - Marcadores 2-2,3-0,0-3,3-1,1-3 = +1
+  - Marcadores 3-2,2-3,4-0,0-4,4-1,1-4 = +2
+  - Marcadores 4-2 o más extremos = +3
+
+REALTIME de la sección de pronósticos en vivo:
+- Suscribirse a cambios en partidos.resultado_local y resultado_visitante
+- Cuando cambia el marcador, recalcular y re-renderizar los puntos de todos sin recargar la página
+- Animación suave al cambiar los puntos (count-up o fade)
+
+Si el deadline NO pasó aún: mostrar mensaje "Los pronósticos se revelan cuando cierre la edición" y ocultar la lista.
+Si no hay pronósticos todavía: mostrar empty state "Ningún jugador ha pronosticado este partido aún".
+
+
+FEATURE 2: TOGGLE PARA EDITAR PREDICCIONES ESPECIALES
+
+En el panel Admin, dentro del sub-tab "Predicciones especiales", agregar arriba de todo un toggle switch prominente:
+
+Título: "Edición de predicciones especiales"
+Subtítulo: "Cuando está activo, los jugadores pueden modificar sus picks de campeón, finalistas, etc."
+Switch: ON / OFF (leer y escribir en tabla configuracion, clave = 'edicion_predicciones_habilitada')
+
+Cuando el switch está ON:
+- Guardá valor = 'true' en configuracion
+- Toast: "Edición habilitada. Los jugadores ya pueden modificar sus predicciones."
+
+Cuando el switch está OFF:
+- Guardá valor = 'false' en configuracion
+- Toast: "Edición cerrada. Las predicciones están bloqueadas."
+
+En la pantalla "Mi cuenta" de cada jugador:
+- Leer el valor de configuracion donde clave = 'edicion_predicciones_habilitada'
+- Si valor = 'true': mostrar botón rojo "Editar mis predicciones especiales"
+  - Al tocar: abrir el mismo wizard de 8 pasos del onboarding (pero pre-cargado con sus valores actuales y con botón "Guardar cambios" en lugar de "Siguiente" en el paso final)
+  - Al guardar: UPDATE en predicciones_especiales con los nuevos valores
+- Si valor = 'false': mostrar solo la card de lectura de sus predicciones (comportamiento actual)
+
+Importante: si el partido ya inició (hay algún partido con estado_partido != 'pendiente'), el toggle del admin debe mostrar una advertencia en rojo: "El torneo ya comenzó. Modificar predicciones puede afectar la integridad del juego." pero igual debe poder togglearse.
+
+
+FEATURE 3: AVATARES DINÁMICOS POR POSICIÓN
+
+Crear un componente Avatar reutilizable que muestre la foto correcta según la posición actual del jugador en la tabla general.
+
+Lógica de qué foto mostrar:
+- Posición 1 → avatar_pos1_url
+- Posición 2, 3 o 4 → avatar_pos2_4_url
+- Posición 5, 6 o 7 → avatar_pos5_7_url
+- Posición 8 → avatar_pos8_url
+
+Si una URL está vacía o no cargó: usar fallback con la inicial del nombre sobre fondo rojo #E3000F (comportamiento actual).
+
+El componente Avatar recibe: usuario_id, nombre_visible, posicion_actual, tamaño (sm/md/lg).
+
+Tamaños:
+- sm (32px): usado en lista de partidos y filas de pronósticos
+- md (48px): usado en tabla de posiciones y sección "¿Quién acierta?"
+- lg (80px): usado en header de "Mi cuenta" y detalle de jugador
+
+El avatar es SIEMPRE circular.
+
+Usar este componente en:
+- Tabla de posiciones (md)
+- Header de "Mi cuenta" (lg) — mostrar el avatar de la posición actual del usuario logueado
+- Sección "¿Quién acierta?" del partido en vivo (md)
+- Pantalla de detalle de jugador (lg)
+
+En el panel Admin, dentro del sub-tab "Jugadores", agregar para cada jugador 4 inputs de texto (URLs):
+- "Avatar posición 1": input tipo URL, placeholder "https://..."
+- "Avatar posiciones 2-4": input tipo URL, placeholder "https://..."
+- "Avatar posiciones 5-7": input tipo URL, placeholder "https://..."
+- "Avatar posición 8": input tipo URL, placeholder "https://..."
+- Botón "Guardar avatares" por jugador
+- Al guardar: UPDATE en usuarios con las 4 URLs
+- Preview del avatar al lado del input si la URL es válida (imagen circular 40px)
+- Toast: "Avatares de [nombre] guardados"
+
+IMPORTANTE
+- NO romper nada de lo que ya funciona
+- El componente Avatar debe reemplazar todos los avatares de inicial que existen actualmente
+- Los cálculos de puntos en vivo son SOLO frontend (no escribir a DB, solo calcular y mostrar)
+- Mobile-first, tap targets mínimo 44x44px
+- Comentarios en español

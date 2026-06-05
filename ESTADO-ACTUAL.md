@@ -17,12 +17,13 @@
 - ✅ Estética OneFootball validada con screenshots reales
 - ✅ Vista por fecha + vista por grupo confirmada
 
-### Frontend Prompts (5 redactados, 3 ejecutados en Lovable)
+### Frontend Prompts (6 redactados, 4 ejecutados en Lovable)
 - ✅ Prompt 1 — Setup + Design + Login → **EJECUTADO**
 - ✅ Prompt 2 — Wizard predicciones → **EJECUTADO**
 - ✅ Prompt 3 — Lista partidos + Pronóstico + Timeline → **EJECUTADO**
-- ⏳ Prompt 4 — Tabla posiciones + Mi cuenta → **PENDIENTE**
+- ✅ Prompt 4 — Tabla posiciones + Mi cuenta → **EJECUTADO**
 - ⏳ Prompt 5 — Panel admin + PWA + Pulido → **PENDIENTE**
+- ⏳ Prompt 6 — Puntos en vivo + Toggle predicciones + Avatares dinámicos → **PENDIENTE**
 
 ### Backend Prompts (3 redactados, 0 ejecutados en Supabase)
 - ⏳ Prompt 6 — Cálculo de puntos (SQL + Trigger) → **PENDIENTE**
@@ -31,18 +32,18 @@
 
 ---
 
-## 🚦 Próximos pasos para mañana (en orden)
+## 🚦 Próximos pasos (en orden)
 
-1. **Esperar reseteo de Lovable** (límite diario, vuelve mañana)
-2. **Validar lo que ya quedó en Lovable** con los checklists de `prompts/prompt-*.md`
-3. **Ejecutar Prompt 4** en Lovable (tabla + mi cuenta)
-4. **Ejecutar Prompt 5** en Lovable (admin + PWA + pulido)
-5. **Pausar y pasar a Supabase**:
-   - Ejecutar Prompt 6 (SQL: cálculo de puntos)
-   - Ejecutar Prompt 7 (SQL: RLS + realtime)
-6. **Cargar el fixture real** del Mundial 2026 (Prompt 8)
+1. **Ejecutar Prompt 5** en Lovable (admin + PWA + pulido)
+2. **Ejecutar Prompt 6** en Lovable (puntos en vivo + toggle predicciones + avatares)
+3. **Pausar Lovable y pasar a Supabase**:
+   - Ejecutar Prompt 6 SQL (cálculo de puntos + trigger)
+   - Ejecutar Prompt 7 SQL (RLS + realtime + índices)
+4. **Subir 32 fotos de avatares** a Supabase Storage (8 jugadores × 4 avatares)
+5. **Pegar URLs de avatares** en el panel admin de la app
+6. **Cargar el fixture real** del Mundial 2026 (Prompt 8 CSV)
 7. **Probar end-to-end** con un partido de prueba
-8. **Invitar a los 7 amigos** vía WhatsApp con la URL + PIN inicial
+8. **Invitar a los 7 amigos** vía WhatsApp con URL + PIN `1234`
 
 ---
 

@@ -1,45 +1,50 @@
 PROMPTS DE BACKEND - LA TORMENTA MUNDIAL 2026
 ==============================================
 
-A DIFERENCIA DE LOS PROMPTS DE FRONTEND, ESTOS NO VAN A LOVABLE.
-ESTOS VAN AL SQL EDITOR DE SUPABASE.
+A DIFERENCIA DE LOS PROMPTS DE FRONTEND (Lovable), ESTOS VAN AL SQL EDITOR DE SUPABASE.
 
 DONDE ENCONTRAR EL SQL EDITOR:
 1. Entrá a https://supabase.com y loguéate.
 2. Abrí tu proyecto.
-3. En el menú lateral izquierdo, click en el icono "SQL Editor" (parece un cuaderno con < >).
+3. En el menú lateral izquierdo, click en "SQL Editor".
 4. Click en "+ New query" arriba a la derecha.
 5. Pegá el contenido del .sql correspondiente.
 6. Click en "Run" (o Ctrl+Enter).
 7. Validá que no haya errores en el panel de abajo.
 
 
-ORDEN OBLIGATORIO (los prompts dependen entre sí):
+ORDEN OBLIGATORIO:
 
-prompt-6.sql → Función SQL para calcular puntos + Trigger automático
-prompt-7.sql → Políticas de seguridad (RLS)
-prompt-8.md  → Guía para cargar el fixture (104 partidos) desde CSV
+B1 → prompt-6.sql          → Función SQL para calcular puntos + Trigger automático
+B2 → prompt-7.sql          → Políticas de seguridad RLS + Índices + Realtime
+B3 → prompt-8-fixture-csv.md → Guía para cargar el fixture (104 partidos) desde CSV
 
 
 CUÁNDO EJECUTAR CADA UNO:
 
-prompt-6.sql → Después del Prompt 1 del frontend (necesita las tablas creadas).
-               IMPORTANTE: ejecutalo ANTES de cargar el fixture, así los triggers están listos.
+B1 (prompt-6.sql) → Ejecutar DESPUÉS del frontend Prompt 1 (necesita las tablas creadas).
+                    Ejecutar ANTES de cargar el fixture.
+                    Idealmente: mientras Lovable ejecuta el Prompt 5 o 6.
 
-prompt-7.sql → En cualquier momento después del Prompt 1 del frontend.
-               Recomendado: ANTES de invitar a los amigos a usar la app.
+B2 (prompt-7.sql) → En cualquier momento después del frontend Prompt 1.
+                    Recomendado: ANTES de invitar a los amigos.
 
-prompt-8.md  → Después de prompt-6.sql. Es CSV + instrucciones de import.
-
-
-PROMPTS OPCIONALES (los hacemos si querés después):
-
-prompt-9 → Snapshots del ranking post-jornada (para "evolución histórica" en la app).
-prompt-10 → Notificaciones push (compleja, opcional).
+B3 (fixture)      → Después de B1 y B2. Ver instrucciones en el .md.
+                    Completar fixture-template.csv con el calendario oficial de FIFA.
 
 
-REGLA DE ORO:
+NOTAS IMPORTANTES:
 
-- NO ejecutes los .sql en producción sin antes leer el .md asociado.
-- Si algo se rompe, screenshot del error y consultar a Kira.
 - Los SQL son IDEMPOTENTES (podés ejecutarlos varias veces sin romper nada).
+- B1 incluye tests SQL para verificar que el cálculo de puntos es correcto.
+- B3 incluye el template CSV vacío (fixture-template.csv) y un ejemplo (fixture-ejemplo.csv).
+- NO ejecutes los .sql en producción sin antes leer el .md de guía asociado.
+- Si algo se rompe, screenshot del error y consultar a Kira.
+
+
+NOTA SOBRE NUMERACIÓN:
+
+Los archivos se llaman prompt-6.sql y prompt-7.sql por razones históricas.
+En el plan actual son los PROMPTS DE BACKEND B1 y B2.
+Los prompts de frontend son del 1 al 6 (en Lovable).
+No confundir.

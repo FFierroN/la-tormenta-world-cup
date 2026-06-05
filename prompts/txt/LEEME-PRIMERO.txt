@@ -1,7 +1,8 @@
 PROMPTS PARA LOVABLE - LA TORMENTA MUNDIAL 2026
 =================================================
 
-Esta carpeta tiene los 5 prompts en formato .txt plano.
+Esta carpeta tiene los 6 prompts de FRONTEND en formato .txt plano.
+Los prompts de BACKEND (SQL para Supabase) están en la carpeta /backend/
 
 CÓMO USARLOS:
 1. Abrí el archivo .txt con Bloc de Notas (doble click).
@@ -9,21 +10,34 @@ CÓMO USARLOS:
 3. Ctrl+C para copiar.
 4. Pegá (Ctrl+V) en el chat de Lovable.
 5. Esperá que termine.
-6. Andá al README.md de la carpeta padre y validá con el checklist correspondiente.
+6. Validá que todo funcione antes de pasar al siguiente.
 7. Recién entonces pasá al siguiente prompt.
+
+ESTADO ACTUAL (junio 2026):
+prompt-1.txt → EJECUTADO ✅
+prompt-2.txt → EJECUTADO ✅
+prompt-3.txt → EJECUTADO ✅
+prompt-4.txt → EJECUTADO ✅
+prompt-5.txt → PENDIENTE ⏳
+prompt-6.txt → PENDIENTE ⏳
 
 ORDEN OBLIGATORIO:
 
-prompt-1.txt → Setup + Design System + Login + Navegación + Schema completo
+prompt-1.txt → Setup + Design System OneFootball + Login + Navegación + Schema completo
 prompt-2.txt → Wizard obligatorio de predicciones especiales (8 pasos)
 prompt-3.txt → Lista de partidos (por fecha y por grupo) + Pronóstico + Detalle realtime
 prompt-4.txt → Tabla de posiciones + Mi cuenta
 prompt-5.txt → Panel admin con modo en vivo + PWA + Pulido final
+prompt-6.txt → Puntos en vivo durante partidos + Toggle edición predicciones + Avatares dinámicos por posición
+
+DESPUÉS DE LOS 6 PROMPTS DE LOVABLE → ir a carpeta /backend/
+y ejecutar los prompts SQL en Supabase (ver /backend/_LEEME-BACKEND.txt)
 
 REGLA DE ORO:
 - NO te saltees prompts.
 - NO mezcles prompts.
-- Validá CADA UNO antes de pasar al siguiente.
+- ValidáNO antes de pasar al siguiente.
 - Si algo se rompe, screenshot del error y consultar a Kira.
+- Las preguntas a Lovable gastan prompts. Las dudas técnicas, consultale a Kira.
 
 Suerte! ⚽⚡

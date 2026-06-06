@@ -1,0 +1,105 @@
+equipo_local,equipo_visitante,codigo_local,codigo_visitante,fecha_hora,fase,grupo,estadio,ciudad
+México,Sudáfrica,MX,ZA,2026-06-11 15:00:00,Grupos,A,Estadio Ciudad de México,Ciudad de México
+República de Corea,Chequia,KR,CZ,2026-06-11 22:00:00,Grupos,A,Estadio Guadalajara,Guadalajara
+Canadá,Bosnia y Herzegovina,CA,BA,2026-06-12 15:00:00,Grupos,B,Estadio Toronto,Toronto
+Estados Unidos,Paraguay,US,PY,2026-06-12 21:00:00,Grupos,D,Estadio Los Ángeles,Los Ángeles
+Catar,Suiza,QA,CH,2026-06-13 15:00:00,Grupos,B,Estadio Bahía de San Francisco,Área de la Bahía
+Brasil,Marruecos,BR,MA,2026-06-13 18:00:00,Grupos,C,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey
+Haití,Escocia,HT,GB-SCT,2026-06-13 21:00:00,Grupos,C,Estadio Boston,Boston
+Australia,Turquía,AU,TR,2026-06-13 23:59:00,Grupos,D,Estadio BC Place Vancouver,Vancouver
+Alemania,Curazao,DE,CW,2026-06-14 13:00:00,Grupos,E,Estadio Houston,Houston
+Países Bajos,Japón,NL,JP,2026-06-14 16:00:00,Grupos,F,Estadio Dallas,Dallas
+Costa de Marfil,Ecuador,CI,EC,2026-06-14 19:00:00,Grupos,E,Estadio Filadelfia,Filadelfia
+Suecia,Túnez,SE,TN,2026-06-14 22:00:00,Grupos,F,Estadio Monterrey,Monterrey
+España,Cabo Verde,ES,CV,2026-06-15 12:00:00,Grupos,H,Estadio Atlanta,Atlanta
+Bélgica,Egipto,BE,EG,2026-06-15 15:00:00,Grupos,G,Estadio Seattle,Seattle
+Arabia Saudí,Uruguay,SA,UY,2026-06-15 18:00:00,Grupos,H,Estadio Miami,Miami
+RI de Irán,Nueva Zelanda,IR,NZ,2026-06-15 21:00:00,Grupos,G,Estadio Los Ángeles,Los Ángeles
+Francia,Senegal,FR,SN,2026-06-16 15:00:00,Grupos,I,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey
+Irak,Noruega,IQ,NO,2026-06-16 18:00:00,Grupos,I,Estadio Boston,Boston
+Argentina,Argelia,AR,DZ,2026-06-16 21:00:00,Grupos,J,Estadio Kansas City,Kansas City
+Austria,Jordania,AT,JO,2026-06-16 23:59:00,Grupos,J,Estadio Bahía de San Francisco,Área de la Bahía
+Portugal,RD Congo,PT,CD,2026-06-17 13:00:00,Grupos,K,Estadio Houston,Houston
+Inglaterra,Croacia,GB-ENG,HR,2026-06-17 16:00:00,Grupos,L,Estadio Dallas,Dallas
+Ghana,Panamá,GH,PA,2026-06-17 19:00:00,Grupos,L,Estadio Toronto,Toronto
+Uzbekistán,Colombia,UZ,CO,2026-06-17 22:00:00,Grupos,K,Estadio Ciudad de México,Ciudad de México
+Chequia,Sudáfrica,CZ,ZA,2026-06-18 12:00:00,Grupos,A,Estadio Atlanta,Atlanta
+Por definir,Por definir,XX,XX,2026-06-18 13:00:00,Grupos,B,Estadio Kansas City,Kansas City
+Por definir,Por definir,XX,XX,2026-06-18 13:00:00,Grupos,C,Estadio Atlanta,Atlanta
+México,República de Corea,MX,KR,2026-06-18 21:00:00,Grupos,A,Estadio Guadalajara,Guadalajara
+Brasil,Haití,BR,HT,2026-06-19 21:00:00,Grupos,C,Estadio Filadelfia,Filadelfia
+Escocia,Marruecos,GB-SCT,MA,2026-06-19 18:00:00,Grupos,C,Estadio Boston,Boston
+Turquía,Paraguay,TR,PY,2026-06-19 23:59:00,Grupos,D,Estadio Bahía de San Francisco,Área de la Bahía
+Estados Unidos,Australia,US,AU,2026-06-19 15:00:00,Grupos,D,Estadio Seattle,Seattle
+Por definir,Por definir,XX,XX,2026-06-18 19:00:00,Grupos,I,Estadio Guadalajara,Guadalajara
+Por definir,Por definir,XX,XX,2026-06-18 16:00:00,Grupos,J,Estadio Monterrey,Monterrey
+Por definir,Por definir,XX,XX,2026-06-18 16:00:00,Grupos,K,Estadio Toronto,Toronto
+Por definir,Por definir,XX,XX,2026-06-18 16:00:00,Grupos,L,Estadio Vancouver,Vancouver
+Por definir,Por definir,XX,XX,2026-06-19 13:00:00,Grupos,A,Estadio Los Ángeles,Los Ángeles
+Por definir,Por definir,XX,XX,2026-06-19 13:00:00,Grupos,B,Estadio Bahía de San Francisco,Área de la Bahía
+Por definir,Por definir,XX,XX,2026-06-19 22:00:00,Grupos,C,Estadio Seattle,Seattle
+Por definir,Por definir,XX,XX,2026-06-19 13:00:00,Grupos,D,Estadio Houston,Houston
+Por definir,Por definir,XX,XX,2026-06-20 13:00:00,Grupos,E,Estadio Dallas,Dallas
+Por definir,Por definir,XX,XX,2026-06-20 13:00:00,Grupos,F,Estadio Kansas City,Kansas City
+Por definir,Por definir,XX,XX,2026-06-20 16:00:00,Grupos,G,Estadio Atlanta,Atlanta
+Por definir,Por definir,XX,XX,2026-06-20 16:00:00,Grupos,H,Estadio Miami,Miami
+Por definir,Por definir,XX,XX,2026-06-21 13:00:00,Grupos,I,Estadio Boston,Boston
+Por definir,Por definir,XX,XX,2026-06-21 16:00:00,Grupos,J,Estadio Filadelfia,Filadelfia
+Por definir,Por definir,XX,XX,2026-06-21 22:00:00,Grupos,K,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey
+Por definir,Por definir,XX,XX,2026-06-21 16:00:00,Grupos,L,Estadio Ciudad de México,Ciudad de México
+Por definir,Por definir,XX,XX,2026-06-22 22:00:00,Grupos,A,Estadio Guadalajara,Guadalajara
+Por definir,Por definir,XX,XX,2026-06-22 19:00:00,Grupos,B,Estadio Monterrey,Monterrey
+Por definir,Por definir,XX,XX,2026-06-22 13:00:00,Grupos,C,Estadio Toronto,Toronto
+Por definir,Por definir,XX,XX,2026-06-22 16:00:00,Grupos,D,Estadio Vancouver,Vancouver
+Por definir,Por definir,XX,XX,2026-06-23 22:00:00,Grupos,E,Estadio Los Ángeles,Los Ángeles
+Por definir,Por definir,XX,XX,2026-06-23 19:00:00,Grupos,F,Estadio Bahía de San Francisco,Área de la Bahía
+Por definir,Por definir,XX,XX,2026-06-23 19:00:00,Grupos,G,Estadio Seattle,Seattle
+Por definir,Por definir,XX,XX,2026-06-23 16:00:00,Grupos,H,Estadio Houston,Houston
+Por definir,Por definir,XX,XX,2026-06-24 16:00:00,Grupos,I,Estadio Dallas,Dallas
+Por definir,Por definir,XX,XX,2026-06-24 19:00:00,Grupos,J,Estadio Kansas City,Kansas City
+Por definir,Por definir,XX,XX,2026-06-24 13:00:00,Grupos,K,Estadio Atlanta,Atlanta
+Por definir,Por definir,XX,XX,2026-06-24 13:00:00,Grupos,L,Estadio Miami,Miami
+Por definir,Por definir,XX,XX,2026-06-25 22:00:00,Grupos,A,Estadio Boston,Boston
+Por definir,Por definir,XX,XX,2026-06-25 13:00:00,Grupos,B,Estadio Filadelfia,Filadelfia
+Por definir,Por definir,XX,XX,2026-06-25 19:00:00,Grupos,C,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey
+Por definir,Por definir,XX,XX,2026-06-25 19:00:00,Grupos,D,Estadio Ciudad de México,Ciudad de México
+Por definir,Por definir,XX,XX,2026-06-26 19:00:00,Grupos,E,Estadio Guadalajara,Guadalajara
+Por definir,Por definir,XX,XX,2026-06-26 13:00:00,Grupos,F,Estadio Monterrey,Monterrey
+Por definir,Por definir,XX,XX,2026-06-26 22:00:00,Grupos,G,Estadio Toronto,Toronto
+Por definir,Por definir,XX,XX,2026-06-26 13:00:00,Grupos,H,Estadio Vancouver,Vancouver
+Por definir,Por definir,XX,XX,2026-06-27 22:00:00,Grupos,I,Estadio Los Ángeles,Los Ángeles
+Por definir,Por definir,XX,XX,2026-06-27 13:00:00,Grupos,J,Estadio Bahía de San Francisco,Área de la Bahía
+Por definir,Por definir,XX,XX,2026-06-27 19:00:00,Grupos,K,Estadio Seattle,Seattle
+Por definir,Por definir,XX,XX,2026-06-27 19:00:00,Grupos,L,Estadio Houston,Houston
+Por definir,Por definir,XX,XX,2026-06-28 21:00:00,Dieciseisavos,,Estadio Dallas,Dallas
+Por definir,Por definir,XX,XX,2026-06-28 14:00:00,Dieciseisavos,,Estadio Kansas City,Kansas City
+Por definir,Por definir,XX,XX,2026-06-28 21:00:00,Dieciseisavos,,Estadio Atlanta,Atlanta
+Por definir,Por definir,XX,XX,2026-06-29 14:00:00,Dieciseisavos,,Estadio Miami,Miami
+Por definir,Por definir,XX,XX,2026-06-29 14:00:00,Dieciseisavos,,Estadio Boston,Boston
+Por definir,Por definir,XX,XX,2026-06-29 21:00:00,Dieciseisavos,,Estadio Filadelfia,Filadelfia
+Por definir,Por definir,XX,XX,2026-06-30 14:00:00,Dieciseisavos,,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey
+Por definir,Por definir,XX,XX,2026-06-30 17:00:00,Dieciseisavos,,Estadio Ciudad de México,Ciudad de México
+Por definir,Por definir,XX,XX,2026-06-30 14:00:00,Dieciseisavos,,Estadio Guadalajara,Guadalajara
+Por definir,Por definir,XX,XX,2026-07-01 14:00:00,Dieciseisavos,,Estadio Monterrey,Monterrey
+Por definir,Por definir,XX,XX,2026-07-01 14:00:00,Dieciseisavos,,Estadio Toronto,Toronto
+Por definir,Por definir,XX,XX,2026-07-01 17:00:00,Dieciseisavos,,Estadio Vancouver,Vancouver
+Por definir,Por definir,XX,XX,2026-07-02 17:00:00,Dieciseisavos,,Estadio Los Ángeles,Los Ángeles
+Por definir,Por definir,XX,XX,2026-07-02 17:00:00,Dieciseisavos,,Estadio Bahía de San Francisco,Área de la Bahía
+Por definir,Por definir,XX,XX,2026-07-02 21:00:00,Dieciseisavos,,Estadio Seattle,Seattle
+Por definir,Por definir,XX,XX,2026-07-03 17:00:00,Dieciseisavos,,Estadio Houston,Houston
+Por definir,Por definir,XX,XX,2026-07-04 16:00:00,Octavos,,Estadio Dallas,Dallas
+Por definir,Por definir,XX,XX,2026-07-04 20:00:00,Octavos,,Estadio Kansas City,Kansas City
+Por definir,Por definir,XX,XX,2026-07-05 20:00:00,Octavos,,Estadio Atlanta,Atlanta
+Por definir,Por definir,XX,XX,2026-07-05 16:00:00,Octavos,,Estadio Miami,Miami
+Por definir,Por definir,XX,XX,2026-07-06 20:00:00,Octavos,,Estadio Boston,Boston
+Por definir,Por definir,XX,XX,2026-07-06 16:00:00,Octavos,,Estadio Filadelfia,Filadelfia
+Por definir,Por definir,XX,XX,2026-07-07 16:00:00,Octavos,,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey
+Por definir,Por definir,XX,XX,2026-07-07 16:00:00,Octavos,,Estadio Ciudad de México,Ciudad de México
+Por definir,Por definir,XX,XX,2026-07-09 20:00:00,Cuartos,,Estadio Guadalajara,Guadalajara
+Por definir,Por definir,XX,XX,2026-07-10 16:00:00,Cuartos,,Estadio Monterrey,Monterrey
+Por definir,Por definir,XX,XX,2026-07-11 20:00:00,Cuartos,,Estadio Toronto,Toronto
+Por definir,Por definir,XX,XX,2026-07-12 16:00:00,Cuartos,,Estadio Vancouver,Vancouver
+Por definir,Por definir,XX,XX,2026-07-14 20:00:00,Semifinales,,Estadio Dallas,Dallas
+Por definir,Por definir,XX,XX,2026-07-15 20:00:00,Semifinales,,Estadio Atlanta,Atlanta
+Por definir,Por definir,XX,XX,2026-07-18 16:00:00,Tercer Puesto,,Estadio Miami,Miami
+Por definir,Por definir,XX,XX,2026-07-19 16:00:00,Final,,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey

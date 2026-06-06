@@ -50,6 +50,10 @@ BEGIN
     pts_exacto := 10;
     pts_diferencia := 8;
     pts_ganador := 6;
+  ELSIF p_fase = 'Tercer Puesto' THEN
+    pts_exacto := 8;
+    pts_diferencia := 6;
+    pts_ganador := 4;
   ELSIF p_fase = 'Final' THEN
     pts_exacto := 12;
     pts_diferencia := 10;

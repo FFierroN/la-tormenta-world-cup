@@ -1,0 +1,105 @@
+﻿Partido_Num,Fecha,Horario_UTC_4,Equipo_Local,Equipo_Visitante,Fase,Estadio,Ciudad
+1,11/06/2026,15:00,México,Sudáfrica,Fase de Grupos - Grupo A,Estadio Ciudad de México,Ciudad de México
+2,11/06/2026,22:00,República de Corea,Chequia,Fase de Grupos - Grupo A,Estadio Guadalajara,Guadalajara
+3,12/06/2026,15:00,Canadá,Bosnia y Herzegovina,Fase de Grupos - Grupo B,Estadio Toronto,Toronto
+4,12/06/2026,21:00,Estados Unidos,Paraguay,Fase de Grupos - Grupo D,Estadio Los Ángeles,Los Ángeles
+5,13/06/2026,15:00,Catar,Suiza,Fase de Grupos - Grupo B,Estadio Bahía de San Francisco,Área de la Bahía
+6,13/06/2026,18:00,Brasil,Marruecos,Fase de Grupos - Grupo C,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey
+7,13/06/2026,21:00,Haití,Escocia,Fase de Grupos - Grupo C,Estadio Boston,Boston
+8,13/06/2026,00:00,Australia,Turquía,Fase de Grupos - Grupo D,Estadio BC Place Vancouver,Vancouver
+9,14/06/2026,13:00,Alemania,Curazao,Fase de Grupos - Grupo E,Estadio Houston,Houston
+10,14/06/2026,16:00,Países Bajos,Japón,Fase de Grupos - Grupo F,Estadio Dallas,Dallas
+11,14/06/2026,19:00,Costa de Marfil,Ecuador,Fase de Grupos - Grupo E,Estadio Filadelfia,Filadelfia
+12,14/06/2026,22:00,Suecia,Túnez,Fase de Grupos - Grupo F,Estadio Monterrey,Monterrey
+13,15/06/2026,12:00,España,Cabo Verde,Fase de Grupos - Grupo H,Estadio Atlanta,Atlanta
+14,15/06/2026,15:00,Bélgica,Egipto,Fase de Grupos - Grupo G,Estadio Seattle,Seattle
+15,15/06/2026,18:00,Arabia Saudí,Uruguay,Fase de Grupos - Grupo H,Estadio Miami,Miami
+16,15/06/2026,21:00,RI de Irán,Nueva Zelanda,Fase de Grupos - Grupo G,Estadio Los Ángeles,Los Ángeles
+17,16/06/2026,15:00,Francia,Senegal,Fase de Grupos - Grupo I,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey
+18,16/06/2026,18:00,Irak,Noruega,Fase de Grupos - Grupo I,Estadio Boston,Boston
+19,16/06/2026,21:00,Argentina,Argelia,Fase de Grupos - Grupo J,Estadio Kansas City,Kansas City
+20,16/06/2026,00:00,Austria,Jordania,Fase de Grupos - Grupo J,Estadio Bahía de San Francisco,Área de la Bahía
+21,17/06/2026,13:00,Portugal,RD Congo,Fase de Grupos - Grupo K,Estadio Houston,Houston
+22,17/06/2026,16:00,Inglaterra,Croacia,Fase de Grupos - Grupo L,Estadio Dallas,Dallas
+23,17/06/2026,19:00,Ghana,Panamá,Fase de Grupos - Grupo L,Estadio Toronto,Toronto
+24,17/06/2026,22:00,Uzbekistán,Colombia,Fase de Grupos - Grupo K,Estadio Ciudad de México,Ciudad de México
+25,18/06/2026,12:00,Chequia,Sudáfrica,Fase de Grupos - Grupo A,Estadio Atlanta,Atlanta
+26,18/06/2026,13:00,B1,B2,Fase de Grupos - Grupo B,Estadio Kansas City,Kansas City
+27,18/06/2026,13:00,C1,C2,Fase de Grupos - Grupo C,Estadio Atlanta,Atlanta
+28,18/06/2026,21:00,México,República de Corea,Fase de Grupos - Grupo A,Estadio Guadalajara,Guadalajara
+29,19/06/2026,21:00,Brasil,Haití,Fase de Grupos - Grupo C,Estadio Filadelfia,Filadelfia
+30,19/06/2026,18:00,Escocia,Marruecos,Fase de Grupos - Grupo C,Estadio Boston,Boston
+31,19/06/2026,00:00,Turquía,Paraguay,Fase de Grupos - Grupo D,Estadio Bahía de San Francisco,Área de la Bahía
+32,19/06/2026,15:00,Estados Unidos,Australia,Fase de Grupos - Grupo D,Estadio Seattle,Seattle
+33,18/06/2026,19:00,I1,I2,Fase de Grupos - Grupo I,Estadio Guadalajara,Guadalajara
+34,18/06/2026,16:00,J1,J2,Fase de Grupos - Grupo J,Estadio Monterrey,Monterrey
+35,18/06/2026,16:00,K1,K2,Fase de Grupos - Grupo K,Estadio Toronto,Toronto
+36,18/06/2026,16:00,L1,L2,Fase de Grupos - Grupo L,Estadio Vancouver,Vancouver
+37,19/06/2026,13:00,A1,A2,Fase de Grupos - Grupo A,Estadio Los Ángeles,Los Ángeles
+38,19/06/2026,13:00,B1,B2,Fase de Grupos - Grupo B,Estadio Bahía de San Francisco,Bahía de San Francisco
+39,19/06/2026,22:00,C1,C2,Fase de Grupos - Grupo C,Estadio Seattle,Seattle
+40,19/06/2026,13:00,D1,D2,Fase de Grupos - Grupo D,Estadio Houston,Houston
+41,20/06/2026,13:00,E1,E2,Fase de Grupos - Grupo E,Estadio Dallas,Dallas
+42,20/06/2026,13:00,F1,F2,Fase de Grupos - Grupo F,Estadio Kansas City,Kansas City
+43,20/06/2026,16:00,G1,G2,Fase de Grupos - Grupo G,Estadio Atlanta,Atlanta
+44,20/06/2026,16:00,H1,H2,Fase de Grupos - Grupo H,Estadio Miami,Miami
+45,21/06/2026,13:00,I1,I2,Fase de Grupos - Grupo I,Estadio Boston,Boston
+46,21/06/2026,16:00,J1,J2,Fase de Grupos - Grupo J,Estadio Filadelfia,Filadelfia
+47,21/06/2026,22:00,K1,K2,Fase de Grupos - Grupo K,Estadio Nueva York Nueva Jersey,Nueva York Nueva Jersey
+48,21/06/2026,16:00,L1,L2,Fase de Grupos - Grupo L,Estadio Ciudad de México,Ciudad de México
+49,22/06/2026,22:00,A1,A2,Fase de Grupos - Grupo A,Estadio Guadalajara,Guadalajara
+50,22/06/2026,19:00,B1,B2,Fase de Grupos - Grupo B,Estadio Monterrey,Monterrey
+51,22/06/2026,13:00,C1,C2,Fase de Grupos - Grupo C,Estadio Toronto,Toronto
+52,22/06/2026,16:00,D1,D2,Fase de Grupos - Grupo D,Estadio Vancouver,Vancouver
+53,23/06/2026,22:00,E1,E2,Fase de Grupos - Grupo E,Estadio Los Ángeles,Los Ángeles
+54,23/06/2026,19:00,F1,F2,Fase de Grupos - Grupo F,Estadio Bahía de San Francisco,Bahía de San Francisco
+55,23/06/2026,19:00,G1,G2,Fase de Grupos - Grupo G,Estadio Seattle,Seattle
+56,23/06/2026,16:00,H1,H2,Fase de Grupos - Grupo H,Estadio Houston,Houston
+57,24/06/2026,16:00,I1,I2,Fase de Grupos - Grupo I,Estadio Dallas,Dallas
+58,24/06/2026,19:00,J1,J2,Fase de Grupos - Grupo J,Estadio Kansas City,Kansas City
+59,24/06/2026,13:00,K1,K2,Fase de Grupos - Grupo K,Estadio Atlanta,Atlanta
+60,24/06/2026,13:00,L1,L2,Fase de Grupos - Grupo L,Estadio Miami,Miami
+61,25/06/2026,22:00,A1,A2,Fase de Grupos - Grupo A,Estadio Boston,Boston
+62,25/06/2026,13:00,B1,B2,Fase de Grupos - Grupo B,Estadio Filadelfia,Filadelfia
+63,25/06/2026,19:00,C1,C2,Fase de Grupos - Grupo C,Estadio Nueva York Nueva Jersey,Nueva York Nueva Jersey
+64,25/06/2026,19:00,D1,D2,Fase de Grupos - Grupo D,Estadio Ciudad de México,Ciudad de México
+65,26/06/2026,19:00,E1,E2,Fase de Grupos - Grupo E,Estadio Guadalajara,Guadalajara
+66,26/06/2026,13:00,F1,F2,Fase de Grupos - Grupo F,Estadio Monterrey,Monterrey
+67,26/06/2026,22:00,G1,G2,Fase de Grupos - Grupo G,Estadio Toronto,Toronto
+68,26/06/2026,13:00,H1,H2,Fase de Grupos - Grupo H,Estadio Vancouver,Vancouver
+69,27/06/2026,22:00,I1,I2,Fase de Grupos - Grupo I,Estadio Los Ángeles,Los Ángeles
+70,27/06/2026,13:00,J1,J2,Fase de Grupos - Grupo J,Estadio Bahía de San Francisco,Bahía de San Francisco
+71,27/06/2026,19:00,K1,K2,Fase de Grupos - Grupo K,Estadio Seattle,Seattle
+72,27/06/2026,19:00,L1,L2,Fase de Grupos - Grupo L,Estadio Houston,Houston
+73,28/06/2026,21:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Dallas,Dallas
+74,28/06/2026,14:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Kansas City,Kansas City
+75,28/06/2026,21:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Atlanta,Atlanta
+76,29/06/2026,14:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Miami,Miami
+77,29/06/2026,14:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Boston,Boston
+78,29/06/2026,21:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Filadelfia,Filadelfia
+79,30/06/2026,14:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Nueva York Nueva Jersey,Nueva York Nueva Jersey
+80,30/06/2026,17:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Ciudad de México,Ciudad de México
+81,30/06/2026,14:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Guadalajara,Guadalajara
+82,01/07/2026,14:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Monterrey,Monterrey
+83,01/07/2026,14:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Toronto,Toronto
+84,01/07/2026,17:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Vancouver,Vancouver
+85,02/07/2026,17:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Los Ángeles,Los Ángeles
+86,02/07/2026,17:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Bahía de San Francisco,Bahía de San Francisco
+87,02/07/2026,21:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Seattle,Seattle
+88,03/07/2026,17:00,Ganador Grupo o Segundo,Ganador Grupo o Segundo,Dieciseisavos de final,Estadio Houston,Houston
+89,04/07/2026,16:00,Ganador Partido 73,Ganador Partido 74,Octavos de final,Estadio Dallas,Dallas
+90,04/07/2026,20:00,Ganador Partido 74,Ganador Partido 75,Octavos de final,Estadio Kansas City,Kansas City
+91,05/07/2026,20:00,Ganador Partido 75,Ganador Partido 76,Octavos de final,Estadio Atlanta,Atlanta
+92,05/07/2026,16:00,Ganador Partido 76,Ganador Partido 77,Octavos de final,Estadio Miami,Miami
+93,06/07/2026,20:00,Ganador Partido 77,Ganador Partido 78,Octavos de final,Estadio Boston,Boston
+94,06/07/2026,16:00,Ganador Partido 78,Ganador Partido 79,Octavos de final,Estadio Filadelfia,Filadelfia
+95,07/07/2026,16:00,Ganador Partido 79,Ganador Partido 80,Octavos de final,Estadio Nueva York Nueva Jersey,Nueva York Nueva Jersey
+96,07/07/2026,16:00,Ganador Partido 80,Ganador Partido 81,Octavos de final,Estadio Ciudad de México,Ciudad de México
+97,09/07/2026,20:00,Ganador Partido 89,Ganador Partido 90,Cuartos de final,Estadio Guadalajara,Guadalajara
+98,10/07/2026,16:00,Ganador Partido 90,Ganador Partido 91,Cuartos de final,Estadio Monterrey,Monterrey
+99,11/07/2026,20:00,Ganador Partido 91,Ganador Partido 92,Cuartos de final,Estadio Toronto,Toronto
+100,12/07/2026,16:00,Ganador Partido 92,Ganador Partido 93,Cuartos de final,Estadio Vancouver,Vancouver
+101,14/07/2026,20:00,Ganador Partido 97,Ganador Partido 98,Semifinal,Estadio Dallas,Dallas
+102,15/07/2026,20:00,Ganador Partido 99,Ganador Partido 100,Semifinal,Estadio Atlanta,Atlanta
+103,18/07/2026,16:00,Perdedor Partido 101,Perdedor Partido 102,Tercer Puesto,Estadio Miami,Miami
+104,19/07/2026,16:00,Ganador Partido 101,Ganador Partido 102,Gran Final,Estadio Nueva York Nueva Jersey,Nueva York / Nueva Jersey

@@ -2,9 +2,7 @@
 -- B0: SCHEMA EXTRAS — EJECUTAR ANTES DEL PROMPT 6 DE LOVABLE
 -- La Tormenta Mundial 2026
 -- ============================================================
--- Este script agrega las columnas y tablas necesarias para:
---   - Avatares dinámicos por posición (4 URLs por jugador)
---   - Toggle de edición de predicciones especiales (tabla configuracion)
+-
 --
 -- CUÁNDO EJECUTARLO:
 --   Después de que Lovable ejecutó el Prompt 1 (tablas base creadas)
@@ -19,10 +17,9 @@
 -- ============================================================
 
 ALTER TABLE usuarios
-  ADD COLUMN IF NOT EXISTS avatar_pos1_url   TEXT,
-  ADD COLUMN IF NOT EXISTS avatar_pos2_4_url TEXT,
-  ADD COLUMN IF NOT EXISTS avatar_pos5_7_url TEXT,
-  ADD COLUMN IF NOT EXISTS avatar_pos8_url   TEXT;
+  ADD COLUMN IF NOT EXISTS avatar_pos1_url  TEXT,
+  ADD COLUMN IF NOT EXISTS avatar_medio_url TEXT,
+  ADD COLUMN IF NOT EXISTS avatar_pos8_url  TEXT;
 
 
 -- ============================================================
@@ -52,7 +49,7 @@ SELECT column_name
 FROM information_schema.columns
 WHERE table_name = 'usuarios'
   AND column_name LIKE 'avatar%';
--- Esperado: 4 filas (avatar_pos1_url, avatar_pos2_4_url, avatar_pos5_7_url, avatar_pos8_url)
+-- Esperado: 3 filas (avatar_pos1_url, avatar_medio_url, avatar_pos8_url)
 
 -- Test 2: tabla configuracion existe y tiene el registro
 SELECT * FROM configuracion;

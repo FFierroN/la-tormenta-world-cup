@@ -1,4 +1,4 @@
-Agrega 3 nuevas features a la app. Mantené la estética OneFootball: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, rojo #E3000F solo como acento.
+Agrega 4 nuevas features a la app. Mantené la estética OneFootball: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, rojo #E3000F solo como acento.
 
 PRIMERO: CAMBIOS EN LA BASE DE DATOS
 
@@ -6,8 +6,7 @@ Ejecutá este SQL en Supabase antes de implementar las features:
 
 ALTER TABLE usuarios
   ADD COLUMN IF NOT EXISTS avatar_pos1_url TEXT,
-  ADD COLUMN IF NOT EXISTS avatar_pos2_4_url TEXT,
-  ADD COLUMN IF NOT EXISTS avatar_pos5_7_url TEXT,
+  ADD COLUMN IF NOT EXISTS avatar_medio_url TEXT,
   ADD COLUMN IF NOT EXISTS avatar_pos8_url TEXT;
 
 CREATE TABLE IF NOT EXISTS configuracion (
@@ -44,7 +43,7 @@ Cada fila muestra:
   - Diferencia en grupos = 4 pts
   - Ganador en grupos = 2 pts
   - Errado = 0 pts
-  - Para otras fases: Octavos/Cuartos = 8/6/4, Semis = 10/8/6, Final = 12/10/8
+
 - Bonus por marcador de riesgo (solo si es exacto):
   - Marcadores 0-0,1-0,0-1,1-1,2-0,0-2,2-1,1-2 = +0
   - Marcadores 2-2,3-0,0-3,3-1,1-3 = +1
@@ -92,9 +91,8 @@ Crear un componente Avatar reutilizable que muestre la foto correcta según la p
 
 Lógica de qué foto mostrar:
 - Posición 1 → avatar_pos1_url
-- Posición 2, 3 o 4 → avatar_pos2_4_url
-- Posición 5, 6 o 7 → avatar_pos5_7_url
-- Posición 8 → avatar_pos8_url
+- Posiciones 2, 3, 4, 5, 6 o 7 → avatar_medio_url
+- Posición 8 (último) → avatar_pos8_url
 
 Si una URL está vacía o no cargó: usar fallback con la inicial del nombre sobre fondo rojo #E3000F (comportamiento actual).
 
@@ -113,15 +111,30 @@ Usar este componente en:
 - Sección "¿Quién acierta?" del partido en vivo (md)
 - Pantalla de detalle de jugador (lg)
 
-En el panel Admin, dentro del sub-tab "Jugadores", agregar para cada jugador 4 inputs de texto (URLs):
-- "Avatar posición 1": input tipo URL, placeholder "https://..."
-- "Avatar posiciones 2-4": input tipo URL, placeholder "https://..."
-- "Avatar posiciones 5-7": input tipo URL, placeholder "https://..."
-- "Avatar posición 8": input tipo URL, placeholder "https://..."
+En el panel Admin, dentro del sub-tab "Jugadores", agregar para cada jugador 3 inputs de texto (URLs):
+- "Avatar posición 1 (campeón)": input tipo URL, placeholder "https://..."
+- "Avatar posiciones 2 a 7 (normal)": input tipo URL, placeholder "https://..."
+- "Avatar posición 8 (último)": input tipo URL, placeholder "https://..."
 - Botón "Guardar avatares" por jugador
-- Al guardar: UPDATE en usuarios con las 4 URLs
+- Al guardar: UPDATE en usuarios con las 3 URLs (avatar_pos1_url, avatar_medio_url, avatar_pos8_url)
 - Preview del avatar al lado del input si la URL es válida (imagen circular 40px)
 - Toast: "Avatares de [nombre] guardados"
+
+FEATURE 4: LOGO DE LA APP
+
+Reemplazar el logo de texto "La Tormenta Mundial 2026" por la imagen de logo que voy a subir/adjuntar.
+
+Donde debe aparecer el logo:
+- Pantalla de login: logo centrado arriba, ancho máximo 200px, mantener proporción
+- Header de cada pantalla principal: logo pequeño de 32px de altura a la izquierda del título
+- Splash screen (al abrir la PWA): logo grande centrado de 240px sobre fondo negro #000000
+
+Consideraciones:
+- Si el logo tiene fondo claro/blanco que rompe el diseño oscuro, mostrarlo dentro de un contenedor que respete la estética, o aplicar el tratamiento necesario para que se vea bien sobre fondo negro #000000
+- El logo es un archivo de imagen (PNG/JPG/SVG). Guardalo en assets del proyecto y referencialo desde ahí
+- Mantener el logo como elemento de marca consistente en toda la app
+- En el favicon del navegador y en el icono de la PWA, usar también este logo
+
 
 IMPORTANTE
 - NO romper nada de lo que ya funciona

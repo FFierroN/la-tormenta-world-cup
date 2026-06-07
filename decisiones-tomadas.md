@@ -77,7 +77,7 @@
 | Resetear PINs de amigos | ✅ Sí |
 | Ver pronósticos ajenos antes del deadline | ❌ NO |
 | Editar su propio pronóstico después del deadline | ❌ NO |
-| Modificar reglas de puntuación durante el torneo | ❌ NO |
+| Modificar reglas de puntuación durante el torneo | ⚠️ SÍ (con recálculo automático y aviso) — ver Prompt 7 |
 
 ### ✅ Sistema anti-trampa
 - 🔐 Row Level Security en Supabase

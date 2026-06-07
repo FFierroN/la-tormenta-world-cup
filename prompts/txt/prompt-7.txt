@@ -1,0 +1,87 @@
+Agrega una nueva sección al panel Admin para editar las reglas de puntaje. Mantené la estética OneFootball: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, rojo #E3000F solo como acento.
+
+CONTEXTO: en Supabase ya existe una tabla llamada "reglas_puntaje" con estas columnas:
+- clave (texto, ej: "grupos_exacto")
+- puntos (número entero, ej: 6)
+- descripcion (texto, ej: "Marcador exacto")
+- grupo_regla (texto, ej: "Grupos")
+- orden (número entero para ordenar dentro del grupo)
+
+También existe una función SQL llamada recalcular_todos_los_puntos() que recalcula los puntos de todos los partidos ya finalizados.
+
+NUEVA SECCIÓN: SUB-TAB "REGLAS DE PUNTAJE" EN EL PANEL ADMIN
+
+Agregar una nueva pestaña interna en el tab Admin llamada "Reglas de puntaje", junto a las pestañas existentes (Partidos, Predicciones especiales, Jugadores, Log).
+
+Solo visible para usuarios con es_admin = true.
+
+ESTRUCTURA DE LA PANTALLA
+
+Título: "Reglas de puntaje"
+Subtítulo: "Editá cuánto vale cada acierto. Los cambios se aplican a todo el torneo."
+
+Leer todas las filas de la tabla reglas_puntaje y agruparlas visualmente por el campo grupo_regla, en este orden:
+1. Grupos
+2. Dieciseisavos
+3. Octavos
+4. Cuartos
+5. Tercer Puesto
+6. Semifinales
+7. Final
+8. Bonus de Riesgo
+
+Para cada grupo_regla, mostrar un encabezado con el nombre del grupo y debajo sus reglas (ordenadas por el campo orden).
+
+Cada regla es una fila con:
+- La descripción a la izquierda (ej: "Marcador exacto")
+- Un input numérico a la derecha con el valor actual de puntos
+- Botones [-] y [+] a los costados del input para subir/bajar de a 1 (steppers)
+- El input permite valores entre 0 y 50
+
+ADVERTENCIA SI EL TORNEO YA EMPEZÓ
+
+Arriba de todo, si existe algún partido con estado_partido distinto de 'pendiente', mostrar un banner de advertencia en rojo #E3000F:
+"⚠️ El torneo ya comenzó. Cambiar las reglas ahora recalculará los puntos de todos los partidos ya jugados. Hacelo con cuidado."
+
+Si el torneo no empezó, no mostrar el banner.
+
+BOTÓN GUARDAR Y RECALCULAR
+
+Al final de la pantalla, un botón fijo grande rojo #E3000F: "Guardar cambios y recalcular puntos".
+
+Al tocarlo:
+1. Mostrar modal de confirmación: "¿Confirmás los nuevos valores? Se recalcularán los puntos de todos los partidos finalizados y la tabla de posiciones se actualizará."
+2. Si confirma:
+   a. UPDATE de cada regla modificada en la tabla reglas_puntaje (guardar el nuevo valor de puntos según su clave)
+   b. Llamar a la función SQL recalcular_todos_los_puntos() usando supabase.rpc('recalcular_todos_los_puntos')
+   c. INSERT en admin_log con accion = 'editar_reglas' y detalle describiendo qué reglas cambió y sus nuevos valores
+   d. Toast de éxito: "Reglas actualizadas y puntos recalculados ✅"
+   e. Refrescar los valores en pantalla
+
+BOTÓN RESTAURAR VALORES POR DEFECTO
+
+Un botón secundario (outline blanco, no rojo) "Restaurar valores originales" que al tocarlo:
+1. Modal de confirmación
+2. Si confirma, setear estos valores por defecto y guardar:
+   - Grupos: exacto 6, diferencia 4, ganador 2
+   - Dieciseisavos: exacto 6, diferencia 4, ganador 2
+   - Octavos: exacto 8, diferencia 6, ganador 4
+   - Cuartos: exacto 8, diferencia 6, ganador 4
+   - Tercer Puesto: exacto 8, diferencia 6, ganador 4
+   - Semifinales: exacto 10, diferencia 8, ganador 6
+   - Final: exacto 12, diferencia 10, ganador 8
+   - Bonus de Riesgo: bonus_riesgo_1 = 1, bonus_riesgo_2 = 2, bonus_riesgo_3 = 3
+3. Llamar a recalcular_todos_los_puntos()
+4. Toast: "Valores originales restaurados ✅"
+
+DÓNDE MÁS MOSTRAR LAS REGLAS (lectura para todos los jugadores)
+
+En la pantalla "Tabla de posiciones", el modal de "Sistema de desempate" que ya existe: agregar también una sección "Cómo se puntúa" que lea de la tabla reglas_puntaje y muestre los valores actuales en formato de solo lectura, agrupados igual que en el admin. Así todos los jugadores ven las reglas vigentes (transparencia).
+
+IMPORTANTE
+- NO romper nada de lo que ya funciona
+- Los valores SIEMPRE se leen de la tabla reglas_puntaje (nunca hardcodear números en el frontend)
+- Si la tabla reglas_puntaje está vacía o no responde, mostrar un mensaje "No se pudieron cargar las reglas" en vez de romper la pantalla
+- La sección de edición es SOLO para admin; la de lectura es para todos
+- Mobile-first, tap targets mínimo 44x44px
+- Comentarios en español

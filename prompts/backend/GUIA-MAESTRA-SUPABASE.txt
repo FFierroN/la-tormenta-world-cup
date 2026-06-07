@@ -1,0 +1,233 @@
+================================================================
+GUIA MAESTRA DE SUPABASE - LA TORMENTA MUNDIAL 2026
+================================================================
+Esta guia tiene TODO el paso a paso de Supabase, de principio a fin.
+Segui los pasos EN ORDEN. Hace uno a la vez y verifica antes de seguir.
+
+INDICE:
+  PARTE 0 - Conectar Supabase con Lovable (IMPORTANTE, leer primero)
+  PARTE 1 - Ejecutar los SQL (B0, B1, B2, B5)
+  PARTE 2 - Cargar el fixture (los 104 partidos)
+  PARTE 3 - Subir los avatares (Storage)
+  PARTE 4 - Verificacion final
+  PARTE 5 - Resumen rapido / checklist
+
+
+================================================================
+PARTE 0 - CONECTAR SUPABASE CON LOVABLE
+================================================================
+
+ANTES QUE NADA: hay que entender quien crea la base de datos.
+
+Cuando se trabaja con Lovable + Supabase, hay 2 formas:
+
+  FORMA A (la mas comun con Lovable):
+    Lovable se conecta a tu cuenta de Supabase y crea/usa un proyecto
+    automaticamente. En este caso NO tenes que crear el proyecto a mano.
+
+  FORMA B:
+    Vos creas el proyecto en Supabase primero, y despues lo conectas
+    a Lovable pegando las credenciales.
+
+--- COMO SABER EN QUE CASO ESTAS ---
+
+1. Entra a tu app en Lovable.
+2. Proba loguearte con el PIN 1234.
+   - Si TE DEJA entrar / muestra datos     -> Supabase YA esta conectado (Forma A). Saltea al paso "VERIFICAR CONEXION".
+   - Si da error o no carga nada            -> Falta conectar. Segui leyendo.
+
+--- COMO CONECTAR SUPABASE EN LOVABLE (si falta) ---
+
+1. Abri tu proyecto en Lovable (lovable.dev).
+2. Busca arriba a la derecha el boton/icono de SUPABASE
+   (suele ser un icono verde o un menu de "Integrations" / "Connect").
+3. Click en "Connect Supabase".
+4. Te va a pedir loguearte con tu cuenta de Supabase -> autoriza.
+5. Seleccciona tu organizacion/proyecto:
+   - Si ya tenes un proyecto creado -> elegilo.
+   - Si no tenes ninguno -> Lovable te deja crear uno nuevo desde ahi.
+6. Confirma la conexion. Lovable va a quedar enlazado a ese proyecto.
+
+--- VERIFICAR CONEXION ---
+
+1. Entra a supabase.com -> abri tu proyecto.
+2. Menu lateral izquierdo -> "Table Editor".
+3. Fijate si ves tablas como: usuarios, partidos, pronosticos,
+   predicciones_especiales, admin_log (los nombres pueden variar un poco).
+   - Si VES esas tablas -> Lovable ya creo el schema. Conexion OK. 
+   - Si NO ves tablas    -> el Prompt 1 de Lovable no llego a crear el schema.
+     Volve a Lovable y reejecuta el Prompt 1, o avisa a Kira.
+
+IMPORTANTE: NO crees un proyecto de Supabase nuevo "por las dudas" si
+Lovable ya creo uno. Tener 2 proyectos distintos es la causa #1 de lios
+("conecte uno pero los datos estan en el otro"). UN solo proyecto.
+
+
+================================================================
+PARTE 1 - EJECUTAR LOS SQL
+================================================================
+
+DONDE: Supabase -> menu lateral -> "SQL Editor" -> "+ New query"
+COMO:  Pegas el contenido del archivo .sql -> boton "Run" (o Ctrl+Enter)
+       -> revisas que abajo diga "Success".
+
+ORDEN OBLIGATORIO (uno por uno):
+
+  PASO 1.1 -> B0-schema-extras.sql
+     Que hace: agrega columnas de avatar (3) + tabla configuracion.
+     Verificar: corre la query de test que esta al final del archivo.
+                Esperado: 3 columnas avatar + 1 fila en configuracion.
+
+  PASO 1.2 -> prompt-6.sql   (este es B1)
+     Que hace: funcion de calculo de puntos + trigger automatico.
+     Verificar: al final del archivo hay tests. Debe devolver 6 para
+                un acierto exacto en grupos.
+
+  PASO 1.3 -> prompt-7.sql   (este es B2)
+     Que hace: seguridad RLS + realtime + indices de performance.
+     Verificar: que no haya errores rojos. Listo.
+
+  PASO 1.4 -> B5-reglas-puntaje-editables.sql   (OPCIONAL)
+     SOLO si vas a usar el Prompt 7 (reglas editables por el admin).
+     Que hace: tabla reglas_puntaje + reemplaza la funcion de calculo
+               por una que lee de la tabla + funcion de recalculo.
+     REGLA DE ORO: si ejecutas este B5, tambien tenes que ejecutar el
+                   prompt-7.txt en Lovable. Van juntos o no van.
+     Si queres reglas FIJAS (mas simple) -> NO ejecutes este paso.
+
+RESUMEN DE ORDEN:
+   B0  ->  B1 (prompt-6.sql)  ->  B2 (prompt-7.sql)  ->  [B5 opcional]
+
+
+================================================================
+PARTE 2 - CARGAR EL FIXTURE (104 PARTIDOS)
+================================================================
+
+ARCHIVO A USAR: fixture-FINAL-importar.csv
+   (NO uses fixture_mundial_2026_utc4.csv ni los de ejemplo, ese es el bueno
+    ya formateado con codigos de bandera y fases correctas).
+
+PASOS:
+
+  PASO 2.1 - Revisar el CSV (opcional pero recomendado)
+     Abri fixture-FINAL-importar.csv con Excel o Google Sheets.
+     Los partidos que dicen "Por definir" (XX) son cruces que todavia
+     no se conocen. Eso esta OK, la app NO se rompe. Los editas despues
+     cuando se definan los equipos.
+
+  PASO 2.2 - Importar en Supabase
+     1. Supabase -> "Table Editor" -> tabla "partidos".
+     2. Boton "Insert" -> "Import data from CSV".
+     3. Subi el archivo fixture-FINAL-importar.csv.
+     4. Verifica que las columnas se mapeen solas:
+        equipo_local, equipo_visitante, codigo_local, codigo_visitante,
+        fecha_hora, fase, grupo, estadio, ciudad
+     5. Click "Import".
+
+  PASO 2.3 - Verificar
+     En Table Editor -> tabla partidos -> deberias ver 104 filas.
+     Las banderas se ven en la app gracias a codigo_local/codigo_visitante.
+
+
+================================================================
+PARTE 3 - SUBIR LOS AVATARES (STORAGE)
+================================================================
+
+CUANDO: despues de ejecutar el Prompt 6 en Lovable (que crea los
+inputs de URL en el panel admin). Son 24 fotos (8 jugadores x 3).
+
+  PASO 3.1 - Crear el bucket
+     1. Supabase -> menu lateral -> "Storage".
+     2. "New bucket".
+     3. Name: avatares
+     4. Public bucket: ACTIVADO (importante!).
+     5. Save.
+
+  PASO 3.2 - Subir las 24 fotos
+     1. Entra al bucket "avatares".
+     2. "Upload files" -> selecciona las 24 fotos -> subir.
+     Convencion de nombres sugerida (ver guia-storage-avatares.md):
+        felipe-fierro-pos1.jpg / felipe-fierro-medio.jpg / felipe-fierro-pos8.jpg
+        ...y asi para los 8 jugadores.
+
+  PASO 3.3 - Copiar las URLs
+     Click en cada foto -> copiar "Public URL".
+     (Detalle completo en guia-storage-avatares.md)
+
+  PASO 3.4 - Pegar las URLs en la app
+     1. Abri la app -> login como Felipe (admin).
+     2. Tab Admin -> sub-tab "Jugadores".
+     3. Por cada jugador pega las 3 URLs (pos1 / medio / pos8) -> Guardar.
+
+NOTA: si no queres lidiar con fotos ahora, podes saltear toda la PARTE 3.
+La app usa un avatar con la inicial del nombre como fallback. No se rompe.
+
+
+================================================================
+PARTE 4 - VERIFICACION FINAL (PRUEBA END-TO-END)
+================================================================
+
+  1. Login en la app con PIN 1234.
+  2. Completa el wizard de predicciones especiales.
+  3. Anda a "Partidos" -> elegi un partido -> carga un pronostico.
+  4. Como admin: marca ese partido como finalizado con un resultado.
+  5. Verifica que:
+     - Se calcularon los puntos automaticamente (gracias a B1).
+     - La tabla de posiciones se actualizo.
+     - (Si cargaste avatares) se ve la foto segun la posicion.
+  6. Si todo anda -> LISTO PARA COMPARTIR a los 7 amigos.
+
+
+================================================================
+PARTE 5 - CHECKLIST RAPIDO
+================================================================
+
+CONEXION
+  [ ] Supabase conectado a Lovable (un solo proyecto)
+  [ ] Veo las tablas en Table Editor
+
+SQL (en orden)
+  [ ] B0-schema-extras.sql ejecutado
+  [ ] prompt-6.sql (B1) ejecutado
+  [ ] prompt-7.sql (B2) ejecutado
+  [ ] B5-reglas-puntaje-editables.sql  (SOLO si uso Prompt 7)
+
+DATOS
+  [ ] fixture-FINAL-importar.csv importado (104 partidos)
+  [ ] (Opcional) bucket "avatares" creado + 24 fotos subidas
+  [ ] (Opcional) URLs de avatares pegadas en el panel admin
+
+PRUEBA
+  [ ] Pronostico de prueba cargado
+  [ ] Partido finalizado de prueba -> puntos calculados solos
+  [ ] Tabla de posiciones actualizada
+
+LANZAMIENTO
+  [ ] Compartir URL + PIN 1234 a los 7 amigos por WhatsApp
+
+
+================================================================
+NOTAS IMPORTANTES
+================================================================
+
+- Todos los SQL son IDEMPOTENTES: podes correrlos varias veces sin
+  romper nada.
+- Si un SQL da error rojo: copia el mensaje completo y consulta a Kira.
+- Las banderas las maneja Lovable solo (libreria flag-icons), vos solo
+  necesitas el codigo ISO en el CSV (ya viene puesto).
+- Si estas en una PC del trabajo y te incomoda usar tu cuenta personal,
+  podes hacer todo esto desde tu PC personal en casa. Los archivos
+  estan todos en la carpeta del proyecto, listos para copiar y pegar.
+
+ORDEN GENERAL DEL DIA (Lovable + Supabase combinados):
+
+   Lovable: Prompt 5  (ya ejecutado)
+   Lovable: Prompt 6  (con el logo adjunto)
+   Supabase: B0 -> B1 -> B2   (y B5 si vas con reglas editables)
+   Supabase: importar fixture-FINAL-importar.csv
+   Lovable: Prompt 7  (SOLO si ejecutaste B5)
+   Supabase Storage: subir avatares (opcional)
+   App: pegar URLs de avatares (opcional)
+   Prueba end-to-end
+   Compartir a los amigos
+================================================================

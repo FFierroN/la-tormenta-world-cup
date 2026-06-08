@@ -1,4 +1,4 @@
-# Guia completa - La Tormenta Mundial 2026 (frontend Vite)
+# Guia completa - La Tormenta World Cup (frontend Vite)
 
 > Esta guia explica que se hizo, como ejecutarlo, como conectarlo a Supabase
 > y como desplegarlo para tener una app totalmente funcional.
@@ -57,7 +57,7 @@ npm run build    # genera dist/ optimizada
 Subir dist/ a hosting gratuito con HTTPS (requisito PWA):
 - Cloudflare Pages / Netlify: arrastrar dist/ o conectar repo GitHub
 - Vercel: conectar GitHub
-Resultado: una URL (ej tormenta-mundial.pages.dev) que se comparte a los 8 amigos.
+Resultado: una URL (ej tormenta-world-cup.pages.dev) que se comparte a los 8 amigos.
 Ellos la abren en el celular y eligen "Agregar a pantalla de inicio".
 
 ---

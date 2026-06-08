@@ -11,6 +11,8 @@ export default {
         "carbon-soft": "#141414",
         "carbon-card": "#1B1B1B",
         borde: "#2A2A2A",
+        // Azul marino del logo (identidad de marca)
+        marino: "#172842",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],

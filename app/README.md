@@ -1,6 +1,6 @@
-# La Tormenta Mundial 2026 — Frontend (Vite)
+# La Tormenta World Cup — Frontend (Vite)
 
-PWA del prode del Mundial 2026 entre amigos. Reemplaza el frontend que estaba en Lovable
+PWA del prode de la World Cup 2026 entre amigos. Reemplaza el frontend que estaba en Lovable
 (Lovable ahora fuerza su backend Lovable Cloud). Este frontend se conecta a **tu** Supabase.
 
 ## Stack

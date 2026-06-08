@@ -16,10 +16,12 @@ export default function Login() {
 
   return (
     <div className="min-h-full flex flex-col items-center justify-center px-6 max-w-md mx-auto">
-      <h1 className="text-2xl font-black text-center">
-        La Tormenta <span className="text-oro">Mundial 2026</span>
-      </h1>
-      <p className="text-neutral-400 text-sm mt-1 mb-8">El prode del mundial</p>
+      <img
+        src="/logo.png"
+        alt="La Tormenta World Cup"
+        className="w-44 h-44 rounded-3xl shadow-xl shadow-black/50"
+      />
+      <p className="text-neutral-400 text-sm mt-3 mb-8">El prode de la World Cup</p>
 
       <form onSubmit={entrar} className="w-full flex flex-col gap-4">
         <label className="text-sm">

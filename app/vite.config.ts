@@ -8,13 +8,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "apple-touch-icon.png"],
+      includeAssets: ["favicon.ico", "apple-touch-icon.png"],
       manifest: {
-        name: "La Tormenta Mundial 2026",
+        name: "La Tormenta World Cup",
         short_name: "Tormenta",
-        description: "El prode del Mundial 2026 entre amigos",
-        theme_color: "#0A0A0A",
-        background_color: "#0A0A0A",
+        description: "El prode de la World Cup entre amigos",
+        theme_color: "#172842",
+        background_color: "#172842",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",

@@ -12,9 +12,14 @@ import type { EventoPartido, Partido, Pronostico } from "../lib/types";
 const ESTADO_LABEL: Record<Partido["estado"], string> = {
   programado: "Programado",
   en_vivo: "En vivo",
-  medio_tiempo: "Medio tiempo",
+  entretiempo: "Entretiempo",
+  alargue: "Tiempo extra",
+  penales: "Penales",
   final: "Final del Partido",
+  suspendido: "Suspendido",
 };
+
+const ESTADOS_EN_CURSO: Partido["estado"][] = ["en_vivo", "alargue", "penales"];
 
 type Pestana = "detalles" | "pronosticos";
 
@@ -72,7 +77,12 @@ export default function PartidoDetalle() {
           <div className="mt-2 flex items-center justify-between">
             <TeamHead code={partido.pais_local} nombre={partido.equipo_local} />
             <div className="text-center">
-              <div className="text-xs text-neutral-200">{ESTADO_LABEL[partido.estado]}</div>
+              <div className="text-xs text-neutral-200 flex items-center justify-center gap-1.5">
+                {ESTADOS_EN_CURSO.includes(partido.estado) && (
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                )}
+                {ESTADO_LABEL[partido.estado]}
+              </div>
               {partido.estado === "programado" ? (
                 <div className="text-2xl font-bold mt-1">
                   {new Date(partido.fecha).toLocaleTimeString("es-CL", {
@@ -81,9 +91,23 @@ export default function PartidoDetalle() {
                   })}
                 </div>
               ) : (
-                <div className="text-4xl font-black tabular-nums mt-1">
-                  {partido.goles_local ?? 0} - {partido.goles_visita ?? 0}
-                </div>
+                <>
+                  <div className="text-4xl font-black tabular-nums mt-1">
+                    {partido.goles_local ?? 0} - {partido.goles_visita ?? 0}
+                  </div>
+                  {partido.minuto != null &&
+                    ESTADOS_EN_CURSO.includes(partido.estado) && (
+                      <div className="text-sm font-semibold text-red-400 mt-0.5">
+                        {partido.minuto}&apos;
+                      </div>
+                    )}
+                  {partido.ganador_penales && (
+                    <div className="text-xs text-neutral-300 mt-1">
+                      Penales: {partido.penales_local ?? 0} -{" "}
+                      {partido.penales_visita ?? 0}
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <TeamHead code={partido.pais_visita} nombre={partido.equipo_visita} />
@@ -183,8 +207,16 @@ function Detalles({
             }`}
           >
             <div className="flex items-center gap-2">
-              {e.tipo === "gol" ? <BallIcon /> : <RedCard />}
-              {e.jugador && <span className="text-sm">{e.jugador}</span>}
+              <EventoIcono tipo={e.tipo} />
+              <div className="leading-tight">
+                {e.jugador && <span className="text-sm">{e.jugador}</span>}
+                {e.tipo === "gol" && e.detalle && e.detalle !== "normal" && (
+                  <span className="text-xs text-neutral-400"> ({e.detalle})</span>
+                )}
+                {e.asistencia && (
+                  <div className="text-xs text-neutral-500">asist. {e.asistencia}</div>
+                )}
+              </div>
             </div>
             <span className="flex-1" />
             <span className="text-sm font-semibold tabular-nums text-neutral-300">
@@ -271,6 +303,11 @@ function Pronosticos({
 }
 
 /* ---------- iconos ---------- */
+function EventoIcono({ tipo }: { tipo: EventoPartido["tipo"] }) {
+  if (tipo === "gol") return <BallIcon />;
+  if (tipo === "amarilla") return <YellowCard />;
+  return <RedCard />;
+}
 function BallIcon() {
   return (
     <svg className="w-4 h-4 text-neutral-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -279,6 +316,10 @@ function BallIcon() {
     </svg>
   );
 }
+function YellowCard() {
+  return <span className="inline-block w-3 h-4 rounded-sm bg-yellow-400" aria-label="Tarjeta amarilla" />;
+}
+
 function RedCard() {
   return <span className="inline-block w-3 h-4 rounded-sm bg-red-600" aria-label="Tarjeta roja" />;
 }

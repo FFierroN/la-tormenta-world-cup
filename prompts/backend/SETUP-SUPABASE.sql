@@ -29,22 +29,28 @@ create table if not exists jugadores (
 create unique index if not exists uq_jugadores_nombre on jugadores(nombre);
 
 create table if not exists partidos (
-  id            serial primary key,
-  fase          text not null,
-  grupo         text,
-  fecha         timestamptz not null,
-  equipo_local  text not null,
-  equipo_visita text not null,
-  pais_local    text,   -- codigo ISO (para bandera)
-  pais_visita   text,
-  estadio       text,
-  ciudad        text,
-  goles_local   int,
-  goles_visita  int,
-  rojas_local   int not null default 0,
-  rojas_visita  int not null default 0,
-  estado        text not null default 'programado',  -- programado|en_vivo|medio_tiempo|final
-  finalizado_at timestamptz
+  id              serial primary key,
+  api_fixture_id  bigint unique,   -- id del partido en API-Football (lo llena el robot)
+  fase            text not null,
+  grupo           text,
+  fecha           timestamptz not null,
+  equipo_local    text not null,
+  equipo_visita   text not null,
+  pais_local      text,   -- codigo ISO (para bandera)
+  pais_visita     text,
+  estadio         text,
+  ciudad          text,
+  goles_local     int,
+  goles_visita    int,
+  minuto          int,    -- minuto en vivo (lo llena el robot)
+  penales_local   int,    -- tanda de penales (solo llaves)
+  penales_visita  int,
+  ganador_penales text,   -- 'local' | 'visita' (solo si hubo penales)
+  rojas_local     int not null default 0,
+  rojas_visita    int not null default 0,
+  -- estado: programado | en_vivo | entretiempo | alargue | penales | final | suspendido
+  estado          text not null default 'programado',
+  finalizado_at   timestamptz
 );
 create index if not exists idx_partidos_fecha  on partidos(fecha);
 create index if not exists idx_partidos_estado on partidos(estado);
@@ -52,10 +58,12 @@ create index if not exists idx_partidos_estado on partidos(estado);
 create table if not exists partido_eventos (
   id          serial primary key,
   partido_id  int references partidos(id) on delete cascade,
-  tipo        text not null,   -- gol|roja
-  equipo      text not null,   -- local|visita
+  tipo        text not null,   -- gol | amarilla | roja
+  equipo      text not null,   -- local | visita
   minuto      int not null,
-  jugador     text,
+  jugador     text,            -- quien hizo el gol / recibio la tarjeta
+  asistencia  text,            -- quien asistio (solo goles)
+  detalle     text,            -- 'penal' | 'autogol' | 'normal' | etc
   created_at  timestamptz not null default now()
 );
 create index if not exists idx_eventos_partido on partido_eventos(partido_id);
@@ -99,6 +107,20 @@ create table if not exists configuracion (
 insert into configuracion (clave, valor)
 values ('edicion_predicciones_habilitada', 'false')
 on conflict (clave) do nothing;
+
+-- Traduccion de nombres: API-Football usa ingles, nuestra base usa espanol.
+-- El robot la usa para emparejar partidos. Se rellena/ajusta segun haga falta.
+create table if not exists equipos_api_map (
+  api_nombre text primary key,   -- nombre tal cual lo manda API-Football
+  nombre     text not null,      -- nuestro nombre en espanol (coincide con partidos)
+  codigo     text                -- codigo ISO opcional
+);
+
+-- Guardia de cuota: cuenta requests por dia para no pasar de 100.
+create table if not exists api_cuota (
+  fecha  date primary key default current_date,
+  usados int not null default 0
+);
 
 -- =====================================================================
 -- 2. CALCULO DE PUNTOS (puntaje por marcador + bonus por riesgo)
@@ -258,6 +280,10 @@ alter table partido_eventos        enable row level security;
 alter table pronosticos            enable row level security;
 alter table predicciones_especiales enable row level security;
 alter table configuracion          enable row level security;
+-- equipos_api_map y api_cuota: RLS activo SIN politicas = solo el robot
+-- (service_role) puede tocarlas. El frontend ni las ve.
+alter table equipos_api_map        enable row level security;
+alter table api_cuota              enable row level security;
 
 do $$
 declare t text;

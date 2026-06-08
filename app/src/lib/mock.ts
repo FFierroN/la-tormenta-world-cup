@@ -50,6 +50,10 @@ export const MOCK_PARTIDOS: Partido[] = [
     pais_visita: "pk",
     goles_local: 0,
     goles_visita: 3,
+    minuto: null,
+    penales_local: null,
+    penales_visita: null,
+    ganador_penales: null,
     estado: "final",
   },
   {
@@ -62,6 +66,10 @@ export const MOCK_PARTIDOS: Partido[] = [
     pais_visita: "ca",
     goles_local: 1,
     goles_visita: 1,
+    minuto: 67,
+    penales_local: null,
+    penales_visita: null,
+    ganador_penales: null,
     estado: "en_vivo",
   },
   {
@@ -74,20 +82,25 @@ export const MOCK_PARTIDOS: Partido[] = [
     pais_visita: "cl",
     goles_local: null,
     goles_visita: null,
+    minuto: null,
+    penales_local: null,
+    penales_visita: null,
+    ganador_penales: null,
     estado: "programado",
   },
 ];
 
 export const MOCK_EVENTOS: Record<string, EventoPartido[]> = {
   p1: [
-    { id: "e1", partido_id: "p1", tipo: "gol", equipo: "visita", minuto: 54, jugador: null },
-    { id: "e2", partido_id: "p1", tipo: "gol", equipo: "visita", minuto: 84, jugador: null },
-    { id: "e3", partido_id: "p1", tipo: "roja", equipo: "local", minuto: 86, jugador: null },
-    { id: "e4", partido_id: "p1", tipo: "gol", equipo: "visita", minuto: 87, jugador: null },
+    { id: "e1", partido_id: "p1", tipo: "gol", equipo: "visita", minuto: 54, jugador: "S. Khan", asistencia: "A. Ali", detalle: "normal" },
+    { id: "e2", partido_id: "p1", tipo: "amarilla", equipo: "local", minuto: 71, jugador: "M. Nashid", asistencia: null, detalle: null },
+    { id: "e3", partido_id: "p1", tipo: "gol", equipo: "visita", minuto: 84, jugador: "S. Khan", asistencia: null, detalle: "penal" },
+    { id: "e4", partido_id: "p1", tipo: "roja", equipo: "local", minuto: 86, jugador: "I. Hassan", asistencia: null, detalle: null },
+    { id: "e5", partido_id: "p1", tipo: "gol", equipo: "visita", minuto: 87, jugador: "B. Iqbal", asistencia: "S. Khan", detalle: "normal" },
   ],
   p2: [
-    { id: "e5", partido_id: "p2", tipo: "gol", equipo: "local", minuto: 23, jugador: null },
-    { id: "e6", partido_id: "p2", tipo: "gol", equipo: "visita", minuto: 61, jugador: null },
+    { id: "e6", partido_id: "p2", tipo: "gol", equipo: "local", minuto: 23, jugador: "R. Jimenez", asistencia: "H. Lozano", detalle: "normal" },
+    { id: "e7", partido_id: "p2", tipo: "gol", equipo: "visita", minuto: 61, jugador: "J. David", asistencia: null, detalle: "normal" },
   ],
 };
 

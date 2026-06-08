@@ -114,24 +114,23 @@ npm run dev      # levanta la app
 >  Todos los archivos SQL están en `MIPROYECTO/prompts/backend/`.
 > La guía detallada de cada uno está en `GUIA-MAESTRA-SUPABASE.txt`.
 
-### 3.1 Ejecutar los scripts SQL (en orden)
+### 3.1 Ejecutar el setup (UN solo script)
 En Supabase → tu proyecto → menú izquierdo **SQL Editor** → **New query**.
-Pega y ejecuta (botón **Run**) **uno por uno, en este orden**:
-- [ ] **B0** → `B0-SCHEMA-COMPLETO.sql` (crea todas las tablas)
-- [ ] **B0 extra** → `B0-schema-extras.sql` (columnas de avatar + configuración)
-- [ ] **B1** → `prompt-6.sql` (cálculo de puntos + trigger automático)
-- [ ] **B2** → `prompt-7.sql` (seguridad RLS + tiempo real + índices)
-- [ ] **B5** (opcional) → `B5-reglas-puntaje-editables.sql`
-      *(solo si quieres reglas de puntaje editables; si no, sáltalo)*
+- [ ] Abre `prompts/backend/SETUP-SUPABASE.sql`, copia **TODO** (Ctrl+A, Ctrl+C).
+- [ ] Pégalo en el editor y dale **Run**.
+- [ ] Al final verás la verificación. Debe decir: `jugadores` = **8**,
+      `partidos` = **104**, `partidos_grupos` = **72**.
 
->  Si un script da error, **detente** y avísame. No sigas con el siguiente.
-> Mejor arreglarlo en el momento que arrastrar el problema.
+> Ese único script crea TODO: tablas alineadas al frontend, login por PIN
+> seguro, cálculo de puntos, tabla de posiciones, RLS, realtime, los 8
+> jugadores (PIN `1234`) y los 104 partidos. Es idempotente: se puede
+> re-correr sin romper nada.
+>
+> Prueba opcional de login: `select * from login_jugador(1, '1234');`
+> (debe devolver a Felipe).
 
-### 3.2 Importar los 104 partidos (fixture)
-- [ ] Supabase → **Table Editor** → tabla `partidos` → botón **Insert** →
-      **Import data from CSV**.
-- [ ] Sube el archivo `prompts/backend/fixture-FINAL-importar.csv`.
-- [ ] Verifica que aparezcan los 104 partidos.
+### 3.2 (Ya no hace falta importar CSV)
+El fixture de 104 partidos viene **incluido** en el script de 3.1.
 
 ### 3.3 Obtener las claves de conexión
 - [ ] Supabase → **Project Settings** (engranaje) → **API**.
@@ -195,6 +194,25 @@ Vercel suele detectar Vite solo. Verifica que diga:
 
 ---
 
+## FASE 5 - Resultados automaticos con API-Football (opcional)
+
+> **Objetivo:** que los marcadores, el minuto en vivo y los eventos (goles,
+> amarillas, rojas con goleador y asistencia) se actualicen SOLOS.
+>
+> Guia detallada en `robot/README.md`. Resumen:
+
+- [ ] Crea 3 secretos en GitHub (repo -> Settings -> Secrets -> Actions):
+      `APIFOOTBALL_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
+- [ ] Prueba manual: pestana **Actions** -> *Sincronizar resultados* -> **Run workflow**.
+- [ ] Si aparece `SIN MAPEAR: 'X' vs 'Y'` en el log, agrega ese nombre ingles
+      a `EQUIPOS` en `robot/actualizar.py`.
+- [ ] El robot corre cada 15 min y se frena solo en 95/100 requests del dia.
+
+> El admin manual sigue siendo el respaldo: si la API falla, cargas resultados
+> a mano en Supabase y todo sigue igual.
+
+---
+
 ##  Cómo trabajar de aquí en adelante (el flujo mágico)
 
 Una vez armado todo, hacer cambios es así de simple:
@@ -216,8 +234,9 @@ Vercel detecta el push y **republica solo** en ~1 minuto. No tocas nada más.
 | Pantalla en blanco local | Falta `.env` o claves malas | Revisa `.env` y reinicia `npm run dev` |
 | Vercel: "build failed" | Root Directory mal puesto | Debe ser `app`, no la raíz |
 | App en blanco en Vercel | Faltan las env vars en Vercel | Agrégalas en Settings → Environment Variables y redeploy |
-| Login no valida | Falta correr B2 (RLS) en Supabase | Ejecuta `prompt-7.sql` |
-| Error en un script SQL | Orden incorrecto | Sigue el orden B0 → B0-extra → B1 → B2 |
+| Login no valida | No corriste el SQL de setup | Pega y corre `prompts/backend/SETUP-SUPABASE.sql` |
+| Robot no actualiza | Faltan secretos en GitHub | Revisa APIFOOTBALL_KEY / SUPABASE_URL / SUPABASE_SERVICE_KEY |
+| Robot dice SIN MAPEAR | Nombre de equipo distinto | Agregalo a `EQUIPOS` en `robot/actualizar.py` |
 
 >  Ante cualquier duda o error: cópiame el mensaje exacto y lo resolvemos
 > juntos. **Git nos permite volver atrás** si algo sale mal, así que tranquilo:
@@ -229,7 +248,8 @@ Vercel detecta el push y **republica solo** en ~1 minuto. No tocas nada más.
 
 - [ ] **F1** — Repo creado en GitHub + código subido (`git push`)
 - [ ] **F2** — Node instalado + `git clone` + `npm install` + `npm run dev` OK
-- [ ] **F3** — Scripts SQL ejecutados + fixture importado + `.env` creado
+- [ ] **F3** — Pegar `SETUP-SUPABASE.sql` en Supabase + `.env` creado (8/104/72)
 - [ ] **F4** — Vercel conectado + env vars + deploy + URL pública
+- [ ] **F5** — (opcional) Robot API-Football: 3 secretos + run manual + mapeo
 
  *Vamos fase por fase. No saltes pasos. Marca cada casilla. Yo te acompaño.*

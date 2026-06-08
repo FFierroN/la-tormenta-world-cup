@@ -9,9 +9,9 @@ COMPORTAMIENTO
 ESTILO DEL WIZARD
 - Pantalla completa, fondo negro puro #000000
 - Card central con fondo #0F0F0F y padding generoso
-- Barra de progreso arriba (8 pasos, color rojo #E3000F sobre fondo #1F1F1F)
+- Barra de progreso arriba (8 pasos, color dorado #E9A82E sobre fondo #1F1F1F)
 - Botones "Anterior" y "Siguiente" abajo
-  - "Siguiente" rojo #E3000F (deshabilitado hasta completar el paso actual)
+  - "Siguiente" con fondo dorado #E9A82E y texto negro #000000 (deshabilitado hasta completar el paso actual)
   - "Anterior" outline blanco
 - Animación suave de transición entre pasos (fade o slide horizontal)
 - Tipografía Inter, títulos 24px bold, subtítulos 14px gris #9CA3AF
@@ -25,7 +25,7 @@ Argentina, Australia, Austria, Bélgica, Brasil, Camerún, Canadá, Chile, Colom
 LOS 8 PASOS DEL WIZARD
 
 Paso 1: Seudónimo (opcional)
-- Título: "¿Cómo querés que te llamen en la tabla?"
+- Título: "¿Cómo quieres que te llamen en la tabla?"
 - Input de texto (max 20 caracteres)
 - Placeholder: "Tu seudónimo (o dejá vacío para usar tu nombre real)"
 - Texto pequeño: "Si lo dejás vacío, te van a ver como [nombre real]"

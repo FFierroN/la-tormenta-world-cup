@@ -1,4 +1,4 @@
-Agrega 4 nuevas features a la app. Mantené la estética OneFootball: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, rojo #E3000F solo como acento.
+Agrega 4 nuevas features a la app. Mantén la estética del Prompt 1: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, dorado #E9A82E solo como acento.
 
 PRIMERO: CAMBIOS EN LA BASE DE DATOS
 
@@ -94,7 +94,7 @@ Lógica de qué foto mostrar:
 - Posiciones 2, 3, 4, 5, 6 o 7 → avatar_medio_url
 - Posición 8 (último) → avatar_pos8_url
 
-Si una URL está vacía o no cargó: usar fallback con la inicial del nombre sobre fondo rojo #E3000F (comportamiento actual).
+Si una URL está vacía o no cargó: usar fallback con la inicial del nombre en negro #000000 sobre fondo dorado #E9A82E (comportamiento actual).
 
 El componente Avatar recibe: usuario_id, nombre_visible, posicion_actual, tamaño (sm/md/lg).
 

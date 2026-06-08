@@ -1,13 +1,23 @@
-Crea una PWA llamada "La Tormenta Mundial 2026" para que 8 amigos hagan pronósticos del Mundial FIFA 2026.
+IMPORTANTE ANTES DE PEGAR ESTE PROMPT:
+1. Crea el proyecto en Lovable.
+2. Conecta Supabase desde el inicio (boton "Connect Supabase" / Integrations)
+   ANTES de pegar este mensaje, usando TU cuenta de Supabase. Asi todo el
+   schema se crea en tu propio proyecto desde el primer momento.
+3. Adjunta la imagen del logo (archivo del trofeo dorado "LA TORMENTA")
+   en este mismo mensaje.
 
-STACK TÉCNICO
+------------------------------------------------------------
+
+Crea una PWA llamada "La Tormenta Mundial 2026" para que 8 amigos hagan pronosticos del Mundial FIFA 2026.
+
+STACK TECNICO
 - Frontend: React + TypeScript + Tailwind CSS
-- Backend: Supabase (ya conectado)
+- Backend: Supabase (ya conectado a mi proyecto)
 - Mobile-first, responsive
 - Iconos: Lucide React
-- Banderas: usá la librería flag-icons (CSS de banderas circulares con códigos ISO)
+- Banderas: usa la libreria flag-icons (CSS de banderas circulares con codigos ISO)
 
-SISTEMA DE DISEÑO (estética OneFootball — minimalista y oscuro)
+SISTEMA DE DISENO (oscuro, minimalista, premium — dorado sobre negro)
 
 Paleta de colores:
 - Fondo principal: #000000 (negro puro)
@@ -17,29 +27,37 @@ Paleta de colores:
 - Texto principal: #FFFFFF
 - Texto secundario: #9CA3AF
 - Texto deshabilitado: #6B7280
-- Rojo de marca #E3000F (USAR SOLO en: botón "Entrar" del login, botón "Guardar pronóstico", badge "ADMIN", highlight de la fila del usuario logueado en la tabla, logo)
+- Dorado de marca #E9A82E (USAR SOLO en: boton "Entrar" del login, boton
+  "Guardar pronostico", badge "ADMIN", highlight de la fila del usuario
+  logueado en la tabla, acentos de marca)
+- Dorado claro #F5CC5C (hover y brillos del dorado)
+- Dorado profundo #C8821A (degradados sutiles si hacen falta)
+- IMPORTANTE de contraste: cuando un boton tenga FONDO dorado, el texto
+  debe ser NEGRO #000000 (no blanco), para cumplir WCAG AA. Texto blanco
+  sobre dorado NO cumple contraste.
 - Verde para "ganador local" en votaciones: #22C55E
 - Rojo para "ganador visitante" en votaciones: #EF4444
+  (estos dos verde/rojo son semaforos funcionales, NO son color de marca)
 
-Tipografía:
+Tipografia:
 - Fuente: Inter (Google Fonts)
-- Título de pantalla: 28px bold
+- Titulo de pantalla: 28px bold
 - Nombre de equipo: 17px semi-bold
 - Hora: 17px regular
 - Marcador grande (en detalle de partido): 56px bold
 - Tabs activos/inactivos: 14px medium
 
 Principios visuales:
-- MUY minimalista: nada de gradientes, nada de sombras pesadas
+- MUY minimalista: nada de gradientes recargados, nada de sombras pesadas
 - Separadores hairline #1F1F1F entre filas (NO cards visibles en listas)
 - Pills/tabs activos = solo outline blanco 1px, sin fill
 - Pills inactivos = fondo #1A1A1A sutil
 - Mucho espacio (padding generoso, line-height respirado)
-- Botones flat, sin gradientes
+- Botones flat, sin gradientes (el dorado plano, sin degradado en el boton)
 
 SCHEMA COMPLETO DE BASE DE DATOS
 
-Ejecutá este SQL en Supabase:
+Ejecuta este SQL en mi proyecto de Supabase conectado:
 
 CREATE TABLE usuarios (
   id SERIAL PRIMARY KEY,
@@ -124,29 +142,32 @@ CREATE TABLE admin_log (
   timestamp TIMESTAMP DEFAULT NOW()
 );
 
-Valores válidos en partidos.estado_partido:
-- 'pendiente' (default, todavía no empezó)
-- 'en_vivo' (admin lo marcó como en juego)
-- 'finalizado' (admin lo cerró, dispara cálculo de puntos)
+Valores validos en partidos.estado_partido:
+- 'pendiente' (default, todavia no empezo)
+- 'en_vivo' (admin lo marco como en juego)
+- 'finalizado' (admin lo cerro, dispara calculo de puntos)
 
-Valores válidos en partido_eventos.tipo:
+Valores validos en partido_eventos.tipo:
 - 'gol_local', 'gol_visitante'
-- 'autogol_local' (jugador del equipo local hace gol en contra → suma al visitante)
-- 'autogol_visitante' (jugador del visitante hace gol en contra → suma al local)
+- 'autogol_local' (jugador del equipo local hace gol en contra -> suma al visitante)
+- 'autogol_visitante' (jugador del visitante hace gol en contra -> suma al local)
 
-Valores válidos en partidos.ganador_penales:
-- NULL (no aplicable o aún no decidido)
+Valores validos en partidos.ganador_penales:
+- NULL (no aplicable o aun no decidido)
 - 'local', 'visitante', 'ninguno'
 - IMPORTANTE: este campo es SOLO DISPLAY. No afecta los puntos (los puntos siempre se calculan sobre resultado_local y resultado_visitante a los 90 min).
 
 SEED INICIAL DE USUARIOS
 
-Insertá los 8 usuarios con PIN 1234 (hasheado con bcrypt) y onboarding_completado = false:
+Inserta los 8 usuarios con PIN 1234 y onboarding_completado = false. El
+pin_hash debe guardarse con el MISMO metodo de hashing (bcrypt) que usa la
+pantalla de login para validar, de modo que el PIN 1234 funcione al iniciar
+sesion.
 
 1. Felipe Fierro — es_admin = true
 2. Victor Soto
 3. Ignacio Contreras
-4. Jaime Furió
+4. Jaime Furio
 5. Diego Galvez
 6. Daniel Abreu
 7. Benjamin Bustamante
@@ -155,18 +176,22 @@ Insertá los 8 usuarios con PIN 1234 (hasheado con bcrypt) y onboarding_completa
 PANTALLA DE LOGIN
 
 - Fondo #000000 completo
-- Logo centrado arriba: "La Tormenta Mundial 2026" con icono ⚡ al lado del texto, tipografía bold 32px
-- Subtítulo: "Prode entre amigos" en gris #9CA3AF 14px
-- Dropdown con los 8 nombres reales (texto blanco, fondo #0F0F0F)
-- Input numérico de 4 dígitos para el PIN (texto blanco grande, centrado)
-- Botón "Entrar" rojo #E3000F ancho completo, texto blanco bold
-- Validación contra tabla usuarios con PIN hasheado
-- Error toast si PIN incorrecto
-- Persistir sesión en localStorage
+- Logo arriba centrado: usa la IMAGEN del logo que adjunto en este mensaje
+  (trofeo dorado "LA TORMENTA"). Ancho maximo 220px, mantener proporcion.
+  Guardalo en assets del proyecto y referencialo desde ahi.
+- Subtitulo: "El prode del mundial" en gris #9CA3AF 14px
+- Dropdown con los 8 nombres reales (texto blanco, fondo #0F0F0F).
+  Su placeholder debe decir "Elige tu usuario".
+- Input numerico de 4 digitos para el PIN (texto blanco grande, centrado)
+- Boton "Entrar" con fondo dorado #E9A82E, ancho completo, texto NEGRO
+  #000000 bold (negro por contraste WCAG AA sobre el dorado)
+- Validacion contra tabla usuarios con PIN hasheado
+- Error toast si el PIN es incorrecto
+- Persistir sesion en localStorage
 
-NAVEGACIÓN PRINCIPAL (post-login)
+NAVEGACION PRINCIPAL (post-login)
 
-Bottom tab bar minimalista con 4 tabs. Estilo OneFootball:
+Bottom tab bar minimalista con 4 tabs:
 - Fondo #000000 con borde superior hairline #1F1F1F
 - Cada tab: icono outline arriba + label abajo
 - Tab activo: icono y texto en blanco #FFFFFF
@@ -181,7 +206,7 @@ Los 4 tabs (con iconos Lucide):
 
 PANTALLAS PLACEHOLDER (las llenamos en prompts siguientes)
 
-Crea las 4 pantallas con un header grande y texto centrado "Próximamente":
+Crea las 4 pantallas con un header grande y texto centrado "Proximamente":
 - Partidos
 - Tabla de Posiciones
 - Mi Cuenta
@@ -190,15 +215,17 @@ Crea las 4 pantallas con un header grande y texto centrado "Próximamente":
 Header de cada pantalla:
 [Avatar circular]  Partidos  [icono] [icono]
 
-- Avatar circular ~48px arriba izquierda (inicial del usuario sobre fondo rojo #E3000F)
-- Título 28px bold
+- Avatar circular ~48px arriba izquierda (inicial del usuario sobre fondo
+  dorado #E9A82E, con la inicial en negro #000000 por contraste)
+- Titulo 28px bold
 - Iconos circulares fondo #0F0F0F arriba derecha (~40px)
 
 IMPORTANTE
-
-- NO implementes lógica de cálculo de puntos aún
+- NO implementes logica de calculo de puntos aun
 - NO implementes el wizard de predicciones especiales (eso es Prompt 2)
 - NO implementes carga de eventos (eso es Prompt 5)
-- Mantené el código limpio, modular y comentado en español
-- Mobile-first: probá que se vea bien en pantallas de 360px
-- Asegurate de que el contraste cumpla WCAG AA mínimo (4.5:1 para texto)
+- Manten el codigo limpio, modular y comentado en espanol neutro
+- Mobile-first: prueba que se vea bien en pantallas de 360px
+- Asegurate de que el contraste cumpla WCAG AA minimo (4.5:1 para texto)
+- Todo el texto visible para el usuario debe estar en espanol neutro
+  (sin voseo argentino): usa "elige", "ingresa", "guarda", "selecciona".

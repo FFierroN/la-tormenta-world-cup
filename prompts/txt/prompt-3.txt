@@ -48,7 +48,7 @@ Si estado_partido = 'en_vivo' o 'finalizado':
 
 Pronóstico del usuario (debajo de cada fila, si existe):
 Texto pequeño 12px gris debajo: "Tu pronóstico: 1-1 · 0 pts"
-Si todavía no pronosticó y el partido está abierto → texto en rojo: "Sin pronóstico · pulsá para predecir"
+Si todavía no pronosticó y el partido está abierto → texto en rojo #EF4444: "Sin pronóstico · pulsa para predecir"
 
 VISTA "POR GRUPO"
 
@@ -84,7 +84,7 @@ Estructura:
 - Subtítulo: "17:00 UTC-4 · Grupo A"
 - Steppers 0-15: botones circulares outline blanco para [-] y [+]
 - Countdown al deadline: actualizado cada segundo ("Cierra en 2h 15m")
-- Botón "Guardar pronóstico": rojo #E3000F, ancho completo
+- Botón "Guardar pronóstico": fondo dorado #E9A82E con texto negro #000000, ancho completo
 - Si ya pronosticó → cargar valores existentes en los steppers
 - Al guardar: UPSERT en pronosticos, toast "Pronóstico guardado"
 

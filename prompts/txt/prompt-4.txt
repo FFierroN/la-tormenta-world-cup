@@ -1,4 +1,4 @@
-Implementa las pantallas "Tabla" (tab 2) y "Mi cuenta" (tab 3). Manté la estética OneFootball del Prompt 1: fondo negro #000000, separadores hairline #1F1F1F, sin cards visibles innecesarias, outline blanco para activos, rojo #E3000F solo como acento de marca.
+Implementa las pantallas "Tabla" (tab 2) y "Mi cuenta" (tab 3). Mantén la estética del Prompt 1: fondo negro #000000, separadores hairline #1F1F1F, sin cards visibles innecesarias, outline blanco para activos, dorado #E9A82E solo como acento de marca.
 
 TAB "TABLA" — TABLA DE POSICIONES
 
@@ -16,7 +16,7 @@ Estructura de cada fila (sin cards, separadores hairline #1F1F1F):
 - Debajo del nombre, texto pequeño 12px gris: "12 exactos · 18 dif · 24 gan"
 
 Estilos especiales:
-- Fila del jugador logueado: borde izquierdo rojo #E3000F 3px (highlight discreto)
+- Fila del jugador logueado: borde izquierdo dorado #E9A82E 3px (highlight discreto)
 - Top 3: fondo sutil #0F0F0F
 - Resto: fondo #000000
 
@@ -53,7 +53,7 @@ Mostrar la siguiente lista:
 TAB "MI CUENTA" — PERFIL PERSONAL
 
 Header:
-- Avatar circular grande (inicial del nombre sobre fondo rojo #E3000F)
+- Avatar circular grande (inicial del nombre en negro #000000 sobre fondo dorado #E9A82E)
 - Nombre real + seudónimo entre paréntesis 20px bold
 - Botón pequeño "Editar seudónimo" (icono lápiz) → abre modal con input
 - Posición actual y puntos totales en grande
@@ -88,7 +88,7 @@ Sección "Actividad del admin":
 
 Sección inferior:
 - Toggle modo claro/oscuro (default: oscuro)
-- Botón "Cerrar sesión" (rojo outline #E3000F, NO sólido)
+- Botón "Cerrar sesión" (dorado outline #E9A82E, NO sólido)
 - Texto pequeño abajo: "La Tormenta Mundial 2026 v1.0"
 
 MODAL "EDITAR SEUDÓNIMO"

@@ -1,0 +1,134 @@
+import { useState } from "react";
+import Avatar from "../components/Avatar";
+import { avatarPorPosicion } from "../lib/avatares";
+import { MOCK_TABLA } from "../lib/mock";
+import type { FilaTabla } from "../lib/types";
+
+type Pestana = "galeria" | "clasica";
+
+export default function Tabla() {
+  const [pestana, setPestana] = useState<Pestana>("galeria");
+  // TODO: reemplazar MOCK_TABLA por fetch a Supabase (vista de standings).
+  const filas = MOCK_TABLA;
+  const total = filas.length;
+
+  return (
+    <div className="max-w-md mx-auto">
+      <header className="px-4 pt-5 pb-3">
+        <h1 className="text-xl font-bold">Tabla de posiciones</h1>
+      </header>
+
+      {/* Selector de pestanas */}
+      <div className="px-4">
+        <div className="flex gap-2 p-1 bg-carbon-soft rounded-full border border-borde">
+          <TabBtn activo={pestana === "galeria"} onClick={() => setPestana("galeria")}>
+            Galeria
+          </TabBtn>
+          <TabBtn activo={pestana === "clasica"} onClick={() => setPestana("clasica")}>
+            Clasica
+          </TabBtn>
+        </div>
+      </div>
+
+      {pestana === "galeria" ? (
+        <Galeria filas={filas} total={total} />
+      ) : (
+        <Clasica filas={filas} />
+      )}
+    </div>
+  );
+}
+
+function TabBtn({
+  activo,
+  onClick,
+  children,
+}: {
+  activo: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex-1 py-2 text-sm font-semibold rounded-full transition-colors ${
+        activo ? "bg-oro text-carbon" : "text-neutral-300"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ---------- Pestana 1: galeria de avatares ---------- */
+function Galeria({ filas, total }: { filas: FilaTabla[]; total: number }) {
+  return (
+    <div className="px-4 py-4 flex flex-col gap-4">
+      {filas.map((f) => (
+        <article
+          key={f.jugador_id}
+          className="bg-carbon-card border border-borde rounded-2xl px-4 py-5 flex flex-col items-center text-center"
+        >
+          <Avatar
+            src={avatarPorPosicion(f, total)}
+            nombre={f.nombre}
+            size={112}
+          />
+          <div className="mt-3 text-2xl font-extrabold text-oro">#{f.posicion}</div>
+          <div className="text-lg font-bold">{f.alias ?? f.nombre}</div>
+          <div className="mt-1 text-3xl font-black tabular-nums">{f.puntos}</div>
+          <div className="text-xs uppercase tracking-wide text-neutral-400">puntos</div>
+
+          <div className="mt-4 grid grid-cols-3 gap-2 w-full">
+            <Stat label="Exactos" valor={f.exactos} />
+            <Stat label="Aciertos" valor={f.aciertos} />
+            <Stat label="Fallas" valor={f.fallas} />
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function Stat({ label, valor }: { label: string; valor: number }) {
+  return (
+    <div className="bg-carbon-soft rounded-xl py-2">
+      <div className="text-lg font-bold tabular-nums">{valor}</div>
+      <div className="text-[10px] uppercase tracking-wide text-neutral-400">{label}</div>
+    </div>
+  );
+}
+
+/* ---------- Pestana 2: tabla clasica ---------- */
+function Clasica({ filas }: { filas: FilaTabla[] }) {
+  return (
+    <div className="px-4 py-4">
+      <div className="overflow-hidden rounded-2xl border border-borde">
+        <table className="w-full text-sm">
+          <thead className="bg-carbon-soft text-neutral-400 text-xs uppercase">
+            <tr>
+              <th className="py-2.5 px-2 text-left">#</th>
+              <th className="py-2.5 px-2 text-left">Jugador</th>
+              <th className="py-2.5 px-1 text-center">Pts</th>
+              <th className="py-2.5 px-1 text-center" title="Exactos">Ex</th>
+              <th className="py-2.5 px-1 text-center" title="Aciertos">Ac</th>
+              <th className="py-2.5 px-1 text-center" title="Fallas">Fa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.jugador_id} className="border-t border-borde">
+                <td className="py-2.5 px-2 font-bold text-oro">{f.posicion}</td>
+                <td className="py-2.5 px-2">{f.alias ?? f.nombre}</td>
+                <td className="py-2.5 px-1 text-center font-bold tabular-nums">{f.puntos}</td>
+                <td className="py-2.5 px-1 text-center tabular-nums">{f.exactos}</td>
+                <td className="py-2.5 px-1 text-center tabular-nums">{f.aciertos}</td>
+                <td className="py-2.5 px-1 text-center tabular-nums">{f.fallas}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

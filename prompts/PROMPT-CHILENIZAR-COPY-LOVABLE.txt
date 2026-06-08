@@ -1,0 +1,50 @@
+PROMPT - Chilenizar copy (voseo -> tuteo) - pegar en Lovable
+==============================================================
+
+CUANDO USAR: la app fue generada con jerga rioplatense (voseo argentino).
+El usuario es chileno y quiere todo el texto visible en tuteo neutro/chileno.
+Este prompt NO toca logica, componentes ni estilos: solo cambia strings.
+
+------------------------------------------------------------------
+PEGAR DESDE AQUI (entre las marcas ---PROMPT---)
+------------------------------------------------------------------
+
+---PROMPT---
+
+Tu unica tarea es corregir el lenguaje de TODO el texto visible para el
+usuario (UI copy): placeholders, labels, botones, titulos, subtitulos,
+mensajes de error, toasts, modales, tooltips y textos de ayuda.
+
+La app esta escrita con voseo argentino. Cambialo a tuteo neutro chileno.
+NO modifiques nombres de variables, funciones, claves de base de datos,
+comentarios de codigo ni ninguna logica. SOLO el texto que ve el usuario.
+
+Reglas de conversion (voseo -> tuteo):
+- Imperativos: "elegi" -> "elige", "carga/cargá" -> "carga", "guarda/guardá"
+  -> "guarda", "espera/esperá" -> "espera", "fijate" -> "fijate" (queda igual
+  en tuteo: "fijate"), "anda/andá" -> "ve" o "anda" segun contexto, "mira/mirá"
+  -> "mira", "ingresa/ingresá" -> "ingresa", "selecciona/seleccioná" ->
+  "selecciona", "completa/completá" -> "completa", "confirma/confirmá" ->
+  "confirma", "revisa/revisá" -> "revisa".
+- Presente: "tenes" -> "tienes", "podes" -> "puedes", "queres" -> "quieres",
+  "sos" -> "eres", "vos" -> "tu", "tu/tuyo" se mantiene.
+- Cambios puntuales conocidos:
+  * Placeholder del selector de usuario en el login: debe decir
+    "Elige tu usuario".
+
+Casos especiales (NO cambiar):
+- El nombre de la app "La Tormenta Mundial 2026" se mantiene tal cual.
+- Nombres propios de los jugadores se mantienen.
+- Terminos de futbol estandar se mantienen.
+
+Despues de aplicar los cambios, dame una lista de todos los textos que
+modificaste (texto anterior -> texto nuevo) para que pueda revisarlos.
+
+---PROMPT---
+
+----------------------------------------------------------
+NOTA APARTE (decision pendiente, NO incluida arriba):
+El subtitulo del login dice "Prode entre amigos". "Prode" es rioplatense.
+En Chile seria "Polla" o "Quiniela". Si quieres cambiarlo, agrega al prompt:
+  'Cambia el subtitulo "Prode entre amigos" por "Polla entre amigos".'
+Por ahora se deja como esta hasta que Felipe lo confirme.

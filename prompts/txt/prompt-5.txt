@@ -1,4 +1,4 @@
-Implementa el panel admin completo + configuración PWA + pulido visual final. Mantené la estética OneFootball: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, rojo #E3000F solo como acento.
+Implementa el panel admin completo + configuración PWA + pulido visual final. Mantén la estética del Prompt 1: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, dorado #E9A82E solo como acento.
 
 TAB "ADMIN" (solo visible para es_admin = true)
 
@@ -53,7 +53,7 @@ Timeline (lista de eventos cargados):
 - Tap en basurero → confirmación → DELETE del evento + revertir marcador + log
 - Si es autogol: mostrar "(en contra)" después del nombre
 
-Botón "FINALIZAR PARTIDO" grande rojo #E3000F al final:
+Botón "FINALIZAR PARTIDO" grande con fondo dorado #E9A82E y texto negro #000000 al final:
 1. Modal de confirmación: "¿Confirmás el resultado final [X-Y]? Esto disparará el cálculo de puntos de los pronósticos."
 2. Si confirma:
    - UPDATE partidos.estado_partido = 'finalizado'
@@ -152,7 +152,7 @@ Manifest.json:
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#E3000F",
+  "theme_color": "#E9A82E",
   "orientation": "portrait",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
@@ -185,7 +185,7 @@ Modo claro:
 - Cards: #F5F5F5
 - Texto principal: #0A0A0A
 - Separadores: #E5E7EB
-- Rojo de marca #E3000F se mantiene igual
+- Dorado de marca #E9A82E se mantiene igual
 - Mantener minimalismo OneFootball
 
 Persistir preferencia en localStorage.
@@ -205,7 +205,7 @@ Empty states:
 Toasts:
 Posición: bottom center. Duración: 3 segundos.
 - Éxito: fondo verde #10B981
-- Error: fondo rojo #E3000F
+- Error: fondo rojo #EF4444
 - Info: fondo gris #374151
 
 Animaciones:

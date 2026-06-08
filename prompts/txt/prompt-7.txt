@@ -1,4 +1,4 @@
-Agrega una nueva sección al panel Admin para editar las reglas de puntaje. Mantené la estética OneFootball: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, rojo #E3000F solo como acento.
+Agrega una nueva sección al panel Admin para editar las reglas de puntaje. Mantén la estética del Prompt 1: fondo negro #000000, separadores hairline #1F1F1F, sin cards innecesarias, outline blanco para activos, dorado #E9A82E solo como acento.
 
 CONTEXTO: en Supabase ya existe una tabla llamada "reglas_puntaje" con estas columnas:
 - clave (texto, ej: "grupos_exacto")
@@ -40,14 +40,14 @@ Cada regla es una fila con:
 
 ADVERTENCIA SI EL TORNEO YA EMPEZÓ
 
-Arriba de todo, si existe algún partido con estado_partido distinto de 'pendiente', mostrar un banner de advertencia en rojo #E3000F:
+Arriba de todo, si existe algún partido con estado_partido distinto de 'pendiente', mostrar un banner de advertencia en rojo #EF4444:
 "⚠️ El torneo ya comenzó. Cambiar las reglas ahora recalculará los puntos de todos los partidos ya jugados. Hacelo con cuidado."
 
 Si el torneo no empezó, no mostrar el banner.
 
 BOTÓN GUARDAR Y RECALCULAR
 
-Al final de la pantalla, un botón fijo grande rojo #E3000F: "Guardar cambios y recalcular puntos".
+Al final de la pantalla, un botón fijo grande con fondo dorado #E9A82E y texto negro #000000: "Guardar cambios y recalcular puntos".
 
 Al tocarlo:
 1. Mostrar modal de confirmación: "¿Confirmás los nuevos valores? Se recalcularán los puntos de todos los partidos finalizados y la tabla de posiciones se actualizará."

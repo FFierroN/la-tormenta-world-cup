@@ -4,14 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Marca: dorado sobre negro (decision tomada en sesiones previas)
+        // Marca: dorado sobre azul marino (color del fondo del logo)
         oro: "#E9A82E",
         "oro-dark": "#C8881A",
-        carbon: "#0A0A0A",
-        "carbon-soft": "#141414",
-        "carbon-card": "#1B1B1B",
-        borde: "#2A2A2A",
-        // Azul marino del logo (identidad de marca)
+        // Paleta azul marino coordinada (base oscura -> tarjetas mas claras):
+        carbon: "#172842",        // fondo base (igual al fondo del logo)
+        "carbon-soft": "#1F3354", // superficies levemente elevadas
+        "carbon-card": "#243A60", // tarjetas
+        borde: "#36507A",         // bordes azulados
+        // Alias historico del marino (por si quedan usos viejos)
         marino: "#172842",
       },
       fontFamily: {

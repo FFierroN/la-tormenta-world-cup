@@ -35,13 +35,24 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-full flex flex-col items-center justify-center px-6 max-w-md mx-auto">
+    <div className="min-h-full flex flex-col items-center justify-center px-6 py-12 max-w-md mx-auto">
       <img
         src="/logo.png"
         alt="La Tormenta World Cup"
         className="w-44 h-44 rounded-3xl shadow-xl shadow-black/50"
       />
-      <p className="text-neutral-400 text-sm mt-3 mb-8">El prode de la World Cup</p>
+      <p className="text-neutral-300 text-sm mt-3 mb-5">El prode de la World Cup</p>
+
+      {/* Foto de bienvenida (entre el logo y las opciones).
+          Archivo: app/public/inicio.png, disenada a 16:9 (ej. 1280x720 px). */}
+      <img
+        src="/inicio.png"
+        alt="La Tormenta World Cup"
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+        }}
+        className="w-full aspect-[16/9] object-cover rounded-2xl shadow-lg shadow-black/30 mb-8"
+      />
 
       <form onSubmit={submit} className="w-full flex flex-col gap-4">
         <label className="text-sm">

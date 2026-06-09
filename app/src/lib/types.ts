@@ -61,6 +61,16 @@ export interface Pronostico {
   puntos: number | null; // calculado tras el resultado
 }
 
+// Pronostico tal como lo devuelve la RPC pronosticos_partido (con nombre listo).
+// Oculta los ajenos hasta que el partido empieza (logica en el servidor).
+export interface PronosticoVista {
+  jugador_id: string;
+  nombre: string;
+  pred_local: number;
+  pred_visita: number;
+  puntos: number;
+}
+
 // Fila de la tabla de posiciones de un grupo del Mundial.
 export interface FilaGrupo {
   grupo: string; // A..L

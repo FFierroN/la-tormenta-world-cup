@@ -9,7 +9,7 @@ import type {
   FilaTabla,
   Jugador,
   Partido,
-  Pronostico,
+  PronosticoVista,
 } from "./types";
 
 // ---------- mappers (fila cruda -> tipo del dominio) ----------
@@ -61,14 +61,13 @@ function aEvento(r: any): EventoPartido {
   };
 }
 
-function aPronostico(r: any): Pronostico {
+function aPronosticoVista(r: any): PronosticoVista {
   return {
-    id: String(r.id),
-    partido_id: String(r.partido_id),
     jugador_id: String(r.jugador_id),
+    nombre: r.nombre,
     pred_local: r.pred_local,
     pred_visita: r.pred_visita,
-    puntos: r.puntos ?? null,
+    puntos: Number(r.puntos ?? 0),
   };
 }
 
@@ -166,15 +165,34 @@ export async function listarEventos(partidoId: string): Promise<EventoPartido[]>
   return (data ?? []).map(aEvento);
 }
 
-export async function listarPronosticos(
-  partidoId: string
-): Promise<Pronostico[]> {
-  const { data, error } = await supabase
-    .from("pronosticos")
-    .select("*")
-    .eq("partido_id", Number(partidoId));
+// Pronosticos de un partido (via RPC: oculta ajenos hasta que empieza).
+export async function pronosticosPartido(
+  partidoId: string,
+  jugadorId: string
+): Promise<PronosticoVista[]> {
+  const { data, error } = await supabase.rpc("pronosticos_partido", {
+    p_partido_id: Number(partidoId),
+    p_jugador_id: Number(jugadorId),
+  });
   lanzarSi(error);
-  return (data ?? []).map(aPronostico);
+  return (data ?? []).map(aPronosticoVista);
+}
+
+// Guarda/actualiza el pronostico del jugador. Devuelve 'ok'|'cerrado'|'invalido'.
+export async function guardarPronostico(
+  jugadorId: string,
+  partidoId: string,
+  local: number,
+  visita: number
+): Promise<string> {
+  const { data, error } = await supabase.rpc("guardar_pronostico", {
+    p_jugador_id: Number(jugadorId),
+    p_partido_id: Number(partidoId),
+    p_local: local,
+    p_visita: visita,
+  });
+  lanzarSi(error);
+  return String(data);
 }
 
 export async function obtenerTabla(): Promise<FilaTabla[]> {

@@ -262,6 +262,52 @@ returns void language sql security definer set search_path = public, extensions 
   update jugadores set onboarding_completado = p_valor where id = p_jugador_id;
 $$;
 
+-- Guardar/actualizar un pronostico. SOLO si el partido sigue 'programado' y
+-- aun no empezo (regla anti-trampa, validada en el servidor).
+-- Devuelve: 'ok' | 'cerrado' | 'invalido'.
+create or replace function guardar_pronostico(
+  p_jugador_id int, p_partido_id int, p_local int, p_visita int)
+returns text language plpgsql security definer set search_path = public, extensions as $$
+declare est text; fch timestamptz;
+begin
+  if p_local is null or p_visita is null
+     or p_local < 0 or p_visita < 0 or p_local > 99 or p_visita > 99 then
+    return 'invalido';
+  end if;
+  select estado, fecha into est, fch from partidos where id = p_partido_id;
+  if not found then return 'invalido'; end if;
+  if est <> 'programado' or fch <= now() then
+    return 'cerrado';
+  end if;
+  insert into pronosticos (jugador_id, partido_id, pred_local, pred_visita)
+  values (p_jugador_id, p_partido_id, p_local, p_visita)
+  on conflict (jugador_id, partido_id) do update
+    set pred_local = excluded.pred_local,
+        pred_visita = excluded.pred_visita,
+        updated_at = now();
+  return 'ok';
+end;
+$$;
+
+-- Pronosticos de un partido. Si el partido YA empezo, devuelve los de TODOS.
+-- Si aun no empieza, devuelve solo el del jugador que pregunta (oculta ajenos).
+create or replace function pronosticos_partido(p_partido_id int, p_jugador_id int)
+returns table(jugador_id int, nombre text, pred_local int, pred_visita int, puntos int)
+language sql security definer set search_path = public, extensions as $$
+  select pr.jugador_id,
+         coalesce(j.alias, j.nombre) as nombre,
+         pr.pred_local, pr.pred_visita, pr.puntos
+  from pronosticos pr
+  join jugadores j on j.id = pr.jugador_id
+  where pr.partido_id = p_partido_id
+    and (
+      exists (select 1 from partidos p where p.id = p_partido_id
+              and (p.estado <> 'programado' or p.fecha <= now()))
+      or pr.jugador_id = p_jugador_id
+    )
+  order by pr.puntos desc, nombre;
+$$;
+
 -- =====================================================================
 -- 4. VISTAS PUBLICAS (lo unico que el frontend lee de jugadores)
 -- =====================================================================
@@ -360,7 +406,7 @@ alter table api_cuota              enable row level security;
 do $$
 declare t text;
 begin
-  foreach t in array array['partidos','partido_eventos','pronosticos',
+  foreach t in array array['partidos','partido_eventos',
                            'predicciones_especiales','configuracion']
   loop
     execute format('drop policy if exists %I on %I', 'p_'||t||'_all', t);
@@ -369,10 +415,17 @@ begin
   end loop;
 end $$;
 
+-- pronosticos: SIN politica permisiva. Se escribe/lee solo via las funciones
+-- guardar_pronostico / pronosticos_partido (security definer). Si una corrida
+-- anterior dejo la politica abierta, la quitamos aqui.
+drop policy if exists p_pronosticos_all on pronosticos;
+
 grant select on jugadores_publico, tabla_posiciones, tabla_grupos to anon, authenticated;
 grant execute on function login_jugador(int,text)        to anon, authenticated;
 grant execute on function cambiar_pin(int,text,text)      to anon, authenticated;
 grant execute on function set_onboarding(int,boolean)     to anon, authenticated;
+grant execute on function guardar_pronostico(int,int,int,int) to anon, authenticated;
+grant execute on function pronosticos_partido(int,int)    to anon, authenticated;
 
 -- =====================================================================
 -- 6. REALTIME (la app escucha cambios en vivo)

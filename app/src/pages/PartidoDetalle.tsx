@@ -65,15 +65,14 @@ export default function PartidoDetalle() {
 
   return (
     <div className="min-h-full bg-carbon">
-      {/* ---------- Header con fondo tipo estadio (degradado) ---------- */}
+      {/* ---------- Header con fondo de la Copa (imagen) ---------- */}
       <header className="relative overflow-hidden">
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 bg-cover bg-center"
           style={{
             backgroundImage:
-              "radial-gradient(120% 80% at 50% 125%, rgba(34,160,60,.55), rgba(13,42,20,0) 60%)," +
-              "radial-gradient(70% 45% at 50% -10%, rgba(255,255,255,.14), rgba(0,0,0,0) 70%)," +
-              "linear-gradient(180deg, #0b1f12 0%, #0a0a0a 100%)",
+              "linear-gradient(180deg, rgba(8,10,8,.55) 0%, rgba(8,10,8,.35) 45%, rgba(10,10,10,.92) 100%)," +
+              "url('/fondo-partido.png')",
             backgroundColor: "#0d2a14",
           }}
         />

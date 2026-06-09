@@ -43,7 +43,7 @@ HEADER = """-- =================================================================
 --             Los 104 partidos solo se insertan si la tabla esta vacia.
 -- =====================================================================
 
-create extension if not exists pgcrypto;  -- para hashear los PIN (bcrypt)
+create extension if not exists pgcrypto with schema extensions;  -- para hashear los PIN (bcrypt). En Supabase vive en el esquema 'extensions'.
 
 -- =====================================================================
 -- 1. TABLAS  (nombres de columnas alineados al frontend Vite)
@@ -237,7 +237,7 @@ create trigger trg_actualizar_puntos
 create or replace function login_jugador(p_jugador_id int, p_pin text)
 returns table(id int, nombre text, alias text,
               es_admin boolean, onboarding_completado boolean)
-language sql security definer set search_path = public as $$
+language sql security definer set search_path = public, extensions as $$
   select j.id, j.nombre, j.alias, j.es_admin, j.onboarding_completado
   from jugadores j
   where j.id = p_jugador_id
@@ -245,7 +245,7 @@ language sql security definer set search_path = public as $$
 $$;
 
 create or replace function cambiar_pin(p_jugador_id int, p_pin_actual text, p_pin_nuevo text)
-returns boolean language plpgsql security definer set search_path = public as $$
+returns boolean language plpgsql security definer set search_path = public, extensions as $$
 declare ok boolean;
 begin
   select (pin_hash = crypt(p_pin_actual, pin_hash)) into ok
@@ -258,7 +258,7 @@ end;
 $$;
 
 create or replace function set_onboarding(p_jugador_id int, p_valor boolean)
-returns void language sql security definer set search_path = public as $$
+returns void language sql security definer set search_path = public, extensions as $$
   update jugadores set onboarding_completado = p_valor where id = p_jugador_id;
 $$;
 
@@ -370,7 +370,7 @@ def bloque_jugadores() -> str:
     filas = []
     for nombre, admin in JUGADORES:
         filas.append(
-            f"  ({sql_txt(nombre)}, null, crypt('1234', gen_salt('bf')), {str(admin).lower()})"
+            f"  ({sql_txt(nombre)}, null, extensions.crypt('1234', extensions.gen_salt('bf')), {str(admin).lower()})"
         )
     return (
         "insert into jugadores (nombre, alias, pin_hash, es_admin) values\n"

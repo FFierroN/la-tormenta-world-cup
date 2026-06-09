@@ -4,6 +4,7 @@ import Login from "./pages/Login";
 import Partidos from "./pages/Partidos";
 import PartidoDetalle from "./pages/PartidoDetalle";
 import Tabla from "./pages/Tabla";
+import Grupos from "./pages/Grupos";
 import MiCuenta from "./pages/MiCuenta";
 import { useAuth } from "./lib/auth";
 import type { ReactNode } from "react";
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/partidos" element={<Privada><Partidos /></Privada>} />
           <Route path="/partido/:id" element={<Privada><PartidoDetalle /></Privada>} />
           <Route path="/tabla" element={<Privada><Tabla /></Privada>} />
+          <Route path="/grupos" element={<Privada><Grupos /></Privada>} />
           <Route path="/cuenta" element={<Privada><MiCuenta /></Privada>} />
           <Route path="*" element={<Navigate to="/partidos" replace />} />
         </Routes>

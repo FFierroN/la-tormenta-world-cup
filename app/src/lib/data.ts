@@ -5,6 +5,7 @@
 import { supabase } from "./supabase";
 import type {
   EventoPartido,
+  FilaGrupo,
   FilaTabla,
   Jugador,
   Partido,
@@ -29,7 +30,10 @@ function aPartido(r: any): Partido {
   return {
     id: String(r.id),
     fase: r.fase,
+    grupo: r.grupo ?? null,
     fecha: r.fecha,
+    estadio: r.estadio ?? null,
+    ciudad: r.ciudad ?? null,
     equipo_local: r.equipo_local,
     equipo_visita: r.equipo_visita,
     pais_local: r.pais_local ?? "",
@@ -81,6 +85,23 @@ function aFilaTabla(r: any): FilaTabla {
     avatar_pos1: r.avatar_pos1 ?? null,
     avatar_medio: r.avatar_medio ?? null,
     avatar_pos8: r.avatar_pos8 ?? null,
+  };
+}
+
+function aFilaGrupo(r: any): FilaGrupo {
+  return {
+    grupo: r.grupo,
+    pais: r.pais ?? "",
+    equipo: r.equipo,
+    pj: Number(r.pj ?? 0),
+    pg: Number(r.pg ?? 0),
+    pe: Number(r.pe ?? 0),
+    pp: Number(r.pp ?? 0),
+    gf: Number(r.gf ?? 0),
+    gc: Number(r.gc ?? 0),
+    dg: Number(r.dg ?? 0),
+    pts: Number(r.pts ?? 0),
+    pos: Number(r.pos ?? 0),
   };
 }
 
@@ -163,4 +184,14 @@ export async function obtenerTabla(): Promise<FilaTabla[]> {
     .order("posicion");
   lanzarSi(error);
   return (data ?? []).map(aFilaTabla);
+}
+
+export async function obtenerTablaGrupos(): Promise<FilaGrupo[]> {
+  const { data, error } = await supabase
+    .from("tabla_grupos")
+    .select("*")
+    .order("grupo")
+    .order("pos");
+  lanzarSi(error);
+  return (data ?? []).map(aFilaGrupo);
 }

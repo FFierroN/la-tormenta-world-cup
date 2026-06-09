@@ -22,7 +22,10 @@ export interface Jugador {
 export interface Partido {
   id: string;
   fase: string; // grupos / octavos / etc
+  grupo: string | null; // A..L (solo fase de grupos)
   fecha: string; // ISO
+  estadio: string | null;
+  ciudad: string | null;
   equipo_local: string;
   equipo_visita: string;
   pais_local: string; // codigo ISO para bandera
@@ -56,6 +59,22 @@ export interface Pronostico {
   pred_local: number;
   pred_visita: number;
   puntos: number | null; // calculado tras el resultado
+}
+
+// Fila de la tabla de posiciones de un grupo del Mundial.
+export interface FilaGrupo {
+  grupo: string; // A..L
+  pais: string; // codigo ISO para bandera
+  equipo: string;
+  pj: number; // partidos jugados
+  pg: number; // ganados
+  pe: number; // empatados
+  pp: number; // perdidos
+  gf: number; // goles a favor
+  gc: number; // goles en contra
+  dg: number; // diferencia de goles
+  pts: number; // puntos
+  pos: number; // posicion dentro del grupo
 }
 
 // Fila derivada de la tabla de posiciones.

@@ -301,6 +301,43 @@ with base as (
 select *, rank() over (order by puntos desc, exactos desc) as posicion
 from base;
 
+-- Tabla de posiciones de cada GRUPO del Mundial (A..L).
+-- Se calcula sola desde los resultados de 'partidos' (cero consumo de API).
+-- Muestra los equipos desde ya (en 0) y va sumando con cada partido final.
+create or replace view tabla_grupos as
+with equipos as (
+  select grupo, equipo_local as equipo, pais_local as pais
+    from partidos where grupo is not null and equipo_local <> 'Por definir'
+  union
+  select grupo, equipo_visita as equipo, pais_visita as pais
+    from partidos where grupo is not null and equipo_visita <> 'Por definir'
+),
+resultados as (
+  select grupo, equipo_local as equipo, goles_local as gf, goles_visita as gc
+    from partidos where grupo is not null and estado='final' and goles_local is not null
+  union all
+  select grupo, equipo_visita as equipo, goles_visita as gf, goles_local as gc
+    from partidos where grupo is not null and estado='final' and goles_local is not null
+),
+agg as (
+  select e.grupo, e.equipo, e.pais,
+    count(r.equipo)                                          as pj,
+    count(*) filter (where r.gf > r.gc)                      as pg,
+    count(*) filter (where r.gf = r.gc)                      as pe,
+    count(*) filter (where r.gf < r.gc)                      as pp,
+    coalesce(sum(r.gf),0)                                    as gf,
+    coalesce(sum(r.gc),0)                                    as gc,
+    coalesce(sum(r.gf - r.gc),0)                             as dg,
+    coalesce(sum(case when r.gf>r.gc then 3
+                      when r.gf=r.gc then 1 else 0 end),0)   as pts
+  from equipos e
+  left join resultados r on r.grupo = e.grupo and r.equipo = e.equipo
+  group by e.grupo, e.equipo, e.pais
+)
+select *, rank() over (partition by grupo
+                       order by pts desc, dg desc, gf desc, equipo) as pos
+from agg;
+
 -- =====================================================================
 -- 5. SEGURIDAD (RLS) - grupo cerrado de 8 amigos
 -- =====================================================================
@@ -332,7 +369,7 @@ begin
   end loop;
 end $$;
 
-grant select on jugadores_publico, tabla_posiciones to anon, authenticated;
+grant select on jugadores_publico, tabla_posiciones, tabla_grupos to anon, authenticated;
 grant execute on function login_jugador(int,text)        to anon, authenticated;
 grant execute on function cambiar_pin(int,text,text)      to anon, authenticated;
 grant execute on function set_onboarding(int,boolean)     to anon, authenticated;

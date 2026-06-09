@@ -56,13 +56,15 @@ export default function PartidoDetalle() {
 
   return (
     <div className="min-h-full bg-carbon">
-      {/* ---------- Header con fondo de estadio ---------- */}
-      <header className="relative">
+      {/* ---------- Header con fondo tipo estadio (degradado) ---------- */}
+      <header className="relative overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0"
           style={{
             backgroundImage:
-              "linear-gradient(180deg, rgba(10,10,10,.55), rgba(10,10,10,.95)), url('/estadio.jpg')",
+              "radial-gradient(120% 80% at 50% 125%, rgba(34,160,60,.55), rgba(13,42,20,0) 60%)," +
+              "radial-gradient(70% 45% at 50% -10%, rgba(255,255,255,.14), rgba(0,0,0,0) 70%)," +
+              "linear-gradient(180deg, #0b1f12 0%, #0a0a0a 100%)",
             backgroundColor: "#0d2a14",
           }}
         />
@@ -117,6 +119,14 @@ export default function PartidoDetalle() {
             </div>
             <TeamHead code={partido.pais_visita} nombre={partido.equipo_visita} />
           </div>
+
+          {(partido.estadio || partido.fase) && (
+            <div className="mt-3 text-center text-[11px] text-neutral-300">
+              {partido.grupo ? `Grupo ${partido.grupo}` : partido.fase}
+              {partido.estadio ? ` \u00b7 ${partido.estadio}` : ""}
+              {partido.ciudad ? `, ${partido.ciudad}` : ""}
+            </div>
+          )}
 
           {minutosGol && (
             <div className="mt-4 flex items-center justify-center gap-2 text-sm text-neutral-300">

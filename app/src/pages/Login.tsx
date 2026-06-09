@@ -78,9 +78,14 @@ export default function Login() {
         </label>
 
         {error && (
-          <p className="text-sm text-red-400">
-            No se pudo cargar la lista de jugadores. Falta configurar Supabase
-            (.env) o no hay conexion.
+          <p className="text-sm text-red-400 break-words">
+            No se pudo cargar la lista de jugadores.
+            <br />
+            <span className="text-xs text-red-300">Detalle tecnico: {error}</span>
+            <br />
+            <span className="text-xs text-neutral-400">
+              URL configurada: {String(import.meta.env.VITE_SUPABASE_URL ?? "(vacia)")}
+            </span>
           </p>
         )}
         {aviso && <p className="text-sm text-red-400">{aviso}</p>}

@@ -30,8 +30,13 @@ export default function Reglas() {
               marcador clavado.
             </li>
             <li>
+              <span className="text-sky-400 font-semibold">Diferencia:</span>{" "}
+              achuntas la diferencia de goles (sin empate), pero no el marcador.
+              Ej: fue 3-1 y dijiste 2-0.
+            </li>
+            <li>
               <span className="text-emerald-400 font-semibold">Acierto:</span>{" "}
-              achuntas el resultado (ganador o empate) pero no el marcador.
+              achuntas solo el resultado (ganador o empate).
             </li>
             <li>
               <span className="text-neutral-400 font-semibold">Falla:</span> no
@@ -43,19 +48,23 @@ export default function Reglas() {
             <table className="w-full text-sm">
               <thead className="bg-carbon-soft text-neutral-400 text-xs uppercase">
                 <tr>
-                  <th className="py-2 px-3 text-left">Fase</th>
-                  <th className="py-2 px-2 text-center">Exacto</th>
-                  <th className="py-2 px-2 text-center">Acierto</th>
+                  <th className="py-2 px-2 text-left">Fase</th>
+                  <th className="py-2 px-1 text-center">Exacto</th>
+                  <th className="py-2 px-1 text-center">Dif.</th>
+                  <th className="py-2 px-1 text-center">Acierto</th>
                 </tr>
               </thead>
               <tbody>
                 {PUNTOS_PARTIDO.map((f) => (
                   <tr key={f.fase} className="border-t border-borde">
-                    <td className="py-2 px-3">{f.fase}</td>
-                    <td className="py-2 px-2 text-center font-bold text-oro tabular-nums">
+                    <td className="py-2 px-2">{f.fase}</td>
+                    <td className="py-2 px-1 text-center font-bold text-oro tabular-nums">
                       {f.exacto}
                     </td>
-                    <td className="py-2 px-2 text-center font-bold tabular-nums">
+                    <td className="py-2 px-1 text-center font-bold text-sky-400 tabular-nums">
+                      {f.diferencia}
+                    </td>
+                    <td className="py-2 px-1 text-center font-bold tabular-nums">
                       {f.acierto}
                     </td>
                   </tr>

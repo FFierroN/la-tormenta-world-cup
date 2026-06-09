@@ -167,14 +167,14 @@ create table if not exists api_cuota (
 );
 
 -- =====================================================================
--- 2. CALCULO DE PUNTOS (3 niveles: EXACTO + bonus / ACIERTO / FALLA)
+-- 2. CALCULO DE PUNTOS (4 niveles: EXACTO+bonus / DIFERENCIA / ACIERTO / FALLA)
 -- =====================================================================
 
 create or replace function calcular_puntos_pronostico(
   pred_local int, pred_visita int, res_local int, res_visita int, p_fase text
 ) returns int as $$
 declare
-  pts_exacto int; pts_acierto int; bonus int := 0;
+  pts_exacto int; pts_dif int; pts_gan int; bonus int := 0;
   maxg int; ming int;
 begin
   if pred_local is null or pred_visita is null
@@ -182,11 +182,11 @@ begin
     return 0;
   end if;
 
-  if    p_fase in ('Grupos','Dieciseisavos') then pts_exacto:=6;  pts_acierto:=2;
-  elsif p_fase in ('Octavos','Cuartos')      then pts_exacto:=8;  pts_acierto:=4;
-  elsif p_fase = 'Semifinales'               then pts_exacto:=10; pts_acierto:=6;
-  elsif p_fase = 'Tercer Puesto'             then pts_exacto:=8;  pts_acierto:=4;
-  elsif p_fase = 'Final'                     then pts_exacto:=12; pts_acierto:=8;
+  if    p_fase in ('Grupos','Dieciseisavos') then pts_exacto:=6;  pts_dif:=4;  pts_gan:=2;
+  elsif p_fase in ('Octavos','Cuartos')      then pts_exacto:=8;  pts_dif:=6;  pts_gan:=4;
+  elsif p_fase = 'Semifinales'               then pts_exacto:=10; pts_dif:=8;  pts_gan:=6;
+  elsif p_fase = 'Tercer Puesto'             then pts_exacto:=8;  pts_dif:=6;  pts_gan:=4;
+  elsif p_fase = 'Final'                     then pts_exacto:=12; pts_dif:=10; pts_gan:=8;
   else  return 0;
   end if;
 
@@ -202,14 +202,20 @@ begin
     return pts_exacto + bonus;
   end if;
 
-  -- 2) ACIERTO: resultado correcto (ganador o empate), sin importar el marcador
+  -- 2) DIFERENCIA: misma diferencia de goles y no fue empate
+  if res_local <> res_visita
+     and (res_local - res_visita) = (pred_local - pred_visita) then
+    return pts_dif;
+  end if;
+
+  -- 3) ACIERTO: solo el resultado (ganador o empate)
   if (res_local > res_visita and pred_local > pred_visita)
      or (res_local < res_visita and pred_local < pred_visita)
      or (res_local = res_visita and pred_local = pred_visita) then
-    return pts_acierto;
+    return pts_gan;
   end if;
 
-  return 0;  -- 3) FALLA: ni el resultado
+  return 0;  -- 4) FALLA: ni el resultado
 end;
 $$ language plpgsql immutable;
 

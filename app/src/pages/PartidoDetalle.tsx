@@ -426,23 +426,26 @@ function Pronosticos({
 
   const estadoAcierto = (
     pr: PronosticoVista
-  ): "exacto" | "acierto" | "falla" | null => {
+  ): "exacto" | "diferencia" | "acierto" | "falla" | null => {
     if (partido.goles_local == null || partido.goles_visita == null) return null;
-    const exacto =
-      pr.pred_local === partido.goles_local && pr.pred_visita === partido.goles_visita;
-    if (exacto) return "exacto";
-    const signoReal = Math.sign(partido.goles_local - partido.goles_visita);
+    const gl = partido.goles_local;
+    const gv = partido.goles_visita;
+    if (pr.pred_local === gl && pr.pred_visita === gv) return "exacto";
+    if (gl !== gv && gl - gv === pr.pred_local - pr.pred_visita) return "diferencia";
+    const signoReal = Math.sign(gl - gv);
     const signoPred = Math.sign(pr.pred_local - pr.pred_visita);
     return signoReal === signoPred ? "acierto" : "falla";
   };
 
   const BADGE: Record<string, string> = {
     exacto: "bg-oro text-carbon",
+    diferencia: "bg-sky-600 text-white",
     acierto: "bg-emerald-600 text-white",
     falla: "bg-neutral-700 text-neutral-300",
   };
   const BADGE_LABEL: Record<string, string> = {
     exacto: "Exacto",
+    diferencia: "Diferencia",
     acierto: "Acierto",
     falla: "Falla",
   };

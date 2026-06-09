@@ -3,11 +3,11 @@
 // Si cambias los puntajes alla, actualiza aqui tambien.
 
 export const PUNTOS_PARTIDO = [
-  { fase: "Grupos / Dieciseisavos", exacto: 6, acierto: 2 },
-  { fase: "Octavos / Cuartos", exacto: 8, acierto: 4 },
-  { fase: "Semifinales", exacto: 10, acierto: 6 },
-  { fase: "Tercer puesto", exacto: 8, acierto: 4 },
-  { fase: "Final", exacto: 12, acierto: 8 },
+  { fase: "Grupos / Dieciseisavos", exacto: 6, diferencia: 4, acierto: 2 },
+  { fase: "Octavos / Cuartos", exacto: 8, diferencia: 6, acierto: 4 },
+  { fase: "Semifinales", exacto: 10, diferencia: 8, acierto: 6 },
+  { fase: "Tercer puesto", exacto: 8, diferencia: 6, acierto: 4 },
+  { fase: "Final", exacto: 12, diferencia: 10, acierto: 8 },
 ];
 
 export const BONUS = [

@@ -5,7 +5,7 @@
 >
 > **Tu setup elegido:**
 > - Mover el proyecto: **Git + GitHub** (ya tienes cuenta)
-> - Publicar la app: **Vercel** (gratis, el más simple, auto-deploy)
+> - Publicar la app: **Cloudflare Pages** (gratis, ancho de banda ilimitado, auto-deploy)
 > - Base de datos: **Supabase** (proyecto creado pero vacío)
 
 ---
@@ -18,14 +18,14 @@
                                      |
                                      | (conectado)
                                      v
-                                  [Vercel]  ---->  app en internet
-                                     ^                para los 8 amigos
+                                  [Cloudflare Pages]  ---->  app en internet
+                                     ^                            para los 8 amigos
                                      |
                                 [Supabase]  <----  datos reales + login
 ```
 
 **Idea central:** GitHub es el "punto central". Desde ahí tu PC personal baja el
-código, y Vercel lo publica solo. Supabase guarda los datos. Una vez armado,
+código, y Cloudflare lo publica solo. Supabase guarda los datos. Una vez armado,
 cada cambio futuro es: editar → `git push` → se publica automático. 
 
 ---
@@ -33,7 +33,7 @@ cada cambio futuro es: editar → `git push` → se publica automático.
 ##  FASE 1 — Subir el código a GitHub
 
 > **Objetivo:** que tu proyecto viva en la nube (GitHub), para poder bajarlo en
-> tu PC y conectarlo a Vercel.
+> tu PC y conectarlo a Cloudflare Pages.
 >
 > ℹ El commit con tu trabajo de hoy (nombre + logo) **ya está guardado** en el
 > git local de esta máquina. Solo falta enviarlo a GitHub.
@@ -151,46 +151,59 @@ VITE_SUPABASE_ANON_KEY=tu-anon-key-larga
 - [ ] Reinicia el servidor: corta con `Ctrl+C` y vuelve a `npm run dev`.
 
 >  El `.env` NUNCA se sube a GitHub (está en `.gitignore`). Tus claves
-> quedan solo en tu PC y, más adelante, configuradas aparte en Vercel.
+> quedan solo en tu PC y, más adelante, configuradas aparte en el host.
 
 ** Resultado de la Fase 3:** la app local ahora lee datos reales de Supabase.
 
 ---
 
-##  FASE 4 — Publicar en internet con Vercel
+##  FASE 4 — Publicar en internet con Cloudflare Pages
 
 > **Objetivo:** que la app tenga una URL pública que puedas compartir a los 8
 > amigos para instalarla en su celular (PWA).
+>
+> Elegimos **Cloudflare Pages**: gratis, ancho de banda ilimitado y red rápida.
+> (Si prefieres Vercel, mira la nota al final de esta fase: los pasos son casi
+> idénticos.)
 
-### 4.1 Conectar Vercel con GitHub
-- [ ] Entra a https://vercel.com → **Sign up** → **Continue with GitHub**.
-- [ ] Autoriza a Vercel a ver tus repos.
-- [ ] Click en **Add New… → Project**.
-- [ ] Elige el repo `la-tormenta-world-cup` → **Import**.
+### 4.1 Conectar Cloudflare con GitHub
+- [ ] Entra a https://dash.cloudflare.com → crea cuenta (gratis).
+- [ ] Menú izquierdo: **Workers & Pages** → **Create** → pestaña **Pages** →
+      **Connect to Git**.
+- [ ] Autoriza a Cloudflare a ver tus repos y elige `la-tormenta-world-cup`.
 
-### 4.2 Configurar el proyecto
-Vercel suele detectar Vite solo. Verifica que diga:
-- [ ] **Framework Preset:** Vite
-- [ ] **Root Directory:** `app`   ¡importante! El código está dentro de `app/`,
-      no en la raíz. Click en **Edit** y selecciona `app`.
-- [ ] **Build Command:** `npm run build` (automático)
-- [ ] **Output Directory:** `dist` (automático)
+### 4.2 Configurar el build
+En la pantalla de configuración (**Set up builds and deployments**):
+- [ ] **Framework preset:** Vite
+- [ ] **Root directory (advanced):** `app`   ¡importante! El código vive dentro
+      de `app/`, no en la raíz. Despliega el bloque "Advanced" y escríbelo.
+- [ ] **Build command:** `npm run build`
+- [ ] **Build output directory:** `dist`
 
 ### 4.3 Cargar las variables de entorno
-- [ ] En la sección **Environment Variables**, agrega las mismas dos del `.env`:
+- [ ] En **Environment variables (build)** agrega las mismas dos del `.env`:
   - `VITE_SUPABASE_URL` = tu URL de Supabase
   - `VITE_SUPABASE_ANON_KEY` = tu anon key
-> Aquí sí van escritas en Vercel (es seguro, es la nube de tu proyecto).
-> Por eso NO necesitamos subir el `.env` a GitHub.
+> Van escritas aquí (es seguro, es la nube de tu proyecto). Por eso NO subimos
+> el `.env` a GitHub.
 
 ### 4.4 Desplegar
-- [ ] Click en **Deploy**. Espera 1-2 minutos.
-- [ ] Vercel te dará una URL pública, ej.
-      `https://la-tormenta-world-cup.vercel.app`
+- [ ] Click en **Save and Deploy**. Espera 1-2 minutos.
+- [ ] Cloudflare te dará una URL pública, ej.
+      `https://la-tormenta-world-cup.pages.dev`
 - [ ] Ábrela en tu celular → menú del navegador → **"Agregar a pantalla de
       inicio"** → ¡se instala con tu logo como una app! 
 
+> ℹ **Routing de la SPA:** el archivo `app/public/_redirects` (ya incluido en el
+> repo) hace que al recargar una ruta interna (ej. `/tabla`) Cloudflare sirva
+> `index.html` en vez de un 404. No tienes que hacer nada, solo que esté ahí.
+
 ** Resultado de la Fase 4:** app en vivo, instalable, lista para tus amigos. 
+
+> **¿Prefieres Vercel?** Mismos pasos con otros nombres: vercel.com → Add New
+> Project → importa el repo → **Root Directory = `app`** → agrega las 2 env vars
+> `VITE_*` → Deploy. Vercel detecta Vite y maneja el routing SPA solo (el
+> `_redirects` no le estorba).
 
 ---
 
@@ -222,7 +235,7 @@ git add .
 git commit -m "describe tu cambio"
 git push
 ```
-Vercel detecta el push y **republica solo** en ~1 minuto. No tocas nada más. 
+Cloudflare detecta el push y **republica solo** en ~1 minuto. No tocas nada más. 
 
 ---
 
@@ -233,7 +246,8 @@ Vercel detecta el push y **republica solo** en ~1 minuto. No tocas nada más.
 | `npm install` falla | Node mal instalado | Reinstala Node LTS y reinicia la terminal |
 | Pantalla en blanco local | Falta `.env` o claves malas | Revisa `.env` y reinicia `npm run dev` |
 | Vercel: "build failed" | Root Directory mal puesto | Debe ser `app`, no la raíz |
-| App en blanco en Vercel | Faltan las env vars en Vercel | Agrégalas en Settings → Environment Variables y redeploy |
+| App en blanco al recargar una ruta | Falta `_redirects` (Cloudflare) | Confirma que existe `app/public/_redirects` |
+| App en blanco en deploy | Faltan las env vars | Agrégalas en el panel del host y vuelve a desplegar |
 | Login no valida | No corriste el SQL de setup | Pega y corre `db/SETUP-SUPABASE.sql` |
 | Robot no actualiza | Faltan secretos en GitHub | Revisa APIFOOTBALL_KEY / SUPABASE_URL / SUPABASE_SERVICE_KEY |
 | Robot dice SIN MAPEAR | Nombre de equipo distinto | Agregalo a `EQUIPOS` en `robot/actualizar.py` |
@@ -249,7 +263,7 @@ Vercel detecta el push y **republica solo** en ~1 minuto. No tocas nada más.
 - [ ] **F1** — Repo creado en GitHub + código subido (`git push`)
 - [ ] **F2** — Node instalado + `git clone` + `npm install` + `npm run dev` OK
 - [ ] **F3** — Pegar `SETUP-SUPABASE.sql` en Supabase + `.env` creado (8/104/72)
-- [ ] **F4** — Vercel conectado + env vars + deploy + URL pública
+- [ ] **F4** — Cloudflare Pages conectado + env vars + deploy + URL pública
 - [ ] **F5** — (opcional) Robot API-Football: 3 secretos + run manual + mapeo
 
  *Vamos fase por fase. No saltes pasos. Marca cada casilla. Yo te acompaño.*

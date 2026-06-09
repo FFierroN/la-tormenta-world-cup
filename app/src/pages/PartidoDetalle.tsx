@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Flag from "../components/Flag";
-import {
-  MOCK_PARTIDOS,
-  MOCK_EVENTOS,
-  MOCK_PRONOSTICOS,
-  MOCK_JUGADORES,
-} from "../lib/mock";
-import type { EventoPartido, Partido, Pronostico } from "../lib/types";
+import type { EventoPartido, Jugador, Partido, Pronostico } from "../lib/types";
 import { ESTADO_LABEL, ESTADOS_EN_CURSO } from "../lib/estados";
+import { useAsync } from "../lib/useAsync";
+import {
+  listarEventos,
+  listarJugadores,
+  listarPronosticos,
+  obtenerPartido,
+} from "../lib/data";
 
 type Pestana = "detalles" | "pronosticos";
 
@@ -17,15 +18,30 @@ export default function PartidoDetalle() {
   const navigate = useNavigate();
   const [pestana, setPestana] = useState<Pestana>("detalles");
 
-  // TODO: reemplazar por fetch a Supabase (+ realtime en partidos y eventos).
-  const partido = MOCK_PARTIDOS.find((p) => p.id === id);
-  const eventos = (id && MOCK_EVENTOS[id]) || [];
-  const pronosticos = (id && MOCK_PRONOSTICOS[id]) || [];
+  const { data, cargando, error } = useAsync(async () => {
+    if (!id) return null;
+    const [partido, eventos, pronosticos, jugadores] = await Promise.all([
+      obtenerPartido(id),
+      listarEventos(id),
+      listarPronosticos(id),
+      listarJugadores(),
+    ]);
+    return { partido, eventos, pronosticos, jugadores };
+  }, [id]);
 
-  if (!partido) {
+  if (cargando) {
+    return <div className="p-8 text-center text-neutral-400">Cargando partido...</div>;
+  }
+
+  const partido = data?.partido ?? null;
+  const eventos = data?.eventos ?? [];
+  const pronosticos = data?.pronosticos ?? [];
+  const jugadores = data?.jugadores ?? [];
+
+  if (error || !partido) {
     return (
       <div className="p-8 text-center text-neutral-400">
-        Partido no encontrado.
+        {error ? "No se pudo cargar el partido." : "Partido no encontrado."}
         <button onClick={() => navigate("/partidos")} className="block mx-auto mt-4 text-oro">
           Volver
         </button>
@@ -125,7 +141,7 @@ export default function PartidoDetalle() {
         {pestana === "detalles" ? (
           <Detalles partido={partido} eventos={eventos} />
         ) : (
-          <Pronosticos partido={partido} pronosticos={pronosticos} />
+          <Pronosticos partido={partido} pronosticos={pronosticos} jugadores={jugadores} />
         )}
       </div>
     </div>
@@ -225,9 +241,11 @@ function Detalles({
 function Pronosticos({
   partido,
   pronosticos,
+  jugadores,
 }: {
   partido: Partido;
   pronosticos: Pronostico[];
+  jugadores: Jugador[];
 }) {
   if (pronosticos.length === 0) {
     return (
@@ -238,7 +256,7 @@ function Pronosticos({
   }
 
   const nombreDe = (jid: string) => {
-    const j = MOCK_JUGADORES.find((x) => x.id === jid);
+    const j = jugadores.find((x) => x.id === jid);
     return j?.alias ?? j?.nombre ?? "Jugador";
   };
 

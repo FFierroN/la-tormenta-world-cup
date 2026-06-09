@@ -1,15 +1,16 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar";
 import { avatarPorPosicion } from "../lib/avatares";
-import { MOCK_TABLA } from "../lib/mock";
+import { obtenerTabla } from "../lib/data";
+import { useAsync } from "../lib/useAsync";
 import type { FilaTabla } from "../lib/types";
 
 type Pestana = "galeria" | "clasica";
 
 export default function Tabla() {
   const [pestana, setPestana] = useState<Pestana>("galeria");
-  // TODO: reemplazar MOCK_TABLA por fetch a Supabase (vista de standings).
-  const filas = MOCK_TABLA;
+  const { data, cargando, error } = useAsync(obtenerTabla, []);
+  const filas = data ?? [];
   const total = filas.length;
 
   return (
@@ -17,6 +18,15 @@ export default function Tabla() {
       <header className="px-4 pt-5 pb-3">
         <h1 className="text-xl font-bold">Tabla de posiciones</h1>
       </header>
+
+      {cargando && (
+        <p className="px-4 text-neutral-400 text-sm">Cargando tabla...</p>
+      )}
+      {error && (
+        <p className="px-4 text-red-400 text-sm">
+          No se pudo cargar la tabla. Revisa la conexion con Supabase.
+        </p>
+      )}
 
       {/* Selector de pestanas */}
       <div className="px-4">

@@ -1,13 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import Flag from "../components/Flag";
-import { MOCK_PARTIDOS } from "../lib/mock";
+import { listarPartidos } from "../lib/data";
+import { useAsync } from "../lib/useAsync";
 import { ESTADO_LABEL } from "../lib/estados";
 import type { Partido } from "../lib/types";
 
 export default function Partidos() {
   const navigate = useNavigate();
-  // TODO: reemplazar por fetch a Supabase (+ realtime).
-  const partidos = MOCK_PARTIDOS;
+  const { data: partidos, cargando, error } = useAsync(listarPartidos, []);
 
   return (
     <div className="max-w-md mx-auto">
@@ -15,8 +15,20 @@ export default function Partidos() {
         <h1 className="text-xl font-bold">Partidos</h1>
       </header>
 
+      {cargando && (
+        <p className="px-4 text-neutral-400 text-sm">Cargando partidos...</p>
+      )}
+      {error && (
+        <p className="px-4 text-red-400 text-sm">
+          No se pudieron cargar los partidos. Revisa la conexion con Supabase.
+        </p>
+      )}
+      {!cargando && !error && (partidos?.length ?? 0) === 0 && (
+        <p className="px-4 text-neutral-400 text-sm">Aun no hay partidos.</p>
+      )}
+
       <ul className="px-4 flex flex-col gap-3">
-        {partidos.map((p) => (
+        {(partidos ?? []).map((p) => (
           <li key={p.id}>
             <button
               onClick={() => navigate(`/partido/${p.id}`)}

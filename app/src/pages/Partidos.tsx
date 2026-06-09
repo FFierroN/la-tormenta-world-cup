@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Flag from "../components/Flag";
 import { listarPartidos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { ESTADO_LABEL, enCurso } from "../lib/estados";
-import { fmtFechaHora } from "../lib/fechas";
+import { fmtFechaHora, fmtFechaCorta, claveDia, claveHoy } from "../lib/fechas";
 import type { Partido } from "../lib/types";
 
 // Orden de las fases de eliminacion (para mostrarlas en secuencia).
@@ -17,71 +17,91 @@ const ORDEN_FASE = [
   "Final",
 ];
 
-type Seccion = { titulo: string; grupo: string | null; partidos: Partido[] };
+type Tab = {
+  id: string; // "proximos" | "g-A".."g-L" | "f-Octavos"...
+  label: string; // texto del chip
+  subtitulo?: string; // solo "Proximos": etiqueta del dia
+  partidos: Partido[];
+};
 
-function organizar(partidos: Partido[]): Seccion[] {
+const porFecha = (a: Partido, b: Partido) => a.fecha.localeCompare(b.fecha);
+
+// Partidos de HOY; si hoy no hay, el proximo dia que tenga partidos.
+function proximoDia(partidos: Partido[]): { dia: string | null; lista: Partido[] } {
+  const hoy = claveHoy();
+  const deHoy = partidos.filter((p) => claveDia(p.fecha) === hoy);
+  if (deHoy.length) return { dia: hoy, lista: [...deHoy].sort(porFecha) };
+
+  const futuros = partidos
+    .filter((p) => claveDia(p.fecha) > hoy)
+    .sort(porFecha);
+  if (!futuros.length) return { dia: null, lista: [] };
+
+  const prox = claveDia(futuros[0].fecha);
+  return { dia: prox, lista: futuros.filter((p) => claveDia(p.fecha) === prox) };
+}
+
+function etiquetaDia(dia: string): string {
+  const texto = fmtFechaCorta(`${dia}T12:00:00`);
+  return dia === claveHoy() ? `Hoy \u00b7 ${texto}` : texto;
+}
+
+function construirTabs(partidos: Partido[]): Tab[] {
+  const tabs: Tab[] = [];
+
+  // 1) Pestana maestra: proximos partidos (del dia).
+  const { dia, lista } = proximoDia(partidos);
+  tabs.push({
+    id: "proximos",
+    label: "Pr\u00f3ximos",
+    subtitulo: dia ? etiquetaDia(dia) : undefined,
+    partidos: lista,
+  });
+
+  // 2) Fase de grupos: una pestana por grupo (A..L).
   const grupos = partidos.filter((p) => p.grupo);
-  const llaves = partidos.filter((p) => !p.grupo);
-  const secciones: Seccion[] = [];
-
-  // Fase de grupos: una seccion (plegable) por grupo (A..L).
   const letras = [...new Set(grupos.map((p) => p.grupo as string))].sort();
   for (const letra of letras) {
-    secciones.push({
-      titulo: `Grupo ${letra}`,
-      grupo: letra,
-      partidos: grupos
-        .filter((p) => p.grupo === letra)
-        .sort((a, b) => a.fecha.localeCompare(b.fecha)),
+    tabs.push({
+      id: `g-${letra}`,
+      label: `Grupo ${letra}`,
+      partidos: grupos.filter((p) => p.grupo === letra).sort(porFecha),
     });
   }
 
-  // Eliminatorias: una seccion fija por fase, en orden.
+  // 3) Eliminatorias: una pestana por fase, en orden.
+  const llaves = partidos.filter((p) => !p.grupo);
   const fases = [...new Set(llaves.map((p) => p.fase))].sort(
     (a, b) => ORDEN_FASE.indexOf(a) - ORDEN_FASE.indexOf(b)
   );
   for (const fase of fases) {
-    secciones.push({
-      titulo: fase,
-      grupo: null,
-      partidos: llaves
-        .filter((p) => p.fase === fase)
-        .sort((a, b) => a.fecha.localeCompare(b.fecha)),
+    tabs.push({
+      id: `f-${fase}`,
+      label: fase,
+      partidos: llaves.filter((p) => p.fase === fase).sort(porFecha),
     });
   }
 
-  return secciones;
+  return tabs;
 }
 
 export default function Partidos() {
   const { data: partidos, cargando, error } = useAsync(listarPartidos, []);
-  const secciones = partidos ? organizar(partidos) : [];
+  const tabs = useMemo(() => (partidos ? construirTabs(partidos) : []), [partidos]);
 
-  // Acordeon: que grupos estan abiertos. Por defecto, TODOS.
-  const [cerrados, setCerrados] = useState<Set<string>>(new Set());
-  const toggle = (letra: string) =>
-    setCerrados((prev) => {
-      const next = new Set(prev);
-      next.has(letra) ? next.delete(letra) : next.add(letra);
-      return next;
-    });
-
-  // Si venimos desde Grupos con ?grupo=A, abrimos y hacemos scroll a ese grupo.
+  // Deep-link desde Grupos: /partidos?grupo=A -> abre esa pestana.
   const [params] = useSearchParams();
-  const objetivo = params.get("grupo");
-  const refs = useRef<Record<string, HTMLDivElement | null>>({});
+  const grupoParam = params.get("grupo");
+  const [activo, setActivo] = useState<string>(
+    grupoParam ? `g-${grupoParam}` : "proximos"
+  );
+
+  // Si llega un ?grupo despues de montar (o cambia), seguimos el deep-link.
   useEffect(() => {
-    if (!objetivo || !partidos) return;
-    setCerrados((prev) => {
-      const next = new Set(prev);
-      next.delete(objetivo);
-      return next;
-    });
-    const t = setTimeout(() => {
-      refs.current[objetivo]?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 100);
-    return () => clearTimeout(t);
-  }, [objetivo, partidos]);
+    if (grupoParam) setActivo(`g-${grupoParam}`);
+  }, [grupoParam]);
+
+  const tabActiva = tabs.find((t) => t.id === activo) ?? tabs[0];
 
   return (
     <div className="max-w-md mx-auto">
@@ -97,54 +117,125 @@ export default function Partidos() {
           No se pudieron cargar los partidos. Revisa la conexion con Supabase.
         </p>
       )}
-      {!cargando && !error && secciones.length === 0 && (
+      {!cargando && !error && partidos && partidos.length === 0 && (
         <p className="px-4 text-neutral-400 text-sm">Aun no hay partidos.</p>
       )}
 
-      <div className="flex flex-col gap-5 pb-2">
-        {secciones.map((s) => {
-          const plegable = s.grupo !== null;
-          const abierto = !plegable || !cerrados.has(s.grupo as string);
-          return (
-            <section
-              key={s.titulo}
-              ref={(el) => {
-                if (s.grupo) refs.current[s.grupo] = el;
-              }}
-              className="scroll-mt-4"
-            >
-              {plegable ? (
-                <button
-                  onClick={() => toggle(s.grupo as string)}
-                  className="w-full px-4 mb-2 flex items-center justify-between"
-                >
-                  <span className="text-sm font-bold text-oro uppercase tracking-wide">
-                    {s.titulo}
-                  </span>
-                  <Chevron abierto={abierto} />
-                </button>
-              ) : (
-                <h2 className="px-4 mb-2 text-sm font-bold text-oro uppercase tracking-wide">
-                  {s.titulo}
-                </h2>
-              )}
-
-              {abierto && (
-                <ul className="px-4 flex flex-col gap-3">
-                  {s.partidos.map((p) => (
-                    <PartidoCard key={p.id} p={p} />
-                  ))}
-                </ul>
-              )}
-            </section>
-          );
-        })}
-      </div>
+      {partidos && partidos.length > 0 && tabActiva && (
+        <>
+          <BarraPestanas tabs={tabs} activo={tabActiva.id} onSelect={setActivo} />
+          <Panel tab={tabActiva} />
+        </>
+      )}
     </div>
   );
 }
 
-function PartidoCard({ p }: { p: Partido }) {
+// ------------------------------------------------------------- barra de tabs
+function BarraPestanas({
+  tabs,
+  activo,
+  onSelect,
+}: {
+  tabs: Tab[];
+  activo: string;
+  onSelect: (id: string) => void;
+}) {
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  // La pestana activa se desliza sola a la vista (barra horizontal).
+  useEffect(() => {
+    refs.current[activo]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  }, [activo]);
+
+  // Navegacion con teclado (flechas / Home / End) entre pestanas.
+  function onKeyDown(e: KeyboardEvent) {
+    const ids = tabs.map((t) => t.id);
+    const i = ids.indexOf(activo);
+    let j = i;
+    if (e.key === "ArrowRight") j = (i + 1) % ids.length;
+    else if (e.key === "ArrowLeft") j = (i - 1 + ids.length) % ids.length;
+    else if (e.key === "Home") j = 0;
+    else if (e.key === "End") j = ids.length - 1;
+    else return;
+    e.preventDefault();
+    onSelect(ids[j]);
+    refs.current[ids[j]]?.focus();
+  }
+
+  return (
+    <div
+      role="tablist"
+      aria-label="Filtrar partidos por grupo o fase"
+      onKeyDown={onKeyDown}
+      className="sticky top-0 z-20 bg-carbon border-b border-borde flex gap-2 overflow-x-auto px-4 py-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+    >
+      {tabs.map((t) => {
+        const sel = t.id === activo;
+        return (
+          <button
+            key={t.id}
+            ref={(el) => {
+              refs.current[t.id] = el;
+            }}
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-selected={sel}
+            aria-controls={`panel-${t.id}`}
+            tabIndex={sel ? 0 : -1}
+            onClick={() => onSelect(t.id)}
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-oro ${
+              sel
+                ? "bg-oro text-carbon"
+                : "bg-carbon-card text-neutral-300 border border-borde active:bg-carbon-soft"
+            }`}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------- panel
+function Panel({ tab }: { tab: Tab }) {
+  return (
+    <div
+      role="tabpanel"
+      id={`panel-${tab.id}`}
+      aria-labelledby={`tab-${tab.id}`}
+      tabIndex={0}
+      className="outline-none pt-4 pb-2"
+    >
+      {tab.id === "proximos" && tab.subtitulo && (
+        <p className="px-4 mb-3 text-sm font-bold text-oro uppercase tracking-wide">
+          {tab.subtitulo}
+        </p>
+      )}
+
+      {tab.partidos.length === 0 ? (
+        <p className="px-4 text-neutral-400 text-sm">
+          {tab.id === "proximos"
+            ? "No hay partidos programados proximamente."
+            : "Aun no hay partidos en esta fase."}
+        </p>
+      ) : (
+        <ul className="px-4 flex flex-col gap-3">
+          {tab.partidos.map((p) => (
+            <PartidoCard key={p.id} p={p} mostrarFase={tab.id === "proximos"} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function PartidoCard({ p, mostrarFase }: { p: Partido; mostrarFase?: boolean }) {
   const navigate = useNavigate();
   return (
     <li>
@@ -162,6 +253,11 @@ function PartidoCard({ p }: { p: Partido }) {
             {ESTADO_LABEL[p.estado]}
           </span>
         </div>
+        {mostrarFase && (
+          <div className="text-[11px] text-neutral-500 mb-2">
+            {p.grupo ? `Grupo ${p.grupo}` : p.fase}
+          </div>
+        )}
         <div className="flex items-center justify-between gap-2">
           <Equipo code={p.pais_local} nombre={p.equipo_local} />
           <Marcador p={p} />
@@ -189,22 +285,5 @@ function Marcador({ p }: { p: Partido }) {
     <div className="text-2xl font-black tabular-nums">
       {p.goles_local ?? 0} - {p.goles_visita ?? 0}
     </div>
-  );
-}
-
-function Chevron({ abierto }: { abierto: boolean }) {
-  return (
-    <svg
-      className={`w-4 h-4 text-neutral-400 transition-transform ${
-        abierto ? "rotate-180" : ""
-      }`}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      aria-hidden
-    >
-      <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }

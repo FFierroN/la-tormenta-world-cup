@@ -80,6 +80,9 @@
   - [ ] Tabla: pestanas "Fichas" y "Formato antiguo".
   - [ ] Panel admin -> "Gestionar participantes" (baja + ajuste de puntos).
   - [ ] Banner de partido en formato 16:9.
+  - [ ] **Partidos con pestanas:** barra deslizable arriba (Proximos | Grupo A..L
+        | fases). "Proximos" abre en los partidos del dia. Probar tocar pestanas
+        y deslizar; el deep-link desde Grupos debe abrir la pestana correcta.
   - [ ] **Cronometro en vivo:** en un partido marcado `en_vivo`, el minuto debe
         avanzar solo (tickea cada minuto, no salta de 15 en 15). Topa en 45'/90'.
 - [ ] OJO: el componente del cronometro (`RelojVivo.tsx`) se escribio sin poder

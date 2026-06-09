@@ -30,3 +30,8 @@ export function fmtFechaHora(iso: string): string {
 export function claveDia(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ });
 }
+
+// Clave del dia de HOY (misma zona) -> para la pestana "Proximos partidos".
+export function claveHoy(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+}

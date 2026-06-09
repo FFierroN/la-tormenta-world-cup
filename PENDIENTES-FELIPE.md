@@ -6,6 +6,15 @@
 
 ---
 
+## Info que necesito de ti (para que Kira avance lo demas)
+
+- [ ] **Los 12 grupos reales** (4 equipos por grupo) -> para rellenar el fixture
+      (paso 1). Con eso completo el CSV y regenero el SQL.
+- [ ] **Zona horaria de los `fecha_hora`** del CSV: son UTC o local del estadio?
+      -> para acotar el `cron` del bot (optimizacion de minutos de Actions).
+
+---
+
 ## 0. Traer los cambios
 
 - [ ] Cierra VS Code y cualquier `npm run dev` corriendo (evita el error de
@@ -49,7 +58,9 @@
 - [ ] Verifica al final: `jugadores` = 8, `partidos` = 104, `partidos_grupos` = 72.
 
 > Es idempotente: se puede re-correr sin romper nada. Este paso aplica el fix de
-> puntos en vivo y las columnas nuevas (activo / ajuste_puntos).
+> puntos en vivo y las columnas nuevas (activo / ajuste_puntos / **minuto_at** +
+> el trigger del cronometro en vivo). El auto-gatillo del bot no necesita nada
+> extra aqui.
 
 ---
 
@@ -69,6 +80,11 @@
   - [ ] Tabla: pestanas "Fichas" y "Formato antiguo".
   - [ ] Panel admin -> "Gestionar participantes" (baja + ajuste de puntos).
   - [ ] Banner de partido en formato 16:9.
+  - [ ] **Cronometro en vivo:** en un partido marcado `en_vivo`, el minuto debe
+        avanzar solo (tickea cada minuto, no salta de 15 en 15). Topa en 45'/90'.
+- [ ] OJO: el componente del cronometro (`RelojVivo.tsx`) se escribio sin poder
+      compilar aqui (esta maquina no tiene Node). Si `npm run dev` tira un error
+      de TypeScript, copiamelo y lo corrijo al toque.
 - [ ] Prueba el FIX DE PUNTOS: marca un partido como final con un resultado,
       pon un pronostico que acierte y confirma que ahora SI suma puntos
       (sin importar el orden en que cargues resultado/pronostico).
@@ -119,8 +135,15 @@
   - [ ] Si aparece `SIN MAPEAR: 'X' vs 'Y'` -> copiame esas lineas y completo
         el diccionario de equipos en `robot/actualizar.py`.
 
-> El bot corre cada 15 min solo. Se frena en 95/100 requests del dia. El admin
-> manual sigue siendo el respaldo si la API falla.
+> El bot corre cada 15 min solo. **Auto-gatillo:** si no hay partidos en vivo ni
+> por empezar, sale sin gastar requests (ventana movil automatica, se ajusta sola
+> por jornada y fase). Se frena en 95/100 requests del dia. El admin manual sigue
+> siendo el respaldo si la API falla.
+>
+> TODO (cuando me confirmes la zona horaria del fixture): acotar el `cron` de
+> `.github/workflows/sync.yml` a la ventana real de partidos (~14h) para ahorrar
+> minutos de GitHub Actions. Hoy corre 24h pero el auto-gatillo evita gastar
+> cuota de API; esto seria solo para los minutos de Actions.
 
 ---
 

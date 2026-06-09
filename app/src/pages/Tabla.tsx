@@ -32,10 +32,10 @@ export default function Tabla() {
       <div className="px-4">
         <div className="flex gap-2 p-1 bg-carbon-soft rounded-full border border-borde">
           <TabBtn activo={pestana === "galeria"} onClick={() => setPestana("galeria")}>
-            Galeria
+            Fichas
           </TabBtn>
           <TabBtn activo={pestana === "clasica"} onClick={() => setPestana("clasica")}>
-            Clasica
+            Formato antiguo
           </TabBtn>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { VarianteBorde } from "../lib/avatares";
 
 type Props = {
@@ -29,6 +30,10 @@ export default function Avatar({
 }: Props) {
   const height = Math.round(width / RATIO_W_H);
   const borderColor = BORDES[variante];
+  // Si la foto falla al cargar (archivo faltante o mal nombrado), caemos a la
+  // inicial en vez de mostrar el icono de "imagen rota".
+  const [falloFoto, setFalloFoto] = useState(false);
+  useEffect(() => setFalloFoto(false), [src]);
   const box = {
     width,
     height,
@@ -38,11 +43,12 @@ export default function Avatar({
   const base =
     "rounded-lg overflow-hidden bg-carbon-card border-solid";
 
-  if (src) {
+  if (src && !falloFoto) {
     return (
       <img
         src={src}
         alt={nombre}
+        onError={() => setFalloFoto(true)}
         className={`${base} object-cover`}
         style={box}
       />

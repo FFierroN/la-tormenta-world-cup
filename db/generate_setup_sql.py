@@ -314,16 +314,19 @@ returns table(jugador_id int, nombre text, pred_local int, pred_visita int, punt
 language sql security definer set search_path = public, extensions as $$
   select pr.jugador_id,
          coalesce(j.alias, j.nombre) as nombre,
-         pr.pred_local, pr.pred_visita, pr.puntos
+         pr.pred_local, pr.pred_visita,
+         calcular_puntos_pronostico(pr.pred_local, pr.pred_visita,
+           p.goles_local, p.goles_visita, p.fase) as puntos
   from pronosticos pr
   join jugadores j on j.id = pr.jugador_id
+  join partidos  p on p.id = pr.partido_id
   where pr.partido_id = p_partido_id
     and (
-      exists (select 1 from partidos p where p.id = p_partido_id
-              and (p.estado <> 'programado' or p.fecha <= now()))
+      exists (select 1 from partidos p2 where p2.id = p_partido_id
+              and (p2.estado <> 'programado' or p2.fecha <= now()))
       or pr.jugador_id = p_jugador_id
     )
-  order by pr.puntos desc, nombre;
+  order by puntos desc nulls last, nombre;
 $$;
 
 -- Actualizar alias (jugadores esta cerrada al anon, por eso via RPC).
@@ -455,7 +458,11 @@ with base as (
     j.id   as jugador_id,
     j.nombre, j.alias,
     j.avatar_pos1, j.avatar_medio, j.avatar_pos8,
-    coalesce(sum(pr.puntos),0)
+    -- Puntos calculados EN VIVO (misma funcion que el trigger). Asi los puntos
+    -- nunca quedan desincronizados de exactos/aciertos aunque se cargue el
+    -- pronostico despues del resultado.
+    coalesce(sum(calcular_puntos_pronostico(
+        pr.pred_local, pr.pred_visita, p.goles_local, p.goles_visita, p.fase)),0)
       + coalesce(j.ajuste_puntos, 0)            -- ajuste manual del admin (suma/resta)
       + coalesce((
           select pe.puntos_campeon + pe.puntos_finalistas + pe.puntos_semifinalistas

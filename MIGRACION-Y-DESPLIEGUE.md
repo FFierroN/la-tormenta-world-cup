@@ -111,12 +111,12 @@ npm run dev      # levanta la app
 > **Objetivo:** crear las tablas, reglas y los 104 partidos en tu Supabase vacío,
 > y obtener las claves para conectar la app.
 >
->  Todos los archivos SQL están en `MIPROYECTO/prompts/backend/`.
+>  Todos los archivos de la base de datos estan en `MIPROYECTO/db/`.
 > La guía detallada de cada uno está en `GUIA-MAESTRA-SUPABASE.txt`.
 
 ### 3.1 Ejecutar el setup (UN solo script)
 En Supabase → tu proyecto → menú izquierdo **SQL Editor** → **New query**.
-- [ ] Abre `prompts/backend/SETUP-SUPABASE.sql`, copia **TODO** (Ctrl+A, Ctrl+C).
+- [ ] Abre `db/SETUP-SUPABASE.sql`, copia **TODO** (Ctrl+A, Ctrl+C).
 - [ ] Pégalo en el editor y dale **Run**.
 - [ ] Al final verás la verificación. Debe decir: `jugadores` = **8**,
       `partidos` = **104**, `partidos_grupos` = **72**.
@@ -234,7 +234,7 @@ Vercel detecta el push y **republica solo** en ~1 minuto. No tocas nada más.
 | Pantalla en blanco local | Falta `.env` o claves malas | Revisa `.env` y reinicia `npm run dev` |
 | Vercel: "build failed" | Root Directory mal puesto | Debe ser `app`, no la raíz |
 | App en blanco en Vercel | Faltan las env vars en Vercel | Agrégalas en Settings → Environment Variables y redeploy |
-| Login no valida | No corriste el SQL de setup | Pega y corre `prompts/backend/SETUP-SUPABASE.sql` |
+| Login no valida | No corriste el SQL de setup | Pega y corre `db/SETUP-SUPABASE.sql` |
 | Robot no actualiza | Faltan secretos en GitHub | Revisa APIFOOTBALL_KEY / SUPABASE_URL / SUPABASE_SERVICE_KEY |
 | Robot dice SIN MAPEAR | Nombre de equipo distinto | Agregalo a `EQUIPOS` en `robot/actualizar.py` |
 

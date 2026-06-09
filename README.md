@@ -1,134 +1,151 @@
-# ⚽ Prode Mundial 2026 — Proyecto Personal
+#  La Tormenta World Cup
 
-> App de pronósticos del Mundial de Fútbol 2026 para jugar entre 8 amigos.
-
----
-
-## 📖 Cómo leer esta documentación
-
-> **⚠️ Si volves después de tiempo o sos una IA en nueva sesión: leé `contexto-proximas-sesiones.md` PRIMERO.**
-
-### Orden recomendado de lectura:
-1. 📄 **`README.md`** ← estás acá (visión general)
-2. 🧠 **`contexto-proximas-sesiones.md`** (handover para nuevas sesiones)
-3. ✅ **`decisiones-tomadas.md`** (todo lo cerrado, no re-discutir)
-4. ❓ **`pendientes.md`** (lo que falta decidir)
-5. 📋 **`plan-15-prompts.md`** (plan de desarrollo detallado)
-6. 🧠 **`faq-tecnico.md`** (aprendizajes técnicos clave)
-7. 📝 **`decisiones-clave.md`** (template original con preguntas)
+> PWA de pronósticos del Mundial de Fútbol 2026 para jugar entre 8 amigos.
 
 ---
 
-## 🎯 ¿Qué es?
+##  ¿Qué es?
 
-Una aplicación móvil (PWA) donde 8 amigos pueden:
-- 📝 Pronosticar los resultados de todos los partidos del Mundial 2026
-- 🏆 Acumular puntos según reglas predefinidas
-- 📊 Ver una tabla de posiciones actualizada en tiempo real
-- 🥇 Determinar un ganador al final del torneo
+Una aplicación móvil instalable (PWA) donde 8 amigos pueden:
 
----
-
-## 📋 Características clave
-
-- 👥 **Usuarios**: 8 amigos (cerrado, no público)
-- 📱 **Plataforma**: PWA (Progressive Web App) — funciona en iOS y Android sin App Store / Play Store
-- ⏱️ **Vida útil**: Mundial 2026 (11 jun - 19 jul)
-- 💰 **Costo**: $0 - $20 USD
-- 🔧 **Admin**: 1 jugador (Felipe) con permisos extra para cargar resultados
+-  Pronosticar el resultado de todos los partidos del Mundial 2026
+-  Acumular puntos según las reglas del juego
+-  Ver la tabla de posiciones actualizada en tiempo real
+-  Hacer predicciones especiales (campeón, finalistas, goleador, premios)
+-  Coronar a un ganador al final del torneo
 
 ---
 
-## 🛠️ Stack técnico
+##  Características
+
+-  **Usuarios:** 8 amigos (grupo cerrado, no público)
+-  **Plataforma:** PWA — se instala en iOS y Android sin App Store / Play Store
+- ⏱ **Vida útil:** Mundial 2026 (11 jun – 19 jul)
+-  **Admin:** un jugador (Felipe) con permisos extra para cargar resultados
+-  **Resultados automáticos:** robot que sincroniza marcadores y eventos en vivo
+
+---
+
+##  Stack técnico (el real)
 
 | Componente | Herramienta | Plan |
 |---|---|---|
-| Generador con IA | [Lovable.dev](https://lovable.dev) | Free → Pro si hace falta |
-| Backend + DB | [Supabase](https://supabase.com) | Free (suficiente) |
+| Frontend | Vite + React + TypeScript + Tailwind | — |
+| PWA | vite-plugin-pwa | — |
+| Backend + DB | [Supabase](https://supabase.com) | Free |
 | Hosting | [Vercel](https://vercel.com) | Hobby (gratis) |
+| Datos en vivo | [API-Football](https://dashboard.api-football.com) | Free (100 req/día) |
+| Automatización | GitHub Actions | Free |
+
+>  **Nota histórica:** el proyecto empezó pensado para Lovable, pero se
+> abandonó cuando Lovable forzó su propio backend de pago. Hoy el frontend es
+> 100% Vite propio, conectado al Supabase personal de Felipe.
 
 ---
 
-## 🏗️ Arquitectura
+##  Arquitectura
 
 ```
 ┌─────────────────────────────────────┐
-│  📱 PWA generada por Lovable        │
+│   PWA (Vite + React + TS)         │
 │  - Login con PIN                    │
 │  - Lista de partidos                │
 │  - Ingreso de pronósticos           │
+│  - Predicciones especiales          │
 │  - Tabla de posiciones (realtime)   │
 │  - Panel admin (solo Felipe)        │
 └─────────────────────────────────────┘
-              ↕️
+              ↕
 ┌─────────────────────────────────────┐
-│  ⚙️ Supabase                        │
-│  - Tablas: usuarios, partidos,      │
-│    pronósticos, admin_log           │
+│   Supabase                        │
+│  - Tablas: jugadores, partidos,     │
+│    pronosticos, partido_eventos,    │
+│    predicciones_especiales, config  │
+│  - Login por PIN (bcrypt/pgcrypto)  │
 │  - Row Level Security (privacidad)  │
-│  - Realtime para leaderboard        │
-│  - Cálculo de puntos automático     │
+│  - Realtime para la tabla           │
+│  - Cálculo de puntos por trigger    │
 └─────────────────────────────────────┘
-              ↕️
-┌─────────────────────────────────────┐
-│  🌐 Hosting: Vercel                 │
-└─────────────────────────────────────┘
+       ↑                       ↑
+       │ (anon key)            │ (service key)
+┌──────────────┐      ┌──────────────────────┐
+│   Vercel   │      │   GitHub Actions   │
+│  app pública │      │  robot/actualizar.py │
+│  para los 8  │      │  ← API-Football      │
+└──────────────┘      └──────────────────────┘
 ```
 
 ---
 
-## 📅 Plan de ejecución: 15 prompts en 3 días
+##  Estructura del repositorio
 
-| Día | Foco | Prompts | Estado al final |
-|---|---|---|---|
-| 1 | 🏗️ Cimientos | 5 | Login + DB + UI base |
-| 2 | ⚙️ Features core | 5 | Pronósticos + puntos + leaderboard |
-| 3 | ✨ Pulido + PWA | 5 | App instalable + admin panel |
-
-Detalle completo en `plan-15-prompts.md`.
-
----
-
-## ✅ Decisiones cerradas (highlights)
-
-- ✅ **PWA**, no app nativa
-- ✅ **Stack Lovable + Supabase + Vercel**
-- ✅ **Carga manual de resultados** vía panel admin en la app
-- ✅ **Admin = cuenta jugador con permisos extra** (Opción B)
-- ✅ **Pronósticos privados hasta deadline** (regla crítica)
-- ✅ **Sistema antitrampa con log público**
-- ✅ **15 prompts en 3 días**
-
-Detalle completo en `decisiones-tomadas.md`.
+```
+MIPROYECTO/
+├── app/          → frontend Vite (el código de la app)
+│   └── src/
+│       ├── pages/        → 11 pantallas (Login, Partidos, Tabla, Admin...)
+│       ├── components/    → Avatar, BottomTabs, Flag
+│       └── lib/           → data.ts (capa Supabase), auth, types, reglas...
+├── db/           → SETUP-SUPABASE.sql (un solo script idempotente)
+├── robot/        → actualizar.py + workflow de GitHub Actions
+└── *.md          → documentación (esta guía y la de despliegue)
+```
 
 ---
 
-## ❓ Decisiones pendientes (resumen)
+##  Estado actual
 
-Antes de poder armar los 5 prompts del Día 1, falta:
-1. Nombre y estética de la app
-2. Nombres de los 8 jugadores
-3. Sistema de puntuación exacto
-4. Deadline en minutos
-5. Cómo cargar el fixture
-6. Idioma y zona horaria
+ **Código completo y funcional.** Las 11 pantallas leen datos reales de
+Supabase (sin mocks). Lo que falta es **ejecución de despliegue**, no código:
 
-Detalle completo y formato para responder en `pendientes.md`.
+1. ⏳ **Deploy** — publicar la PWA en Vercel (bloquea poder jugar).
+2. ⏳ **Robot API** — crear 3 secretos en GitHub (opcional; el admin manual lo cubre).
+3. ⏳ **Fixture** — faltan los cruces "Por definir" hasta que haya sorteo de llaves.
 
----
-
-## 🚨 Notas importantes
-
-- 🏠 **El código real de la app vive en PC personal**, no en máquina corporativa
-- 🔐 Nunca subir credenciales, API keys ni PINs a repositorios públicos
-- 💾 Backupear regularmente la base de datos de Supabase durante el mundial
-- 📂 Esta carpeta tiene solo **planificación**, no código del proyecto
+ La guía paso a paso está en **`MIGRACION-Y-DESPLIEGUE.md`**.
 
 ---
 
-## 🐶 Generado y mantenido con Kira (Code Puppy)
+##  Cómo se juega
 
-Mentoría conversacional para no-coders construyendo proyectos personales con IA.
-Esta carpeta es el "cerebro externo" del proyecto entre sesiones.
+- Cada jugador ingresa su pronóstico (marcador) antes del cierre de cada partido.
+- Sistema de puntos en **4 niveles**:
+  -  **Exacto** — marcador exacto (+ bonus)
+  - ↔ **Diferencia** — acertaste la diferencia de goles
+  -  **Acierto** — acertaste el resultado (gana/empate/pierde)
+  -  **Falla** — ni el resultado
+- Predicciones especiales con su propio puntaje (campeón, finalistas, semis,
+  goleador, mejor jugador, etc.).
+- Detalle completo del puntaje dentro de la pantalla **Reglas** de la app.
 
-¡Mucho éxito con el mundial! ⚽🏆
+---
+
+##  Flujo de trabajo (después del primer deploy)
+
+Cada cambio futuro es así de simple:
+
+```bash
+# editas algo en el código...
+git add .
+git commit -m "describe tu cambio"
+git push
+```
+
+Vercel detecta el push y **republica solo** en ~1 minuto. Si hubo cambios en la
+base de datos, vuelve a pegar `db/SETUP-SUPABASE.sql` en Supabase (es idempotente).
+
+---
+
+##  Notas importantes
+
+-  El **build/dev se corre en la PC personal de Felipe** (la máquina de trabajo
+  no tiene Node).
+-  Nunca subir credenciales, API keys ni el `.env` al repo (están en `.gitignore`).
+-  Conviene **respaldar la base de datos** de Supabase durante el mundial.
+-  El repo es **privado** en `github.com/FFierroN/la-tormenta-world-cup`.
+
+---
+
+##  Mantenido con Kira (Code Puppy)
+
+¡Mucho éxito con el mundial! 

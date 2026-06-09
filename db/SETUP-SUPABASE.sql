@@ -28,6 +28,14 @@ create table if not exists jugadores (
 );
 create unique index if not exists uq_jugadores_nombre on jugadores(nombre);
 
+-- Columnas agregadas despues de la 1ra version (idempotentes para bases ya creadas):
+--   activo        -> baja blanda: si es false, no puede entrar ni aparece en tabla/galeria.
+--   ajuste_puntos -> ajuste manual del admin (se SUMA al total, no pisa lo calculado).
+--   ajuste_motivo -> nota opcional del por que del ajuste.
+alter table jugadores add column if not exists activo        boolean not null default true;
+alter table jugadores add column if not exists ajuste_puntos int     not null default 0;
+alter table jugadores add column if not exists ajuste_motivo text;
+
 create table if not exists partidos (
   id              serial primary key,
   api_fixture_id  bigint unique,   -- id del partido en API-Football (lo llena el robot)
@@ -215,6 +223,7 @@ language sql security definer set search_path = public, extensions as $$
   select j.id, j.nombre, j.alias, j.es_admin, j.onboarding_completado
   from jugadores j
   where j.id = p_jugador_id
+    and j.activo                              -- baja blanda: bloquea el ingreso
     and j.pin_hash = crypt(p_pin, j.pin_hash);
 $$;
 
@@ -364,6 +373,37 @@ end;
 $$;
 
 -- =====================================================================
+-- 3b. ADMIN: gestion de participantes (baja blanda + ajuste manual)
+-- =====================================================================
+-- La tabla jugadores esta bloqueada por RLS, asi que el admin la toca solo
+-- via estas funciones security definer. La app gatea el acceso por es_admin.
+
+-- Lista TODOS los jugadores (incluidos los dados de baja) con sus campos de
+-- gestion. Es lo que ve el panel de admin (la vista publica oculta inactivos).
+create or replace function listar_jugadores_admin()
+returns table(id int, nombre text, alias text, es_admin boolean,
+              activo boolean, ajuste_puntos int, ajuste_motivo text)
+language sql security definer set search_path = public, extensions as $$
+  select id, nombre, alias, es_admin, activo, ajuste_puntos, ajuste_motivo
+  from jugadores order by id;
+$$;
+
+-- Da de baja / re-activa a un jugador.
+create or replace function set_jugador_activo(p_jugador_id int, p_activo boolean)
+returns void language sql security definer set search_path = public, extensions as $$
+  update jugadores set activo = p_activo where id = p_jugador_id;
+$$;
+
+-- Ajuste manual de puntos (se SUMA al total en la tabla; puede ser negativo).
+create or replace function set_ajuste_puntos(p_jugador_id int, p_puntos int, p_motivo text)
+returns void language sql security definer set search_path = public, extensions as $$
+  update jugadores
+     set ajuste_puntos = coalesce(p_puntos, 0),
+         ajuste_motivo = nullif(trim(coalesce(p_motivo,'')), '')
+   where id = p_jugador_id;
+$$;
+
+-- =====================================================================
 -- 4. VISTAS PUBLICAS (lo unico que el frontend lee de jugadores)
 -- =====================================================================
 
@@ -371,7 +411,8 @@ create or replace view jugadores_publico as
   select id, nombre, alias, es_admin, onboarding_completado,
          avatar_pos1, avatar_medio, avatar_pos8,
          coalesce(alias, nombre) as nombre_visible
-  from jugadores;
+  from jugadores
+  where activo;   -- los dados de baja no aparecen en el login
 
 create or replace view tabla_posiciones as
 with base as (
@@ -380,6 +421,7 @@ with base as (
     j.nombre, j.alias,
     j.avatar_pos1, j.avatar_medio, j.avatar_pos8,
     coalesce(sum(pr.puntos),0)
+      + coalesce(j.ajuste_puntos, 0)            -- ajuste manual del admin (suma/resta)
       + coalesce((
           select pe.puntos_campeon + pe.puntos_finalistas + pe.puntos_semifinalistas
                + pe.puntos_goleador + pe.puntos_mejor_jugador
@@ -397,6 +439,7 @@ with base as (
   left join pronosticos pr on pr.jugador_id = j.id
   left join partidos p on p.id = pr.partido_id
                       and p.estado='final' and p.goles_local is not null
+  where j.activo                                -- los dados de baja salen de la tabla
   group by j.id
 )
 select *, rank() over (order by puntos desc, exactos desc) as posicion
@@ -484,6 +527,9 @@ grant execute on function pronosticos_partido(int,int)    to anon, authenticated
 grant execute on function actualizar_alias(int,text)       to anon, authenticated;
 grant execute on function guardar_especiales(int,text,text,text,text,text,text,text,text,text,text,text) to anon, authenticated;
 grant execute on function recalcular_especiales()         to anon, authenticated;
+grant execute on function listar_jugadores_admin()        to anon, authenticated;
+grant execute on function set_jugador_activo(int,boolean)  to anon, authenticated;
+grant execute on function set_ajuste_puntos(int,int,text)  to anon, authenticated;
 
 -- =====================================================================
 -- 6. REALTIME (la app escucha cambios en vivo)

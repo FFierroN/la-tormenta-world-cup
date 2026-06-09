@@ -65,8 +65,11 @@ export default function PartidoDetalle() {
 
   return (
     <div className="min-h-full bg-carbon">
-      {/* ---------- Header con fondo de la Copa (imagen) ---------- */}
-      <header className="relative overflow-hidden">
+      {/* ---------- Header con fondo de la Copa (imagen) ----------
+          Relacion fija 16:9: la imagen fondo-partido.png se disena a 16:9
+          (ej. 1440x810 px) y calza perfecto sin recortes. Si en una pantalla
+          chica el contenido es mas alto, el banner crece sin romperse. */}
+      <header className="relative overflow-hidden aspect-[16/9] flex flex-col">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{

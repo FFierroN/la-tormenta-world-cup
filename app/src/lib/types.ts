@@ -102,6 +102,17 @@ export interface FilaGrupo {
   pos: number; // posicion dentro del grupo
 }
 
+// Jugador tal como lo ve el panel de admin (incluye dados de baja y ajuste).
+export interface JugadorAdmin {
+  id: string;
+  nombre: string;
+  alias: string | null;
+  es_admin: boolean;
+  activo: boolean;
+  ajuste_puntos: number;
+  ajuste_motivo: string | null;
+}
+
 // Fila derivada de la tabla de posiciones.
 export interface FilaTabla {
   jugador_id: string;

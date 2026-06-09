@@ -10,6 +10,7 @@ import type {
   FilaGrupo,
   FilaTabla,
   Jugador,
+  JugadorAdmin,
   Partido,
   PronosticoVista,
   TipoEvento,
@@ -408,5 +409,52 @@ export async function guardarResultadoReal(
 
 export async function recalcularEspeciales(): Promise<void> {
   const { error } = await supabase.rpc("recalcular_especiales");
+  lanzarSi(error);
+}
+
+// ---------- ADMIN: gestion de participantes (baja blanda + ajuste manual) ----------
+
+function aJugadorAdmin(r: any): JugadorAdmin {
+  return {
+    id: String(r.id),
+    nombre: r.nombre,
+    alias: r.alias ?? null,
+    es_admin: !!r.es_admin,
+    activo: !!r.activo,
+    ajuste_puntos: Number(r.ajuste_puntos ?? 0),
+    ajuste_motivo: r.ajuste_motivo ?? null,
+  };
+}
+
+// Lista TODOS los jugadores (incluidos los dados de baja) para el panel admin.
+export async function listarJugadoresAdmin(): Promise<JugadorAdmin[]> {
+  const { data, error } = await supabase.rpc("listar_jugadores_admin");
+  lanzarSi(error);
+  return (data ?? []).map(aJugadorAdmin);
+}
+
+// Da de baja / re-activa a un jugador (baja blanda).
+export async function setJugadorActivo(
+  jugadorId: string,
+  activo: boolean
+): Promise<void> {
+  const { error } = await supabase.rpc("set_jugador_activo", {
+    p_jugador_id: Number(jugadorId),
+    p_activo: activo,
+  });
+  lanzarSi(error);
+}
+
+// Ajuste manual de puntos (se suma al total; puede ser negativo).
+export async function setAjustePuntos(
+  jugadorId: string,
+  puntos: number,
+  motivo: string
+): Promise<void> {
+  const { error } = await supabase.rpc("set_ajuste_puntos", {
+    p_jugador_id: Number(jugadorId),
+    p_puntos: puntos,
+    p_motivo: motivo,
+  });
   lanzarSi(error);
 }

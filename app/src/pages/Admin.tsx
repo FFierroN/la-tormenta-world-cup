@@ -42,6 +42,15 @@ export default function Admin() {
       </div>
 
       <div className="px-4 mb-3">
+        <button
+          onClick={() => navigate("/admin/participantes")}
+          className="w-full bg-carbon-card border border-borde rounded-xl py-2.5 text-sm font-semibold active:bg-carbon-soft"
+        >
+          Gestionar participantes (baja y ajuste de puntos)
+        </button>
+      </div>
+
+      <div className="px-4 mb-3">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}

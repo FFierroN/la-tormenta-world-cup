@@ -9,6 +9,7 @@ import MiCuenta from "./pages/MiCuenta";
 import Admin from "./pages/Admin";
 import AdminPartido from "./pages/AdminPartido";
 import AdminEspeciales from "./pages/AdminEspeciales";
+import AdminParticipantes from "./pages/AdminParticipantes";
 import PrediccionesEspeciales from "./pages/PrediccionesEspeciales";
 import Reglas from "./pages/Reglas";
 import { useAuth } from "./lib/auth";
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/reglas" element={<Privada><Reglas /></Privada>} />
           <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />
           <Route path="/admin/especiales" element={<SoloAdmin><AdminEspeciales /></SoloAdmin>} />
+          <Route path="/admin/participantes" element={<SoloAdmin><AdminParticipantes /></SoloAdmin>} />
           <Route path="/admin/:id" element={<SoloAdmin><AdminPartido /></SoloAdmin>} />
           <Route path="*" element={<Navigate to="/partidos" replace />} />
         </Routes>

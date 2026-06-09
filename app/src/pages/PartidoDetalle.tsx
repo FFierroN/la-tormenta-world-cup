@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Flag from "../components/Flag";
+import RelojVivo from "../components/RelojVivo";
 import type { EventoPartido, Partido, PronosticoVista } from "../lib/types";
 import { ESTADO_LABEL, ESTADOS_EN_CURSO } from "../lib/estados";
 import { useAsync } from "../lib/useAsync";
@@ -113,12 +114,9 @@ export default function PartidoDetalle() {
                   <div className="text-4xl font-black tabular-nums mt-1">
                     {partido.goles_local ?? 0} - {partido.goles_visita ?? 0}
                   </div>
-                  {partido.minuto != null &&
-                    ESTADOS_EN_CURSO.includes(partido.estado) && (
-                      <div className="text-sm font-semibold text-red-400 mt-0.5">
-                        {partido.minuto}&apos;
-                      </div>
-                    )}
+                  {ESTADOS_EN_CURSO.includes(partido.estado) && (
+                    <RelojVivo partido={partido} />
+                  )}
                   {partido.ganador_penales && (
                     <div className="text-xs text-neutral-300 mt-1">
                       Penales: {partido.penales_local ?? 0} -{" "}

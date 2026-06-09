@@ -9,6 +9,11 @@ on:
   schedule:
     # Cada 15 min. GitHub puede atrasarlo unos minutos (normal en plan gratis).
     # La guardia de cuota del robot evita pasar de 100 req/dia.
+    # Ademas el robot tiene AUTO-GATILLO: si no hay partidos en vivo ni por
+    # empezar, sale sin tocar la API (0 requests). Eso da la "ventana movil"
+    # automatica (se ajusta sola por jornada y por fase).
+    # TODO (cuando confirmemos la zona horaria del fixture): acotar el cron a la
+    # ventana real de partidos (~14h) para ahorrar minutos de GitHub Actions.
     - cron: "*/15 * * * *"
 
 # Evita que dos corridas se pisen

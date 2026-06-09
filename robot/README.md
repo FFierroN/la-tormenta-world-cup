@@ -19,6 +19,10 @@ automaticamente**, sin que nadie cargue nada a mano.
 ## Cuidado con la cuota (100 requests/dia gratis)
 
 - El robot lleva un contador en la tabla `api_cuota` y **se frena en 95**.
+- **Auto-gatillo (ventana movil automatica):** antes de llamar a la API, el robot
+  pregunta GRATIS a Supabase si hay algun partido en vivo o por empezar. Si no
+  hay, **sale sin gastar requests**. Asi se ajusta solo por jornada y por fase,
+  sin tocar el `cron`. (Comparar `now()` contra `fecha` en la DB es timezone-safe.)
 - No re-descarga eventos de partidos ya terminados (ahorra cuota).
 - En vivo: 1 request por corrida para el marcador de todos + 1 por partido
   activo para sus eventos.

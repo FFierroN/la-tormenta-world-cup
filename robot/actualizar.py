@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import os
 import sys
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 
@@ -164,6 +164,35 @@ def sb_insert(tabla: str, filas: list[dict]) -> None:
         timeout=20,
     )
     r.raise_for_status()
+
+
+# ------------------------------------------------------ auto-gatillo (ventana)
+def hay_trabajo() -> bool:
+    """Pregunta GRATIS a Supabase (no gasta cuota de API) si vale la pena
+    llamar a la API. Devuelve True si hay algun partido en vivo o a punto de
+    empezar / en curso. Esto da la "ventana movil" automatica: se ajusta sola
+    por jornada y por fase, sin tocar el cron. now() comparado contra fecha
+    (ambos UTC en la DB) -> timezone-safe.
+    """
+    # 1) partidos rodando ahora mismo
+    vivos = sb_get("partidos", {
+        "estado": "in.(en_vivo,entretiempo,alargue,penales)",
+        "select": "id", "limit": "1",
+    })
+    if vivos:
+        return True
+    # 2) programados que arrancan pronto o que ya deberian haber empezado pero
+    #    el robot aun no los marco (ventana: desde 3h atras hasta 20min adelante,
+    #    cubre toda la vida de un partido por si nos saltamos corridas).
+    ahora = datetime.now(timezone.utc)
+    lo = (ahora - timedelta(hours=3)).isoformat()
+    hi = (ahora + timedelta(minutes=20)).isoformat()
+    proximos = sb_get("partidos", {
+        "estado": "eq.programado",
+        "and": f"(fecha.gte.{lo},fecha.lte.{hi})",
+        "select": "id", "limit": "1",
+    })
+    return bool(proximos)
 
 
 # ------------------------------------------------------------ guardia de cuota
@@ -311,6 +340,12 @@ def main() -> None:
     usados_previos = leer_cuota_hoy()
     if usados_previos >= MAX_CUOTA:
         print(f"Cuota del dia ya alcanzada ({usados_previos}/{MAX_CUOTA}). Salgo.")
+        return
+
+    # Auto-gatillo: si no hay partidos en vivo ni a punto de empezar, NO tocamos
+    # la API (0 requests). Esta consulta a Supabase no gasta cuota.
+    if not hay_trabajo():
+        print("No hay partidos en vivo ni por empezar. Sin requests a la API.")
         return
 
     if MODO == "vivo":

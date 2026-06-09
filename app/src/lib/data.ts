@@ -45,6 +45,7 @@ function aPartido(r: any): Partido {
     goles_local: r.goles_local,
     goles_visita: r.goles_visita,
     minuto: r.minuto ?? null,
+    minuto_at: r.minuto_at ?? null,
     penales_local: r.penales_local ?? null,
     penales_visita: r.penales_visita ?? null,
     ganador_penales: r.ganador_penales ?? null,

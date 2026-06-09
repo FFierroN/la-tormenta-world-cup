@@ -86,6 +86,7 @@ create table if not exists partidos (
   goles_local     int,
   goles_visita    int,
   minuto          int,    -- minuto en vivo (lo llena el robot)
+  minuto_at       timestamptz,  -- ancla: cuando se midio 'minuto' (para el reloj local de la app)
   penales_local   int,    -- tanda de penales (solo llaves)
   penales_visita  int,
   ganador_penales text,   -- 'local' | 'visita' (solo si hubo penales)
@@ -97,6 +98,8 @@ create table if not exists partidos (
 );
 create index if not exists idx_partidos_fecha  on partidos(fecha);
 create index if not exists idx_partidos_estado on partidos(estado);
+-- Idempotente para bases ya creadas: ancla del cronometro en vivo.
+alter table partidos add column if not exists minuto_at timestamptz;
 
 create table if not exists partido_eventos (
   id          serial primary key,
@@ -246,6 +249,24 @@ drop trigger if exists trg_actualizar_puntos on partidos;
 create trigger trg_actualizar_puntos
   after insert or update of estado, goles_local, goles_visita on partidos
   for each row execute function tg_actualizar_puntos();
+
+-- Ancla del cronometro: cada vez que cambia 'minuto' (robot o admin), guardamos
+-- CUANDO cambio. La app usa (minuto + minuto_at) para tickear el reloj local
+-- sin depender de la API entre polls. now() es UTC en Supabase (timezone-safe).
+create or replace function tg_anclar_minuto()
+returns trigger language plpgsql as $$
+begin
+  if new.minuto is distinct from old.minuto then
+    new.minuto_at := case when new.minuto is null then null else now() end;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_anclar_minuto on partidos;
+create trigger trg_anclar_minuto
+  before update of minuto on partidos
+  for each row execute function tg_anclar_minuto();
 
 -- =====================================================================
 -- 3. LOGIN POR PIN (seguro: el pin_hash NUNCA viaja al frontend)

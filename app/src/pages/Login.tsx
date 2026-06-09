@@ -79,13 +79,9 @@ export default function Login() {
 
         {error && (
           <p className="text-sm text-red-400 break-words">
-            No se pudo cargar la lista de jugadores.
+            No se pudo cargar la lista de jugadores. Revisa tu conexion.
             <br />
-            <span className="text-xs text-red-300">Detalle tecnico: {error}</span>
-            <br />
-            <span className="text-xs text-neutral-400">
-              URL configurada: {String(import.meta.env.VITE_SUPABASE_URL ?? "(vacia)")}
-            </span>
+            <span className="text-xs text-red-300">Detalle: {error}</span>
           </p>
         )}
         {aviso && <p className="text-sm text-red-400">{aviso}</p>}

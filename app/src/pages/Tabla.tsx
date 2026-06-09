@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar";
-import { avatarPorPosicion } from "../lib/avatares";
+import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
 import { obtenerTabla } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import type { FilaTabla } from "../lib/types";
@@ -82,7 +82,8 @@ function Galeria({ filas, total }: { filas: FilaTabla[]; total: number }) {
           <Avatar
             src={avatarPorPosicion(f, total)}
             nombre={f.nombre}
-            size={112}
+            width={150}
+            variante={bordePorPosicion(f.posicion, total)}
           />
           <div className="mt-3 text-2xl font-extrabold text-oro">#{f.posicion}</div>
           <div className="text-lg font-bold">{f.alias ?? f.nombre}</div>

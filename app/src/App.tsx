@@ -8,6 +8,7 @@ import Grupos from "./pages/Grupos";
 import MiCuenta from "./pages/MiCuenta";
 import Admin from "./pages/Admin";
 import AdminPartido from "./pages/AdminPartido";
+import PrediccionesEspeciales from "./pages/PrediccionesEspeciales";
 import { useAuth } from "./lib/auth";
 import type { ReactNode } from "react";
 
@@ -33,7 +34,8 @@ export default function App() {
   const ocultarTabs =
     location.pathname === "/login" ||
     location.pathname.startsWith("/partido/") ||
-    location.pathname.startsWith("/admin/");
+    location.pathname.startsWith("/admin/") ||
+    location.pathname === "/especiales";
 
   return (
     <div className="min-h-full flex flex-col">
@@ -49,6 +51,7 @@ export default function App() {
           <Route path="/tabla" element={<Privada><Tabla /></Privada>} />
           <Route path="/grupos" element={<Privada><Grupos /></Privada>} />
           <Route path="/cuenta" element={<Privada><MiCuenta /></Privada>} />
+          <Route path="/especiales" element={<Privada><PrediccionesEspeciales /></Privada>} />
           <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />
           <Route path="/admin/:id" element={<SoloAdmin><AdminPartido /></SoloAdmin>} />
           <Route path="*" element={<Navigate to="/partidos" replace />} />

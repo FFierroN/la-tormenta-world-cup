@@ -5,6 +5,7 @@
 import { supabase } from "./supabase";
 import type {
   EstadoPartido,
+  Especiales,
   EventoPartido,
   FilaGrupo,
   FilaTabla,
@@ -267,4 +268,102 @@ export async function eliminarEvento(id: string): Promise<void> {
     .delete()
     .eq("id", Number(id));
   lanzarSi(error);
+}
+
+// ---------- CUENTA ----------
+export async function actualizarAlias(
+  jugadorId: string,
+  alias: string
+): Promise<void> {
+  const { error } = await supabase.rpc("actualizar_alias", {
+    p_jugador_id: Number(jugadorId),
+    p_alias: alias,
+  });
+  lanzarSi(error);
+}
+
+// Devuelve true si el PIN actual era correcto y se cambio.
+export async function cambiarPin(
+  jugadorId: string,
+  actual: string,
+  nuevo: string
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("cambiar_pin", {
+    p_jugador_id: Number(jugadorId),
+    p_pin_actual: actual,
+    p_pin_nuevo: nuevo,
+  });
+  lanzarSi(error);
+  return data === true;
+}
+
+// ---------- PREDICCIONES ESPECIALES ----------
+export async function prediccionesHabilitadas(): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("configuracion")
+    .select("valor")
+    .eq("clave", "edicion_predicciones_habilitada")
+    .maybeSingle();
+  lanzarSi(error);
+  return data?.valor === "true";
+}
+
+export async function setPrediccionesHabilitadas(on: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("configuracion")
+    .update({ valor: on ? "true" : "false", updated_at: new Date().toISOString() })
+    .eq("clave", "edicion_predicciones_habilitada");
+  lanzarSi(error);
+}
+
+export async function misEspeciales(
+  jugadorId: string
+): Promise<Especiales | null> {
+  const { data, error } = await supabase
+    .from("predicciones_especiales")
+    .select(
+      "campeon, finalista_1, finalista_2, semifinalista_1, semifinalista_2, semifinalista_3, semifinalista_4, goleador, mejor_jugador, mejor_arquero, mejor_joven"
+    )
+    .eq("jugador_id", Number(jugadorId))
+    .maybeSingle();
+  lanzarSi(error);
+  return (data as Especiales) ?? null;
+}
+
+// Guarda especiales (RPC valida la ventana). Devuelve 'ok' | 'cerrado'.
+export async function guardarEspeciales(
+  jugadorId: string,
+  e: Especiales
+): Promise<string> {
+  const { data, error } = await supabase.rpc("guardar_especiales", {
+    p_jugador_id: Number(jugadorId),
+    p_campeon: e.campeon,
+    p_finalista_1: e.finalista_1,
+    p_finalista_2: e.finalista_2,
+    p_semi_1: e.semifinalista_1,
+    p_semi_2: e.semifinalista_2,
+    p_semi_3: e.semifinalista_3,
+    p_semi_4: e.semifinalista_4,
+    p_goleador: e.goleador,
+    p_mejor_jugador: e.mejor_jugador,
+    p_mejor_arquero: e.mejor_arquero,
+    p_mejor_joven: e.mejor_joven,
+  });
+  lanzarSi(error);
+  return String(data);
+}
+
+// Lista de equipos reales (para los selects). Excluye 'Por definir'.
+export async function equiposReales(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("partidos")
+    .select("equipo_local, equipo_visita")
+    .neq("equipo_local", "Por definir");
+  lanzarSi(error);
+  const set = new Set<string>();
+  for (const r of data ?? []) {
+    if (r.equipo_local && r.equipo_local !== "Por definir") set.add(r.equipo_local);
+    if (r.equipo_visita && r.equipo_visita !== "Por definir") set.add(r.equipo_visita);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b));
 }

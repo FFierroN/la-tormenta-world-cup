@@ -71,6 +71,21 @@ export interface PronosticoVista {
   puntos: number;
 }
 
+// Predicciones especiales pre-mundial (bonus).
+export interface Especiales {
+  campeon: string | null;
+  finalista_1: string | null;
+  finalista_2: string | null;
+  semifinalista_1: string | null;
+  semifinalista_2: string | null;
+  semifinalista_3: string | null;
+  semifinalista_4: string | null;
+  goleador: string | null;
+  mejor_jugador: string | null;
+  mejor_arquero: string | null;
+  mejor_joven: string | null;
+}
+
 // Fila de la tabla de posiciones de un grupo del Mundial.
 export interface FilaGrupo {
   grupo: string; // A..L

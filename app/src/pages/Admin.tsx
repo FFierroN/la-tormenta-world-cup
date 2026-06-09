@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listarPartidos } from "../lib/data";
+import {
+  listarPartidos,
+  prediccionesHabilitadas,
+  setPrediccionesHabilitadas,
+} from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { ESTADO_LABEL, enCurso } from "../lib/estados";
 import { fmtFechaHora } from "../lib/fechas";
@@ -25,6 +29,8 @@ export default function Admin() {
           Elige un partido para cargar resultado y eventos.
         </p>
       </header>
+
+      <ToggleEspeciales />
 
       <div className="px-4 mb-3">
         <input
@@ -65,6 +71,55 @@ export default function Admin() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/* ---------- Toggle ventana de predicciones especiales ---------- */
+function ToggleEspeciales() {
+  const [on, setOn] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [guardando, setGuardando] = useState(false);
+
+  useEffect(() => {
+    prediccionesHabilitadas()
+      .then(setOn)
+      .finally(() => setCargando(false));
+  }, []);
+
+  const cambiar = async () => {
+    setGuardando(true);
+    const nuevo = !on;
+    try {
+      await setPrediccionesHabilitadas(nuevo);
+      setOn(nuevo);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <div className="mx-4 mb-3 bg-carbon-card border border-borde rounded-xl p-4 flex items-center justify-between gap-3">
+      <div>
+        <div className="text-sm font-semibold">Predicciones especiales</div>
+        <div className="text-xs text-neutral-400">
+          {cargando ? "..." : on ? "Ventana ABIERTA: pueden editar." : "Ventana cerrada."}
+        </div>
+      </div>
+      <button
+        onClick={cambiar}
+        disabled={cargando || guardando}
+        aria-pressed={on}
+        className={`relative w-14 h-8 rounded-full transition-colors disabled:opacity-50 ${
+          on ? "bg-oro" : "bg-carbon-soft border border-borde"
+        }`}
+      >
+        <span
+          className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${
+            on ? "left-7" : "left-1"
+          }`}
+        />
+      </button>
     </div>
   );
 }

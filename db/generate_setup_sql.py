@@ -308,6 +308,43 @@ language sql security definer set search_path = public, extensions as $$
   order by pr.puntos desc, nombre;
 $$;
 
+-- Actualizar alias (jugadores esta cerrada al anon, por eso via RPC).
+create or replace function actualizar_alias(p_jugador_id int, p_alias text)
+returns void language sql security definer set search_path = public, extensions as $$
+  update jugadores set alias = nullif(trim(p_alias), '') where id = p_jugador_id;
+$$;
+
+-- Guardar predicciones especiales. Solo si la ventana esta habilitada
+-- (configuracion.edicion_predicciones_habilitada = 'true'). 'ok' | 'cerrado'.
+create or replace function guardar_especiales(
+  p_jugador_id int,
+  p_campeon text, p_finalista_1 text, p_finalista_2 text,
+  p_semi_1 text, p_semi_2 text, p_semi_3 text, p_semi_4 text,
+  p_goleador text, p_mejor_jugador text, p_mejor_arquero text, p_mejor_joven text)
+returns text language plpgsql security definer set search_path = public, extensions as $$
+declare habil text;
+begin
+  select valor into habil from configuracion
+    where clave = 'edicion_predicciones_habilitada';
+  if coalesce(habil, 'false') <> 'true' then return 'cerrado'; end if;
+  insert into predicciones_especiales (
+    jugador_id, campeon, finalista_1, finalista_2,
+    semifinalista_1, semifinalista_2, semifinalista_3, semifinalista_4,
+    goleador, mejor_jugador, mejor_arquero, mejor_joven)
+  values (p_jugador_id, p_campeon, p_finalista_1, p_finalista_2,
+    p_semi_1, p_semi_2, p_semi_3, p_semi_4,
+    p_goleador, p_mejor_jugador, p_mejor_arquero, p_mejor_joven)
+  on conflict (jugador_id) do update set
+    campeon = excluded.campeon,
+    finalista_1 = excluded.finalista_1, finalista_2 = excluded.finalista_2,
+    semifinalista_1 = excluded.semifinalista_1, semifinalista_2 = excluded.semifinalista_2,
+    semifinalista_3 = excluded.semifinalista_3, semifinalista_4 = excluded.semifinalista_4,
+    goleador = excluded.goleador, mejor_jugador = excluded.mejor_jugador,
+    mejor_arquero = excluded.mejor_arquero, mejor_joven = excluded.mejor_joven;
+  return 'ok';
+end;
+$$;
+
 -- =====================================================================
 -- 4. VISTAS PUBLICAS (lo unico que el frontend lee de jugadores)
 -- =====================================================================
@@ -426,6 +463,8 @@ grant execute on function cambiar_pin(int,text,text)      to anon, authenticated
 grant execute on function set_onboarding(int,boolean)     to anon, authenticated;
 grant execute on function guardar_pronostico(int,int,int,int) to anon, authenticated;
 grant execute on function pronosticos_partido(int,int)    to anon, authenticated;
+grant execute on function actualizar_alias(int,text)       to anon, authenticated;
+grant execute on function guardar_especiales(int,text,text,text,text,text,text,text,text,text,text,text) to anon, authenticated;
 
 -- =====================================================================
 -- 6. REALTIME (la app escucha cambios en vivo)

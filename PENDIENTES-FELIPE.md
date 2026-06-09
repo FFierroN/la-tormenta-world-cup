@@ -15,7 +15,34 @@
 
 ---
 
-## 1. Base de datos (OBLIGATORIO — sin esto los puntos siguen en 0)
+## 1. Corregir el fixture (los "Por definir" de fase de grupos)
+
+> Es solo un tema de DATOS del CSV, no un bug. Hoy las jornadas 2 y 3 tienen
+> 42 partidos de grupos como "Por definir" (la jornada 1 ya esta completa).
+> Lo IDEAL es corregirlo ANTES de importar el SQL a Supabase: queda limpio y
+> sin riesgo de borrar pronosticos.
+
+- [ ] Decide el camino:
+  - **Opcion A (recomendada):** pasame las 12 listas de grupos reales (4 equipos
+        por grupo) y yo completo `db/fixture-FINAL-importar.csv` + regenero el
+        SQL. Las parejas de cada jornada salen del patron de la jornada 1.
+  - **Opcion B:** editas tu mismo `db/fixture-FINAL-importar.csv` (reemplaza
+        "Por definir" por los equipos reales en las jornadas 2 y 3) y luego:
+        `cd db && python generate_setup_sql.py`
+- [ ] OJO con el momento:
+  - Si la tabla `partidos` esta VACIA (base nueva) -> al pegar el SQL inserta el
+        fixture corregido.  (este es el caso ideal)
+  - Si YA importaste los 104 partidos -> el SQL NO los re-inserta (solo inserta
+        si la tabla esta vacia) y NO se puede borrar la tabla sin perder
+        pronosticos (cascade). En ese caso pideme un script de UPDATE
+        quirurgico (cambia solo los nombres por id, sin tocar pronosticos).
+
+> Los "Por definir" de la fase de eliminacion (dieciseisavos en adelante) son
+> normales: dependen de los resultados y se llenan durante el Mundial.
+
+---
+
+## 2. Base de datos (OBLIGATORIO — sin esto los puntos siguen en 0)
 
 - [ ] Abre Supabase -> tu proyecto -> **SQL Editor** -> **New query**.
 - [ ] Abre `db/SETUP-SUPABASE.sql`, copia TODO (Ctrl+A, Ctrl+C), pega y **Run**.
@@ -26,7 +53,7 @@
 
 ---
 
-## 2. Correr la app en local (para ver y probar)
+## 3. Correr la app en local (para ver y probar)
 
 - [ ] En la terminal: `cd app`
 - [ ] Si es la primera vez en esta PC: `npm install`
@@ -48,7 +75,7 @@
 
 ---
 
-## 3. Publicar en internet — Cloudflare Pages
+## 4. Publicar en internet — Cloudflare Pages
 
 > Guia completa con capturas mentales en `MIGRACION-Y-DESPLIEGUE.md` (Fase 4).
 
@@ -73,7 +100,7 @@
 
 ---
 
-## 4. Bot de resultados automaticos — GitHub Actions
+## 5. Bot de resultados automaticos — GitHub Actions
 
 > Esto mantiene marcadores, minuto en vivo y eventos al dia solos.
 > Guia detallada en `robot/README.md`.
@@ -97,7 +124,7 @@
 
 ---
 
-## 5. Imagenes (opcional, mejora visual)
+## 6. Imagenes (opcional, mejora visual)
 
 - [ ] `fondo-partido.png` (banner de partido): re-editar a **1440 x 810 px**
       (16:9), lo importante centrado, idealmente < 300 KB. Reemplaza
@@ -120,8 +147,9 @@ base de datos, re-pega `db/SETUP-SUPABASE.sql` en Supabase.
 ## Orden urgente (el Mundial arranca el 11 de junio)
 
 1. git pull
-2. Re-pegar SQL en Supabase   (paso 1)
-3. Deploy en Cloudflare        (paso 3)
-4. Secretos del bot + Run      (paso 4)
+2. Corregir el fixture          (paso 1)  <- ANTES de importar, para que quede limpio
+3. Re-pegar SQL en Supabase     (paso 2)
+4. Deploy en Cloudflare         (paso 4)
+5. Secretos del bot + Run       (paso 5)
 
 Lo demas (probar local, imagenes) puede ir despues.

@@ -363,6 +363,16 @@ insert into jugadores (nombre, alias, pin_hash, es_admin) values
   ('Ignacio Gonzalez', null, extensions.crypt('1234', extensions.gen_salt('bf')), false)
 on conflict (nombre) do nothing;
 
+-- Rutas de avatares (app/public/avatares/<n>-pos1|medio|pos8.png).
+update jugadores set avatar_pos1='/avatares/1-pos1.png', avatar_medio='/avatares/1-medio.png', avatar_pos8='/avatares/1-pos8.png' where nombre='Felipe Fierro';
+update jugadores set avatar_pos1='/avatares/2-pos1.png', avatar_medio='/avatares/2-medio.png', avatar_pos8='/avatares/2-pos8.png' where nombre='Victor Soto';
+update jugadores set avatar_pos1='/avatares/3-pos1.png', avatar_medio='/avatares/3-medio.png', avatar_pos8='/avatares/3-pos8.png' where nombre='Ignacio Contreras';
+update jugadores set avatar_pos1='/avatares/4-pos1.png', avatar_medio='/avatares/4-medio.png', avatar_pos8='/avatares/4-pos8.png' where nombre='Jaime Furió';
+update jugadores set avatar_pos1='/avatares/5-pos1.png', avatar_medio='/avatares/5-medio.png', avatar_pos8='/avatares/5-pos8.png' where nombre='Diego Galvez';
+update jugadores set avatar_pos1='/avatares/6-pos1.png', avatar_medio='/avatares/6-medio.png', avatar_pos8='/avatares/6-pos8.png' where nombre='Daniel Abreu';
+update jugadores set avatar_pos1='/avatares/7-pos1.png', avatar_medio='/avatares/7-medio.png', avatar_pos8='/avatares/7-pos8.png' where nombre='Benjamin Bustamante';
+update jugadores set avatar_pos1='/avatares/8-pos1.png', avatar_medio='/avatares/8-medio.png', avatar_pos8='/avatares/8-pos8.png' where nombre='Ignacio Gonzalez';
+
 -- =====================================================================
 -- 8. FIXTURE: 104 partidos (solo si la tabla esta vacia -> idempotente)
 -- =====================================================================

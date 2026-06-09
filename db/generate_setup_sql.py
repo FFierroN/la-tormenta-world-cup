@@ -416,6 +416,21 @@ def bloque_jugadores() -> str:
     )
 
 
+def bloque_avatares() -> str:
+    """Asocia las 3 fotos de cada jugador (carpeta app/public/avatares).
+    Idempotente y por nombre (no depende del id serial)."""
+    lineas = ["-- Rutas de avatares (app/public/avatares/<n>-pos1|medio|pos8.png)."]
+    for i, (nombre, _admin) in enumerate(JUGADORES, start=1):
+        lineas.append(
+            "update jugadores set "
+            f"avatar_pos1='/avatares/{i}-pos1.png', "
+            f"avatar_medio='/avatares/{i}-medio.png', "
+            f"avatar_pos8='/avatares/{i}-pos8.png' "
+            f"where nombre={sql_txt(nombre)};"
+        )
+    return "\n".join(lineas) + "\n"
+
+
 def bloque_partidos() -> str:
     filas = []
     with FIXTURE.open(encoding="utf-8") as fh:
@@ -455,7 +470,7 @@ def bloque_partidos() -> str:
 def main() -> None:
     if not FIXTURE.exists():
         raise SystemExit(f"No encuentro el fixture: {FIXTURE}")
-    sql = HEADER + bloque_jugadores() + "\n" + bloque_partidos() + FOOTER
+    sql = HEADER + bloque_jugadores() + "\n" + bloque_avatares() + "\n" + bloque_partidos() + FOOTER
     SALIDA.write_text(sql, encoding="utf-8")
     print(f"OK -> {SALIDA.name} ({len(sql):,} chars)")
 

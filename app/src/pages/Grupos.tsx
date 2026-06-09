@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import Flag from "../components/Flag";
 import { obtenerTablaGrupos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
@@ -47,11 +48,19 @@ export default function Grupos() {
 }
 
 function TablaGrupo({ grupo, filas }: { grupo: string; filas: FilaGrupo[] }) {
+  const navigate = useNavigate();
+  const irAlGrupo = () => navigate(`/partidos?grupo=${grupo}`);
   return (
     <section>
-      <h2 className="mb-2 text-sm font-bold text-oro uppercase tracking-wide">
+      <button
+        onClick={irAlGrupo}
+        className="mb-2 flex items-center gap-1 text-sm font-bold text-oro uppercase tracking-wide"
+      >
         Grupo {grupo}
-      </h2>
+        <span className="text-[10px] normal-case font-normal text-neutral-400">
+          (ver partidos)
+        </span>
+      </button>
       <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -69,7 +78,8 @@ function TablaGrupo({ grupo, filas }: { grupo: string; filas: FilaGrupo[] }) {
               return (
                 <tr
                   key={f.equipo}
-                  className="border-b border-borde/50 last:border-0"
+                  onClick={irAlGrupo}
+                  className="border-b border-borde/50 last:border-0 cursor-pointer active:bg-carbon-soft"
                 >
                   <td className="py-2 pl-3 pr-1">
                     <span

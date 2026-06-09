@@ -8,18 +8,7 @@ import {
   MOCK_JUGADORES,
 } from "../lib/mock";
 import type { EventoPartido, Partido, Pronostico } from "../lib/types";
-
-const ESTADO_LABEL: Record<Partido["estado"], string> = {
-  programado: "Programado",
-  en_vivo: "En vivo",
-  entretiempo: "Entretiempo",
-  alargue: "Tiempo extra",
-  penales: "Penales",
-  final: "Final del Partido",
-  suspendido: "Suspendido",
-};
-
-const ESTADOS_EN_CURSO: Partido["estado"][] = ["en_vivo", "alargue", "penales"];
+import { ESTADO_LABEL, ESTADOS_EN_CURSO } from "../lib/estados";
 
 type Pestana = "detalles" | "pronosticos";
 

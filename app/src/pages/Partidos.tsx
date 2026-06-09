@@ -1,14 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import Flag from "../components/Flag";
 import { MOCK_PARTIDOS } from "../lib/mock";
+import { ESTADO_LABEL } from "../lib/estados";
 import type { Partido } from "../lib/types";
-
-const ESTADO_LABEL: Record<Partido["estado"], string> = {
-  programado: "Programado",
-  en_vivo: "En vivo",
-  medio_tiempo: "Medio tiempo",
-  final: "Final",
-};
 
 export default function Partidos() {
   const navigate = useNavigate();

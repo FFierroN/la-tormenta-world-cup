@@ -47,6 +47,13 @@ export default function MiCuenta() {
         Mis predicciones especiales
       </button>
 
+      <button
+        onClick={() => navigate("/reglas")}
+        className="mt-4 w-full bg-carbon-card border border-borde rounded-2xl py-3 font-semibold active:bg-carbon-soft"
+      >
+        Reglas de puntuacion
+      </button>
+
       {jugador.es_admin && (
         <button
           onClick={() => navigate("/admin")}

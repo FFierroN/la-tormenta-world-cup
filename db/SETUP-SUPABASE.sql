@@ -108,6 +108,15 @@ insert into configuracion (clave, valor)
 values ('edicion_predicciones_habilitada', 'false')
 on conflict (clave) do nothing;
 
+-- Resultados reales para puntuar las predicciones especiales (los carga el
+-- admin al final del Mundial). Vacios por defecto.
+insert into configuracion (clave, valor) values
+  ('real_campeon',''), ('real_finalista_1',''), ('real_finalista_2',''),
+  ('real_semi_1',''), ('real_semi_2',''), ('real_semi_3',''), ('real_semi_4',''),
+  ('real_goleador',''), ('real_mejor_jugador',''), ('real_mejor_arquero',''),
+  ('real_mejor_joven','')
+on conflict (clave) do nothing;
+
 -- Traduccion de nombres: API-Football usa ingles, nuestra base usa espanol.
 -- El robot la usa para emparejar partidos. Se rellena/ajusta segun haga falta.
 create table if not exists equipos_api_map (
@@ -123,14 +132,14 @@ create table if not exists api_cuota (
 );
 
 -- =====================================================================
--- 2. CALCULO DE PUNTOS (puntaje por marcador + bonus por riesgo)
+-- 2. CALCULO DE PUNTOS (3 niveles: EXACTO + bonus / ACIERTO / FALLA)
 -- =====================================================================
 
 create or replace function calcular_puntos_pronostico(
   pred_local int, pred_visita int, res_local int, res_visita int, p_fase text
 ) returns int as $$
 declare
-  pts_exacto int; pts_dif int; pts_gan int; bonus int := 0;
+  pts_exacto int; pts_acierto int; bonus int := 0;
   maxg int; ming int;
 begin
   if pred_local is null or pred_visita is null
@@ -138,19 +147,19 @@ begin
     return 0;
   end if;
 
-  if    p_fase in ('Grupos','Dieciseisavos') then pts_exacto:=6;  pts_dif:=4;  pts_gan:=2;
-  elsif p_fase in ('Octavos','Cuartos')      then pts_exacto:=8;  pts_dif:=6;  pts_gan:=4;
-  elsif p_fase = 'Semifinales'               then pts_exacto:=10; pts_dif:=8;  pts_gan:=6;
-  elsif p_fase = 'Tercer Puesto'             then pts_exacto:=8;  pts_dif:=6;  pts_gan:=4;
-  elsif p_fase = 'Final'                     then pts_exacto:=12; pts_dif:=10; pts_gan:=8;
+  if    p_fase in ('Grupos','Dieciseisavos') then pts_exacto:=6;  pts_acierto:=2;
+  elsif p_fase in ('Octavos','Cuartos')      then pts_exacto:=8;  pts_acierto:=4;
+  elsif p_fase = 'Semifinales'               then pts_exacto:=10; pts_acierto:=6;
+  elsif p_fase = 'Tercer Puesto'             then pts_exacto:=8;  pts_acierto:=4;
+  elsif p_fase = 'Final'                     then pts_exacto:=12; pts_acierto:=8;
   else  return 0;
   end if;
 
-  -- 1) Marcador EXACTO (+ bonus por riesgo segun cantidad de goles)
+  -- 1) EXACTO: marcador clavado (+ bonus por riesgo segun cantidad de goles)
   if pred_local = res_local and pred_visita = res_visita then
     maxg := greatest(res_local,res_visita);
     ming := least(res_local,res_visita);
-    if    (maxg>=4 and ming>=2) or (maxg>=5)        then bonus:=3;
+    if    (maxg>=4 and ming>=2) or (maxg>=5)          then bonus:=3;
     elsif (maxg=3 and ming=2) or (maxg=4 and ming<=1) then bonus:=2;
     elsif (maxg=2 and ming=2) or (maxg=3 and ming<=1) then bonus:=1;
     else bonus:=0;
@@ -158,20 +167,14 @@ begin
     return pts_exacto + bonus;
   end if;
 
-  -- 2) Diferencia de goles correcta (y no fue empate)
-  if res_local <> res_visita
-     and (res_local - res_visita) = (pred_local - pred_visita) then
-    return pts_dif;
-  end if;
-
-  -- 3) Solo ganador/empate acertado
+  -- 2) ACIERTO: resultado correcto (ganador o empate), sin importar el marcador
   if (res_local > res_visita and pred_local > pred_visita)
      or (res_local < res_visita and pred_local < pred_visita)
      or (res_local = res_visita and pred_local = pred_visita) then
-    return pts_gan;
+    return pts_acierto;
   end if;
 
-  return 0;  -- 4) nada acertado
+  return 0;  -- 3) FALLA: ni el resultado
 end;
 $$ language plpgsql immutable;
 
@@ -310,6 +313,50 @@ begin
 end;
 $$;
 
+-- Recalcula los puntos de las predicciones especiales comparando contra los
+-- resultados reales (configuracion.real_*). Puntajes:
+--   Campeon 20 | cada Finalista 8 | cada Semifinalista 5
+--   Goleador 10 | Mejor jugador 8 | Mejor arquero 6 | Mejor joven 6
+-- Match sin distinguir mayusculas/espacios. Lo dispara el admin.
+create or replace function recalcular_especiales()
+returns void language plpgsql security definer set search_path = public, extensions as $$
+declare
+  r_camp text; r_gol text; r_mj text; r_ma text; r_mjov text;
+  v_fin text[]; v_semi text[];
+begin
+  select lower(trim(valor)) into r_camp from configuracion where clave='real_campeon';
+  select lower(trim(valor)) into r_gol  from configuracion where clave='real_goleador';
+  select lower(trim(valor)) into r_mj   from configuracion where clave='real_mejor_jugador';
+  select lower(trim(valor)) into r_ma   from configuracion where clave='real_mejor_arquero';
+  select lower(trim(valor)) into r_mjov from configuracion where clave='real_mejor_joven';
+  select array_remove(array[
+    lower(trim((select valor from configuracion where clave='real_finalista_1'))),
+    lower(trim((select valor from configuracion where clave='real_finalista_2')))], '')
+    into v_fin;
+  select array_remove(array[
+    lower(trim((select valor from configuracion where clave='real_semi_1'))),
+    lower(trim((select valor from configuracion where clave='real_semi_2'))),
+    lower(trim((select valor from configuracion where clave='real_semi_3'))),
+    lower(trim((select valor from configuracion where clave='real_semi_4')))], '')
+    into v_semi;
+
+  update predicciones_especiales pe set
+    puntos_campeon = case when r_camp <> '' and lower(trim(coalesce(pe.campeon,'')))=r_camp then 20 else 0 end,
+    puntos_finalistas =
+      (case when lower(trim(coalesce(pe.finalista_1,''))) = any(v_fin) then 8 else 0 end) +
+      (case when lower(trim(coalesce(pe.finalista_2,''))) = any(v_fin) then 8 else 0 end),
+    puntos_semifinalistas =
+      (case when lower(trim(coalesce(pe.semifinalista_1,''))) = any(v_semi) then 5 else 0 end) +
+      (case when lower(trim(coalesce(pe.semifinalista_2,''))) = any(v_semi) then 5 else 0 end) +
+      (case when lower(trim(coalesce(pe.semifinalista_3,''))) = any(v_semi) then 5 else 0 end) +
+      (case when lower(trim(coalesce(pe.semifinalista_4,''))) = any(v_semi) then 5 else 0 end),
+    puntos_goleador      = case when r_gol  <> '' and lower(trim(coalesce(pe.goleador,'')))=r_gol      then 10 else 0 end,
+    puntos_mejor_jugador = case when r_mj   <> '' and lower(trim(coalesce(pe.mejor_jugador,'')))=r_mj   then 8  else 0 end,
+    puntos_mejor_arquero = case when r_ma   <> '' and lower(trim(coalesce(pe.mejor_arquero,'')))=r_ma   then 6  else 0 end,
+    puntos_mejor_joven   = case when r_mjov <> '' and lower(trim(coalesce(pe.mejor_joven,'')))=r_mjov   then 6  else 0 end;
+end;
+$$;
+
 -- =====================================================================
 -- 4. VISTAS PUBLICAS (lo unico que el frontend lee de jugadores)
 -- =====================================================================
@@ -430,6 +477,7 @@ grant execute on function guardar_pronostico(int,int,int,int) to anon, authentic
 grant execute on function pronosticos_partido(int,int)    to anon, authenticated;
 grant execute on function actualizar_alias(int,text)       to anon, authenticated;
 grant execute on function guardar_especiales(int,text,text,text,text,text,text,text,text,text,text,text) to anon, authenticated;
+grant execute on function recalcular_especiales()         to anon, authenticated;
 
 -- =====================================================================
 -- 6. REALTIME (la app escucha cambios en vivo)

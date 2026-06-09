@@ -367,3 +367,46 @@ export async function equiposReales(): Promise<string[]> {
   }
   return [...set].sort((a, b) => a.localeCompare(b));
 }
+
+// ---------- ADMIN: resultados reales de especiales ----------
+const CLAVES_REALES = [
+  "real_campeon",
+  "real_finalista_1",
+  "real_finalista_2",
+  "real_semi_1",
+  "real_semi_2",
+  "real_semi_3",
+  "real_semi_4",
+  "real_goleador",
+  "real_mejor_jugador",
+  "real_mejor_arquero",
+  "real_mejor_joven",
+] as const;
+export type ClaveReal = (typeof CLAVES_REALES)[number];
+
+export async function leerResultadosReales(): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from("configuracion")
+    .select("clave, valor")
+    .in("clave", [...CLAVES_REALES]);
+  lanzarSi(error);
+  const out: Record<string, string> = {};
+  for (const r of data ?? []) out[r.clave] = r.valor ?? "";
+  return out;
+}
+
+export async function guardarResultadoReal(
+  clave: ClaveReal,
+  valor: string
+): Promise<void> {
+  const { error } = await supabase
+    .from("configuracion")
+    .update({ valor, updated_at: new Date().toISOString() })
+    .eq("clave", clave);
+  lanzarSi(error);
+}
+
+export async function recalcularEspeciales(): Promise<void> {
+  const { error } = await supabase.rpc("recalcular_especiales");
+  lanzarSi(error);
+}

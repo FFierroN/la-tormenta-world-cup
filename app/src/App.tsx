@@ -8,7 +8,9 @@ import Grupos from "./pages/Grupos";
 import MiCuenta from "./pages/MiCuenta";
 import Admin from "./pages/Admin";
 import AdminPartido from "./pages/AdminPartido";
+import AdminEspeciales from "./pages/AdminEspeciales";
 import PrediccionesEspeciales from "./pages/PrediccionesEspeciales";
+import Reglas from "./pages/Reglas";
 import { useAuth } from "./lib/auth";
 import type { ReactNode } from "react";
 
@@ -35,7 +37,8 @@ export default function App() {
     location.pathname === "/login" ||
     location.pathname.startsWith("/partido/") ||
     location.pathname.startsWith("/admin/") ||
-    location.pathname === "/especiales";
+    location.pathname === "/especiales" ||
+    location.pathname === "/reglas";
 
   return (
     <div className="min-h-full flex flex-col">
@@ -52,7 +55,9 @@ export default function App() {
           <Route path="/grupos" element={<Privada><Grupos /></Privada>} />
           <Route path="/cuenta" element={<Privada><MiCuenta /></Privada>} />
           <Route path="/especiales" element={<Privada><PrediccionesEspeciales /></Privada>} />
+          <Route path="/reglas" element={<Privada><Reglas /></Privada>} />
           <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />
+          <Route path="/admin/especiales" element={<SoloAdmin><AdminEspeciales /></SoloAdmin>} />
           <Route path="/admin/:id" element={<SoloAdmin><AdminPartido /></SoloAdmin>} />
           <Route path="*" element={<Navigate to="/partidos" replace />} />
         </Routes>

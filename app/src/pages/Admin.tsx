@@ -33,6 +33,15 @@ export default function Admin() {
       <ToggleEspeciales />
 
       <div className="px-4 mb-3">
+        <button
+          onClick={() => navigate("/admin/especiales")}
+          className="w-full bg-carbon-card border border-borde rounded-xl py-2.5 text-sm font-semibold active:bg-carbon-soft"
+        >
+          Cargar resultados especiales (fin del Mundial)
+        </button>
+      </div>
+
+      <div className="px-4 mb-3">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}

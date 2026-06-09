@@ -4,12 +4,14 @@
 // para encajar con los tipos del frontend sin tocar las pantallas.
 import { supabase } from "./supabase";
 import type {
+  EstadoPartido,
   EventoPartido,
   FilaGrupo,
   FilaTabla,
   Jugador,
   Partido,
   PronosticoVista,
+  TipoEvento,
 } from "./types";
 
 // ---------- mappers (fila cruda -> tipo del dominio) ----------
@@ -212,4 +214,57 @@ export async function obtenerTablaGrupos(): Promise<FilaGrupo[]> {
     .order("pos");
   lanzarSi(error);
   return (data ?? []).map(aFilaGrupo);
+}
+
+// ---------- ADMIN: cargar resultados y eventos ----------
+// La app gatea esto a es_admin; las tablas tienen escritura abierta al grupo.
+
+export interface ResultadoInput {
+  estado: EstadoPartido;
+  goles_local: number | null;
+  goles_visita: number | null;
+  minuto: number | null;
+  penales_local: number | null;
+  penales_visita: number | null;
+  ganador_penales: "local" | "visita" | null;
+}
+
+export async function guardarResultado(
+  partidoId: string,
+  r: ResultadoInput
+): Promise<void> {
+  const { error } = await supabase
+    .from("partidos")
+    .update(r)
+    .eq("id", Number(partidoId));
+  lanzarSi(error);
+}
+
+export interface EventoInput {
+  partido_id: string;
+  tipo: TipoEvento;
+  equipo: "local" | "visita";
+  minuto: number;
+  jugador: string | null;
+  detalle: string | null;
+}
+
+export async function agregarEvento(e: EventoInput): Promise<void> {
+  const { error } = await supabase.from("partido_eventos").insert({
+    partido_id: Number(e.partido_id),
+    tipo: e.tipo,
+    equipo: e.equipo,
+    minuto: e.minuto,
+    jugador: e.jugador,
+    detalle: e.detalle,
+  });
+  lanzarSi(error);
+}
+
+export async function eliminarEvento(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("partido_eventos")
+    .delete()
+    .eq("id", Number(id));
+  lanzarSi(error);
 }

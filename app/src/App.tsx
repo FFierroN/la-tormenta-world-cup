@@ -6,6 +6,8 @@ import PartidoDetalle from "./pages/PartidoDetalle";
 import Tabla from "./pages/Tabla";
 import Grupos from "./pages/Grupos";
 import MiCuenta from "./pages/MiCuenta";
+import Admin from "./pages/Admin";
+import AdminPartido from "./pages/AdminPartido";
 import { useAuth } from "./lib/auth";
 import type { ReactNode } from "react";
 
@@ -16,13 +18,22 @@ function Privada({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// Guard: solo el admin entra al panel.
+function SoloAdmin({ children }: { children: ReactNode }) {
+  const { jugador } = useAuth();
+  if (!jugador) return <Navigate to="/login" replace />;
+  if (!jugador.es_admin) return <Navigate to="/partidos" replace />;
+  return <>{children}</>;
+}
+
 export default function App() {
   const location = useLocation();
   const { jugador } = useAuth();
   // El login y el detalle de partido van a pantalla completa (sin bottom tabs).
   const ocultarTabs =
     location.pathname === "/login" ||
-    location.pathname.startsWith("/partido/");
+    location.pathname.startsWith("/partido/") ||
+    location.pathname.startsWith("/admin/");
 
   return (
     <div className="min-h-full flex flex-col">
@@ -38,6 +49,8 @@ export default function App() {
           <Route path="/tabla" element={<Privada><Tabla /></Privada>} />
           <Route path="/grupos" element={<Privada><Grupos /></Privada>} />
           <Route path="/cuenta" element={<Privada><MiCuenta /></Privada>} />
+          <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />
+          <Route path="/admin/:id" element={<SoloAdmin><AdminPartido /></SoloAdmin>} />
           <Route path="*" element={<Navigate to="/partidos" replace />} />
         </Routes>
       </main>

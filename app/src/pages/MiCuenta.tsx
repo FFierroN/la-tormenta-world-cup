@@ -28,6 +28,15 @@ export default function MiCuenta() {
         )}
       </div>
 
+      {jugador?.es_admin && (
+        <button
+          onClick={() => navigate("/admin")}
+          className="mt-4 w-full bg-oro text-carbon font-bold rounded-2xl py-3 active:scale-[0.99] transition-transform"
+        >
+          Panel de admin
+        </button>
+      )}
+
       <div className="mt-4 bg-carbon-card border border-borde rounded-2xl p-4 text-neutral-400 text-sm">
         Proximamente: editar alias, tus 3 avatares, cambiar PIN y tus
         predicciones especiales pre-mundial.

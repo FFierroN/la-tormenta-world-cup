@@ -30,3 +30,32 @@ body {
   background: #0c1d38;
   border-radius: 4px;
 }
+
+/* Glow dorado con pulso suave para destacar el boton de predicciones
+   especiales. Respeta prefers-reduced-motion (accesibilidad). */
+@keyframes pulso-oro {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(233, 168, 46, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 18px 4px rgba(233, 168, 46, 0.55);
+  }
+}
+.glow-oro {
+  animation: pulso-oro 2.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow-oro {
+    animation: none;
+    box-shadow: 0 0 14px 2px rgba(233, 168, 46, 0.5);
+  }
+}
+
+/* Oculta la barra de scroll en las pestanas horizontales de Copa. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

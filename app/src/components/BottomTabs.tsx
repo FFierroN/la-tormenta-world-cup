@@ -3,10 +3,10 @@ import { NavLink } from "react-router-dom";
 type Tab = { to: string; label: string; path: string };
 
 const tabs: Tab[] = [
-  // icono trofeo (grupos del mundial)
+  // icono trofeo (Copa: grupos + llaves del mundial)
   {
-    to: "/grupos",
-    label: "Grupos",
+    to: "/copa",
+    label: "Copa",
     path: "M7 4h10v2h3v3a4 4 0 01-4 4h-.3A5 5 0 0113 16v2h3v2H8v-2h3v-2a5 5 0 01-2.7-3H8a4 4 0 01-4-4V6h3V4zm0 4H6v1a2 2 0 002 2V8zm10 0v3a2 2 0 002-2V8h-2z",
   },
   // icono pelota

@@ -505,7 +505,12 @@ with base as (
   where j.activo                                -- los dados de baja salen de la tabla
   group by j.id
 )
-select *, rank() over (order by puntos desc, exactos desc) as posicion
+-- DESEMPATE: row_number() => nunca hay dos en la misma posicion.
+-- Orden: puntos -> exactos -> aciertos -> MENOS fallas -> orden de inscripcion (id).
+-- Antes del 1er partido todos estan en 0 y quedan por id (inofensivo).
+select *, row_number() over (
+    order by puntos desc, exactos desc, aciertos desc, fallas asc, jugador_id asc
+  ) as posicion
 from base;
 
 -- Tabla de posiciones de cada GRUPO del Mundial (A..L).

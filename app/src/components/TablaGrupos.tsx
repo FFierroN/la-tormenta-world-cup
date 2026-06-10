@@ -1,48 +1,34 @@
+// Tabla de posiciones de cada GRUPO del Mundial (pestana "Grupos" dentro de Copa).
+// Extraido de la antigua pantalla Grupos para reusarlo (DRY).
 import { useNavigate } from "react-router-dom";
-import Flag from "../components/Flag";
+import Flag from "./Flag";
 import { obtenerTablaGrupos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import type { FilaGrupo } from "../lib/types";
 
-export default function Grupos() {
+export default function TablaGrupos() {
   const { data, cargando, error } = useAsync(obtenerTablaGrupos, []);
   const filas = data ?? [];
-
-  // Agrupar filas por letra de grupo.
   const grupos = [...new Set(filas.map((f) => f.grupo))].sort();
 
   return (
-    <div className="max-w-md mx-auto">
-      <header className="px-4 pt-5 pb-3">
-        <h1 className="text-xl font-bold">Grupos del Mundial</h1>
-        <p className="text-xs text-neutral-400 mt-0.5">
-          Se actualiza solo con cada resultado.
-        </p>
-      </header>
-
+    <div className="flex flex-col gap-6 px-4 py-4 pb-2">
       {cargando && (
-        <p className="px-4 text-neutral-400 text-sm">Cargando grupos...</p>
+        <p className="text-neutral-400 text-sm">Cargando grupos...</p>
       )}
       {error && (
-        <p className="px-4 text-red-400 text-sm">
+        <p className="text-red-400 text-sm">
           No se pudieron cargar los grupos. Revisa la conexion con Supabase.
         </p>
       )}
       {!cargando && !error && grupos.length === 0 && (
-        <p className="px-4 text-neutral-400 text-sm">
+        <p className="text-neutral-400 text-sm">
           Aun no hay equipos definidos en los grupos.
         </p>
       )}
-
-      <div className="flex flex-col gap-6 px-4 pb-2">
-        {grupos.map((g) => (
-          <TablaGrupo
-            key={g}
-            grupo={g}
-            filas={filas.filter((f) => f.grupo === g)}
-          />
-        ))}
-      </div>
+      {grupos.map((g) => (
+        <TablaGrupo key={g} grupo={g} filas={filas.filter((f) => f.grupo === g)} />
+      ))}
     </div>
   );
 }
@@ -82,13 +68,7 @@ function TablaGrupo({ grupo, filas }: { grupo: string; filas: FilaGrupo[] }) {
                   className="border-b border-borde/50 last:border-0 cursor-pointer active:bg-carbon-soft"
                 >
                   <td className="py-2 pl-3 pr-1">
-                    <span
-                      className={
-                        clasifica
-                          ? "text-oro font-bold"
-                          : "text-neutral-400"
-                      }
-                    >
+                    <span className={clasifica ? "text-oro font-bold" : "text-neutral-400"}>
                       {f.pos}
                     </span>
                   </td>

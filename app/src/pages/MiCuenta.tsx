@@ -42,7 +42,7 @@ export default function MiCuenta() {
 
       <button
         onClick={() => navigate("/especiales")}
-        className="mt-4 w-full bg-carbon-card border border-borde rounded-2xl py-3 font-semibold active:bg-carbon-soft"
+        className="glow-oro mt-4 w-full bg-carbon-card border-2 border-oro rounded-2xl py-3 font-semibold text-oro active:bg-carbon-soft"
       >
         Mis predicciones especiales
       </button>

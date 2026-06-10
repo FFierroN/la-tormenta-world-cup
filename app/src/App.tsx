@@ -4,7 +4,7 @@ import Login from "./pages/Login";
 import Partidos from "./pages/Partidos";
 import PartidoDetalle from "./pages/PartidoDetalle";
 import Tabla from "./pages/Tabla";
-import Grupos from "./pages/Grupos";
+import Copa from "./pages/Copa";
 import MiCuenta from "./pages/MiCuenta";
 import Admin from "./pages/Admin";
 import AdminPartido from "./pages/AdminPartido";
@@ -53,7 +53,8 @@ export default function App() {
           <Route path="/partidos" element={<Privada><Partidos /></Privada>} />
           <Route path="/partido/:id" element={<Privada><PartidoDetalle /></Privada>} />
           <Route path="/tabla" element={<Privada><Tabla /></Privada>} />
-          <Route path="/grupos" element={<Privada><Grupos /></Privada>} />
+          <Route path="/copa" element={<Privada><Copa /></Privada>} />
+          <Route path="/grupos" element={<Navigate to="/copa" replace />} />
           <Route path="/cuenta" element={<Privada><MiCuenta /></Privada>} />
           <Route path="/especiales" element={<Privada><PrediccionesEspeciales /></Privada>} />
           <Route path="/reglas" element={<Privada><Reglas /></Privada>} />

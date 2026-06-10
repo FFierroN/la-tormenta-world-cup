@@ -8,12 +8,12 @@ export default {
         oro: "#E9A82E",
         "oro-dark": "#C8881A",
         // Paleta azul marino coordinada (base oscura -> tarjetas mas claras):
-        carbon: "#172842",        // fondo base (igual al fondo del logo)
-        "carbon-soft": "#1F3354", // superficies levemente elevadas
-        "carbon-card": "#243A60", // tarjetas
-        borde: "#36507A",         // bordes azulados
+        carbon: "#010D26",        // fondo base (azul marino muy oscuro)
+        "carbon-soft": "#0A1C3F", // superficies levemente elevadas
+        "carbon-card": "#0F2750", // tarjetas
+        borde: "#21426E",         // bordes azulados
         // Alias historico del marino (por si quedan usos viejos)
-        marino: "#172842",
+        marino: "#010D26",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],

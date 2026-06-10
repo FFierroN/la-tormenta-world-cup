@@ -51,7 +51,7 @@ export default function MiCuenta() {
         onClick={() => navigate("/reglas")}
         className="mt-4 w-full bg-carbon-card border border-borde rounded-2xl py-3 font-semibold active:bg-carbon-soft"
       >
-        Reglas de puntuacion
+        Reglas
       </button>
 
       {jugador.es_admin && (

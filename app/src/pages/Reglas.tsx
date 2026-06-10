@@ -11,7 +11,7 @@ export default function Reglas() {
             <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold">Reglas de puntuacion</h1>
+        <h1 className="text-lg font-bold">Reglas</h1>
       </header>
 
       <div className="px-4 flex flex-col gap-5">
@@ -116,6 +116,50 @@ export default function Reglas() {
               </li>
             ))}
           </ul>
+        </section>
+
+        {/* Politica de desempate */}
+        <section className="bg-carbon-card border border-borde rounded-2xl p-4">
+          <h2 className="text-sm font-bold text-oro uppercase tracking-wide mb-2">
+            Desempate
+          </h2>
+          <p className="text-sm text-neutral-300 mb-3">
+            <b>Nunca</b> puede haber dos participantes en la misma posicion. Si
+            dos o mas quedan con los <b>mismos puntos</b>, se ordenan asi, en
+            cascada (si el primer criterio empata, se pasa al siguiente):
+          </p>
+          <ol className="text-sm text-neutral-300 space-y-2">
+            <li className="flex gap-3 bg-carbon-soft rounded-lg px-3 py-2">
+              <span className="font-bold text-oro">1</span>
+              <span>
+                Mas <span className="text-oro font-semibold">marcadores exactos</span>.
+              </span>
+            </li>
+            <li className="flex gap-3 bg-carbon-soft rounded-lg px-3 py-2">
+              <span className="font-bold text-oro">2</span>
+              <span>
+                Mas <span className="text-emerald-400 font-semibold">aciertos</span>{" "}
+                (diferencia + resultado).
+              </span>
+            </li>
+            <li className="flex gap-3 bg-carbon-soft rounded-lg px-3 py-2">
+              <span className="font-bold text-oro">3</span>
+              <span>
+                Menos <span className="text-neutral-400 font-semibold">fallas</span>.
+              </span>
+            </li>
+            <li className="flex gap-3 bg-carbon-soft rounded-lg px-3 py-2">
+              <span className="font-bold text-oro">4</span>
+              <span>
+                Si todo lo anterior es identico, decide el{" "}
+                <span className="font-semibold">orden de inscripcion</span>.
+              </span>
+            </li>
+          </ol>
+          <p className="text-xs text-neutral-500 mt-3">
+            Antes del primer partido todos estan en 0 y quedan por orden de
+            inscripcion; el desempate real empieza a notarse con los resultados.
+          </p>
         </section>
 
         <p className="text-xs text-neutral-500 text-center">

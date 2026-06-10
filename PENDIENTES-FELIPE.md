@@ -8,10 +8,10 @@
 
 ## Info que necesito de ti (para que Kira avance lo demas)
 
-- [ ] **Los 12 grupos reales** (4 equipos por grupo) -> para rellenar el fixture
-      (paso 1). Con eso completo el CSV y regenero el SQL.
-- [ ] **Zona horaria de los `fecha_hora`** del CSV: son UTC o local del estadio?
-      -> para acotar el `cron` del bot (optimizacion de minutos de Actions).
+- [x] ~~Los 12 grupos reales~~ -> RESUELTO: me pasaste el fixture oficial completo
+      (`mundial_2026_fixture_completo.csv`) y reconstrui los 104 partidos.
+- [x] ~~Zona horaria de los `fecha_hora`~~ -> RESUELTO: el fixture esta en **UTC-4**
+      (= hora de Chile / `America/Santiago` en junio). El cron se puede acotar.
 
 ---
 
@@ -24,30 +24,24 @@
 
 ---
 
-## 1. Corregir el fixture (los "Por definir" de fase de grupos)
+## 1. Corregir el fixture  [HECHO por Kira]
 
-> Es solo un tema de DATOS del CSV, no un bug. Hoy las jornadas 2 y 3 tienen
-> 42 partidos de grupos como "Por definir" (la jornada 1 ya esta completa).
-> Lo IDEAL es corregirlo ANTES de importar el SQL a Supabase: queda limpio y
-> sin riesgo de borrar pronosticos.
-
-- [ ] Decide el camino:
-  - **Opcion A (recomendada):** pasame las 12 listas de grupos reales (4 equipos
-        por grupo) y yo completo `db/fixture-FINAL-importar.csv` + regenero el
-        SQL. Las parejas de cada jornada salen del patron de la jornada 1.
-  - **Opcion B:** editas tu mismo `db/fixture-FINAL-importar.csv` (reemplaza
-        "Por definir" por los equipos reales en las jornadas 2 y 3) y luego:
-        `cd db && python generate_setup_sql.py`
-- [ ] OJO con el momento:
-  - Si la tabla `partidos` esta VACIA (base nueva) -> al pegar el SQL inserta el
-        fixture corregido.  (este es el caso ideal)
-  - Si YA importaste los 104 partidos -> el SQL NO los re-inserta (solo inserta
-        si la tabla esta vacia) y NO se puede borrar la tabla sin perder
-        pronosticos (cascade). En ese caso pideme un script de UPDATE
-        quirurgico (cambia solo los nombres por id, sin tocar pronosticos).
-
-> Los "Por definir" de la fase de eliminacion (dieciseisavos en adelante) son
-> normales: dependen de los resultados y se llenan durante el Mundial.
+> RESUELTO. Reconstrui los 104 partidos desde tu fixture oficial completo:
+> - Fase de grupos: 72 partidos, los 12 grupos con sus 4 equipos y round-robin
+>   completo (J1/J2/J3 con equipos reales, fechas y estadios reales).
+> - Eliminatorias: 32 partidos como 'Por definir' (se llenan en el torneo) pero
+>   con fechas y estadios reales del calendario oficial.
+> - Nombres mapeados a los canonicos de la app (Chequia, RI de Iran, Arabia
+>   Saudi, Irak, Republica de Corea) para no romper banderas ni el bot.
+>
+> Ya esta aplicado en `db/fixture-FINAL-importar.csv` y regenerado el
+> `db/SETUP-SUPABASE.sql`. **Lo unico que falta de tu lado: re-pegar el SQL en
+> Supabase (paso 2).** Como la tabla `partidos` deberia estar vacia (base nueva),
+> el INSERT del fixture corregido entra solo.
+>
+> OJO: si YA habias importado partidos antes, el SQL NO los re-inserta (solo si la
+> tabla esta vacia). En ese caso avisame y te paso un script para reemplazarlos
+> sin perder pronosticos.
 
 ---
 

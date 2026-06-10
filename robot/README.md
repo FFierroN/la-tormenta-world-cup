@@ -47,7 +47,9 @@ automaticamente**, sin que nadie cargue nada a mano.
 
 ## Ajustes
 
-- Frecuencia: edita el `cron` en `.github/workflows/sync.yml`.
+- Frecuencia / ventana: edita los `cron` en `.github/workflows/sync.yml`.
+  Hoy corre cada 15 min SOLO en la ventana de partidos (15:00-06:00 UTC =
+  11:00-02:00 Chile) y SOLO en junio/julio, para ahorrar minutos de Actions.
 - Tope de cuota: variable de entorno `MAX_CUOTA` (default 95).
 - Modo `vivo` (solo partidos en vivo, mas barato): cambia `MODO: hoy` por
   `MODO: vivo` en el workflow.

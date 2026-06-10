@@ -660,7 +660,10 @@ def bloque_partidos() -> str:
                 + ", ".join([
                     sql_txt(row["fase"]),
                     sql_txt(row["grupo"]),
-                    sql_txt(row["fecha_hora"]),
+                    # El CSV trae la hora en UTC-4 (Chile). Le pegamos el offset
+                    # '-04' para que Postgres guarde el instante UTC correcto en
+                    # la columna timestamptz (sin depender de la zona de sesion).
+                    sql_txt(row["fecha_hora"] + "-04"),
                     sql_txt(row["equipo_local"]),
                     sql_txt(row["equipo_visitante"]),
                     sql_txt(row["codigo_local"]),

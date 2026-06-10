@@ -11,7 +11,11 @@
 - [x] ~~Los 12 grupos reales~~ -> RESUELTO: me pasaste el fixture oficial completo
       (`mundial_2026_fixture_completo.csv`) y reconstrui los 104 partidos.
 - [x] ~~Zona horaria de los `fecha_hora`~~ -> RESUELTO: el fixture esta en **UTC-4**
-      (= hora de Chile / `America/Santiago` en junio). El cron se puede acotar.
+      (= hora de Chile / `America/Santiago` en junio). El cron YA esta acotado.
+- [x] ~~Visibilidad del repo~~ -> es **PRIVADO** (2000 min/mes de Actions). El cron
+      se acoto a la ventana real + solo junio/julio para no pasarse. Igual, si
+      quieres cero preocupacion, hacer el repo **publico** = Actions ilimitado
+      (tus secretos NO se exponen, viven aparte en Settings).
 
 ---
 
@@ -55,6 +59,29 @@
 > puntos en vivo y las columnas nuevas (activo / ajuste_puntos / **minuto_at** +
 > el trigger del cronometro en vivo). El auto-gatillo del bot no necesita nada
 > extra aqui.
+
+---
+
+## 2.5. ARREGLAR LA HORA DE LOS PARTIDOS (tu base YA esta viva)  [URGENTE]
+
+> Bug encontrado: los partidos se cargaron con la hora en UTC-4 pero SIN el
+> offset, asi que quedaron guardados 4 horas ANTES de lo real. La app mostraba
+> 11:00 cuando el partido es a las 15:00 (hora Chile). Esto te cerraria los
+> pronosticos antes de tiempo Y haria que el bot NO se dispare durante el
+> partido real (perderias resultados/minuto en vivo automaticos).
+>
+> Ya lo arregle en la fuente (`SETUP-SUPABASE.sql` nuevo inserta con `-04`), pero
+> como tu base YA tiene los partidos cargados, el INSERT no se re-ejecuta. Por eso
+> hay un script aparte que corrige los que ya estan:
+
+- [ ] Supabase -> **SQL Editor** -> **New query** -> pega TODO
+      `db/FIX-zona-horaria.sql` -> **Run**.
+- [ ] El resultado de abajo debe mostrar `fecha_chile` = **15:00** para
+      Mexico vs Sudafrica. Si dice 15:00, quedo perfecto.
+
+> Es IDEMPOTENTE: si lo corres dos veces, la segunda detecta que ya esta bien y
+> no vuelve a desplazar. Si en vez de eso BORRAS y recreas la base con el SETUP
+> nuevo, NO necesitas este fix (ya entra con la hora correcta).
 
 ---
 
@@ -132,15 +159,16 @@
   - [ ] Si aparece `SIN MAPEAR: 'X' vs 'Y'` -> copiame esas lineas y completo
         el diccionario de equipos en `robot/actualizar.py`.
 
-> El bot corre cada 15 min solo. **Auto-gatillo:** si no hay partidos en vivo ni
-> por empezar, sale sin gastar requests (ventana movil automatica, se ajusta sola
-> por jornada y fase). Se frena en 95/100 requests del dia. El admin manual sigue
-> siendo el respaldo si la API falla.
+> El bot corre cada 15 min **solo dentro de la ventana de partidos** (15:00-06:00
+> UTC = 11:00-02:00 Chile) y **solo en junio/julio**. Fuera de eso duerme (0
+> minutos de Actions). **Auto-gatillo:** dentro de la ventana, si no hay partidos
+> en vivo ni por empezar, sale sin gastar requests a la API. Se frena en 95/100
+> requests del dia. El admin manual sigue siendo el respaldo si la API falla.
 >
-> TODO (cuando me confirmes la zona horaria del fixture): acotar el `cron` de
-> `.github/workflows/sync.yml` a la ventana real de partidos (~14h) para ahorrar
-> minutos de GitHub Actions. Hoy corre 24h pero el auto-gatillo evita gastar
-> cuota de API; esto seria solo para los minutos de Actions.
+> NOTA minutos de Actions (repo privado = 2000/mes): con el cron acotado da
+> ~1920 min/mes, alcanza pero queda **al filo**. Si un dia con muchos partidos
+> alguna corrida pasa de 1 min, cuenta doble. La opcion a prueba de balas es
+> hacer el repo **publico** (Actions ilimitado; los secretos NO se exponen).
 
 ---
 
@@ -167,9 +195,8 @@ base de datos, re-pega `db/SETUP-SUPABASE.sql` en Supabase.
 ## Orden urgente (el Mundial arranca el 11 de junio)
 
 1. git pull
-2. Corregir el fixture          (paso 1)  <- ANTES de importar, para que quede limpio
-3. Re-pegar SQL en Supabase     (paso 2)
-4. Deploy en Cloudflare         (paso 4)
-5. Secretos del bot + Run       (paso 5)
+2. Re-pegar SQL en Supabase     (paso 2)
+3. **FIX zona horaria**         (paso 2.5)  <- tu base ya esta viva, OBLIGATORIO
+4. Secretos del bot + Run       (paso 5)
 
 Lo demas (probar local, imagenes) puede ir despues.

@@ -48,8 +48,9 @@ automaticamente**, sin que nadie cargue nada a mano.
 ## Ajustes
 
 - Frecuencia / ventana: edita los `cron` en `.github/workflows/sync.yml`.
-  Hoy corre cada 15 min SOLO en la ventana de partidos (15:00-06:00 UTC =
-  11:00-02:00 Chile) y SOLO en junio/julio, para ahorrar minutos de Actions.
+  Hoy corre cada 15 min, las 24h, SOLO en junio/julio (Mundial 2026). El repo
+  es PUBLICO -> minutos de Actions ilimitados; el AUTO-GATILLO evita gastar
+  cuota de API cuando no hay partidos.
 - Tope de cuota: variable de entorno `MAX_CUOTA` (default 95).
 - Modo `vivo` (solo partidos en vivo, mas barato): cambia `MODO: hoy` por
   `MODO: vivo` en el workflow.

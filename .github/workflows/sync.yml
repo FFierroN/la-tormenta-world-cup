@@ -7,21 +7,15 @@ name: Sincronizar resultados (API-Football -> Supabase)
 on:
   workflow_dispatch: {}        # permite correrlo a mano desde la pestana Actions
   schedule:
-    # Cada 15 min, SOLO dentro de la ventana real de partidos y SOLO en
-    # junio/julio (el Mundial 2026). Asi ahorramos minutos de GitHub Actions
-    # (repo privado = 2000 min/mes; GitHub cobra cada corrida redondeada a 1 min).
+    # Cada 15 min, las 24h, SOLO en junio/julio (el Mundial 2026).
+    # Repo PUBLICO = minutos de Actions ILIMITADOS, asi que ya no hace falta
+    # acotar por hora: corremos todo el dia para cero riesgo de que un partido
+    # en alargue/penales caiga fuera de una ventana. Fuera de jun/jul no corre.
     #
-    # Los partidos van de 11:00 a ~02:00 hora de Chile (UTC-4).
-    # En UTC eso es 15:00 -> 06:00. El cron de GitHub corre en UTC:
-    #   - 15-23 UTC  = 11:00-19:00 Chile
-    #   - 00-06 UTC  = 20:00-02:00 Chile (madrugada, cierra los partidos tardios)
-    # Horas muertas 07-14 UTC (03:00-10:00 Chile): el bot duerme, 0 minutos.
-    #
-    # La guardia de cuota del robot evita pasar de 100 req/dia a la API.
-    # Y el AUTO-GATILLO hace que, dentro de la ventana, si no hay partidos en
-    # vivo ni por empezar, salga sin tocar la API (0 requests).
-    - cron: "*/15 15-23 * 6,7 *"
-    - cron: "*/15 0-6 * 6,7 *"
+    # Igual sigue siendo barato en API: el AUTO-GATILLO pregunta GRATIS a
+    # Supabase y, si no hay partidos en vivo ni por empezar, sale sin tocar la
+    # API (0 requests). La guardia de cuota frena en 95/100 req/dia.
+    - cron: "*/15 * * 6,7 *"
 
 # Evita que dos corridas se pisen
 concurrency:

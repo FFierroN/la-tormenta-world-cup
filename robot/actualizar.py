@@ -339,27 +339,7 @@ def necesita_eventos(p: dict, short: str) -> bool:
 
 
 # ------------------------------------------------------------------------ main
-def diagnostico() -> None:
-    """Imprime a que host de Supabase apunta el bot y prueba 2 tablas, para
-    distinguir 'proyecto cruzado' de 'tabla/cache' cuando algo da 404."""
-    from urllib.parse import urlparse
-    host = urlparse(SUPABASE_URL).hostname or "(vacio)"
-    print(f"[diag] Supabase host: {host}")
-    for tabla in ("partidos", "api_cuota", "equipos_api_map"):
-        try:
-            r = requests.get(
-                f"{SUPABASE_URL}/rest/v1/{tabla}",
-                headers=sb_headers(), params={"select": "*", "limit": "1"},
-                timeout=20,
-            )
-            print(f"[diag] {tabla}: HTTP {r.status_code}"
-                  + ("" if r.ok else f" -> {r.text[:200]}"))
-        except Exception as exc:
-            print(f"[diag] {tabla}: EXCEPCION {exc}")
-
-
 def main() -> None:
-    diagnostico()
     usados_previos = leer_cuota_hoy()
     if usados_previos >= MAX_CUOTA:
         print(f"Cuota del dia ya alcanzada ({usados_previos}/{MAX_CUOTA}). Salgo.")

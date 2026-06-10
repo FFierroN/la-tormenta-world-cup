@@ -36,14 +36,7 @@ export default function Login() {
 
   return (
     <div className="min-h-full flex flex-col items-center justify-center px-6 py-12 max-w-md mx-auto">
-      <img
-        src="/logo.png"
-        alt="La Tormenta World Cup"
-        className="w-44 h-44 rounded-3xl shadow-xl shadow-black/50"
-      />
-      <p className="text-neutral-300 text-sm mt-3 mb-5">El prode de la World Cup</p>
-
-      {/* Foto de bienvenida (entre el logo y las opciones).
+      {/* Foto de bienvenida (arriba de las opciones).
           Archivo: app/public/inicio.png, disenada a 16:9 (ej. 1280x720 px). */}
       <img
         src="/inicio.png"

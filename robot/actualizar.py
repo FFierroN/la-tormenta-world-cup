@@ -1,63 +1,61 @@
-"""Robot de sincronizacion: football-data.org  ->  Supabase.
+"""Robot de sincronizacion: worldcup26.ir  ->  Supabase.
 
-Cambio del 2026-06-11: API-Football quito acceso al Mundial 2026 del plan
-free. Migramos a football-data.org (free, incluye Copa Mundial, 10 req/min).
+Cambio del 2026-06-11 (segundo en el dia): football-data.org tiene delay
+de 30+ min para flipear partidos a IN_PLAY. worldcup26.ir es real-time
+(o casi). Trade-off aceptado: perdemos asistencias/tarjetas/penales en
+la API, que cargamos a mano desde Admin.
 
 Que hace, en orden:
   1. Pregunta GRATIS a Supabase si hay partidos en vivo o por empezar.
-     Si no hay, sale sin tocar la API (cero requests).
-  2. Pide los partidos del Mundial 2026 de HOY (1 request).
-  3. Empareja cada partido de la API con el nuestro (por api_fixture_id ya
-     aprendido o por nombres+fecha la primera vez) y actualiza marcador,
-     minuto, estado y penales en Supabase.
-  4. Para los partidos EN VIVO o RECIEN finalizados, baja los eventos
-     (goles/amarillas/rojas con minuto, goleador y asistencia). 1 req c/u.
+     Si no hay, sale sin tocar la API (0 requests).
+  2. Pide TODOS los partidos del Mundial 2026 (1 sola request, sin auth).
+  3. Filtra los partidos de hoy +/- 1 dia.
+  4. Para cada uno: empareja con nuestro partido (por api_fixture_id ya
+     aprendido, o por nombres+fecha la primera vez) y actualiza marcador,
+     estado y penales en Supabase.
+  5. Para los partidos EN VIVO o RECIEN finalizados: parsea los strings
+     home_scorers/away_scorers y agrega los goles a partido_eventos
+     (sin pisar los que ya existen ni los datos manuales del admin).
 
-NUNCA corre en el navegador de los amigos. Corre en GitHub Actions con el
-token de football-data.org y la service-role key guardadas como SECRETOS.
+NUNCA corre en el navegador de los amigos. Corre en GitHub Actions con
+la service-role key guardada como SECRETO.
 
 Variables de entorno requeridas:
-  FOOTBALL_DATA_TOKEN    -> tu token de football-data.org (free)
   SUPABASE_URL           -> https://TUPROYECTO.supabase.co
   SUPABASE_SERVICE_KEY   -> service_role key (NO la anon; bypassea RLS)
-
-Opcional:
-  COMPETICION (default WC = World Cup)
 """
 from __future__ import annotations
 
 import os
+import re
 import sys
-import time
 from datetime import date, datetime, timedelta, timezone
 
 import requests
 
-API_BASE = "https://api.football-data.org/v4"
-COMPETICION = os.getenv("COMPETICION", "WC")  # WC = Copa Mundial
+API_URL = "https://worldcup26.ir/get/games"
 
-FOOTBALL_DATA_TOKEN = os.environ["FOOTBALL_DATA_TOKEN"]
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 
-# Pequena pausa entre llamadas para no chocar contra el limite (10 req/min)
-PAUSA_ENTRE_REQ = float(os.getenv("PAUSA_REQ", "1.5"))
+# Estado nuestro derivado de los campos finished + time_elapsed de la API.
+#   finished=TRUE                 -> final
+#   finished=FALSE + live         -> en_vivo
+#   finished=FALSE + (sin live)   -> programado
+ESTADOS_VIVOS = {"en_vivo", "entretiempo", "alargue", "penales"}
+ESTADOS_FINAL = {"final"}
 
-# Estado de football-data.org (status)  ->  nuestro estado
-ESTADO_MAP = {
-    "SCHEDULED": "programado", "TIMED": "programado",
-    "IN_PLAY": "en_vivo", "PAUSED": "entretiempo",
-    "EXTRA_TIME": "alargue", "PENALTY_SHOOTOUT": "penales",
-    "FINISHED": "final", "AWARDED": "final",
-    "SUSPENDED": "suspendido", "POSTPONED": "suspendido",
-    "CANCELLED": "suspendido",
+# Prioridad de estado: nunca degradamos un partido. Si DB ya dice en_vivo y la
+# API trae programado, ignoramos (cubre delays del feed y ediciones manuales).
+PRIORIDAD_ESTADO = {
+    "programado": 0, "suspendido": 0,
+    "en_vivo": 1, "entretiempo": 1,
+    "alargue": 2, "penales": 3,
+    "final": 4,
 }
-ESTADOS_VIVOS = {"IN_PLAY", "PAUSED", "EXTRA_TIME", "PENALTY_SHOOTOUT"}
-ESTADOS_FINAL = {"FINISHED", "AWARDED"}
 
-# Traduccion nombre API (ingles) -> nombre nuestro (espanol). Ajusta si
-# football-data.org devuelve un nombre que no esta aca (queda en el log
-# como "SIN MAPEAR").
+# Mapeo nombre EN (worldcup26.ir) -> nombre nuestro (ES).
+# Si la API devuelve un nombre que no esta aca, queda en el log como "SIN MAPEAR".
 EQUIPOS = {
     "Mexico": "México", "South Africa": "Sudáfrica",
     "South Korea": "República de Corea", "Korea Republic": "República de Corea",
@@ -87,34 +85,77 @@ EQUIPOS = {
 }
 
 
-# ---------------------------------------------------------------- football-data
-_reqs = 0
+# --------------------------------------------------------------------- Helpers
+def como_int(x) -> int | None:
+    """Castea strings a int de forma defensiva. La API devuelve TODO como str."""
+    if x is None or x == "" or x == "null":
+        return None
+    try:
+        return int(str(x).strip())
+    except (TypeError, ValueError):
+        return None
 
 
-def api_get(path: str, params: dict | None = None) -> dict:
-    """GET a football-data.org con throttle conservador."""
-    global _reqs
-    if _reqs > 0:
-        time.sleep(PAUSA_ENTRE_REQ)
-    _reqs += 1
-    r = requests.get(
-        f"{API_BASE}/{path}",
-        headers={"X-Auth-Token": FOOTBALL_DATA_TOKEN},
-        params=params or {},
-        timeout=20,
-    )
-    if r.status_code == 429:
-        # Rate limit: esperar 1 minuto completo y reintentar 1 vez
-        print("  [API 429] Rate limit. Esperando 60s.", file=sys.stderr)
-        time.sleep(60)
-        r = requests.get(
-            f"{API_BASE}/{path}",
-            headers={"X-Auth-Token": FOOTBALL_DATA_TOKEN},
-            params=params or {},
-            timeout=20,
-        )
+def como_bool(x) -> bool:
+    """'TRUE'/'true'/True -> True. Resto False."""
+    if isinstance(x, bool):
+        return x
+    return str(x).strip().upper() == "TRUE"
+
+
+def derivar_estado(m: dict) -> str:
+    """De finished + time_elapsed sacamos nuestro estado interno."""
+    if como_bool(m.get("finished")):
+        return "final"
+    if (m.get("time_elapsed") or "").strip().lower() == "live":
+        return "en_vivo"
+    return "programado"
+
+
+# Patrón goleador: "J. Quiñones 9'" o "R. Jiménez 67'+2" o "J. Doe 90+3'"
+RE_GOLEADOR = re.compile(r"^\s*(?P<jugador>.+?)\s+(?P<minuto>\d+)(?:\s*\+\s*\d+)?\s*'?\s*$")
+
+
+def parsear_scorers(crudo) -> list[tuple[str, int]]:
+    """Convierte el string raro de la API en lista de (jugador, minuto).
+
+    Formato visto: '{"J. Quiñones 9\\'","R. Jiménez 67\\'"}'  (con comillas
+    tipograficas " y "). Tambien la API devuelve a veces el string "null".
+    """
+    if crudo is None:
+        return []
+    s = str(crudo).strip()
+    if not s or s.lower() == "null" or s in ("{}", "{ }"):
+        return []
+    # Quitar llaves externas si vienen
+    s = s.strip("{} ")
+    # Normalizar comillas raras a comilla doble estandar
+    s = s.replace("\u201c", '"').replace("\u201d", '"')
+    s = s.replace("\u2018", "'").replace("\u2019", "'")
+    # Separar entradas por '","' o ',"'
+    crudos = re.split(r'"\s*,\s*"', s)
+    salida: list[tuple[str, int]] = []
+    for c in crudos:
+        c = c.strip().strip('"').strip()
+        if not c:
+            continue
+        m = RE_GOLEADOR.match(c)
+        if not m:
+            continue
+        jugador = m.group("jugador").strip()
+        minuto = int(m.group("minuto"))
+        salida.append((jugador, minuto))
+    return salida
+
+
+# ------------------------------------------------------------------- worldcup26
+def api_get_juegos() -> list[dict]:
+    """Una sola llamada trae los 64 partidos del Mundial. Sin auth."""
+    r = requests.get(API_URL, timeout=20)
     r.raise_for_status()
-    return r.json()
+    data = r.json()
+    # La API devuelve {"games": [...]} segun el ejemplo de Felipe
+    return data.get("games", []) if isinstance(data, dict) else (data or [])
 
 
 # ------------------------------------------------------------------- Supabase
@@ -154,16 +195,6 @@ def sb_patch(tabla: str, filtro: dict, body: dict) -> None:
     r.raise_for_status()
 
 
-def sb_delete(tabla: str, filtro: dict) -> None:
-    r = requests.delete(
-        f"{SUPABASE_URL}/rest/v1/{tabla}",
-        headers=sb_headers({"Prefer": "return=minimal"}),
-        params=filtro,
-        timeout=20,
-    )
-    r.raise_for_status()
-
-
 def sb_insert(tabla: str, filas: list[dict]) -> None:
     if not filas:
         return
@@ -198,18 +229,20 @@ def hay_trabajo() -> bool:
 
 # ----------------------------------------------------------------- matching
 def nuestro_nombre(api_nombre: str) -> str | None:
-    return EQUIPOS.get(api_nombre)
+    return EQUIPOS.get((api_nombre or "").strip())
 
 
 def buscar_partido(m: dict) -> dict | None:
-    """Devuelve nuestro registro de partido para un match de la API."""
-    api_id = m["id"]
-    filas = sb_get("partidos", {"api_fixture_id": f"eq.{api_id}", "select": "*"})
-    if filas:
-        return filas[0]
+    """Devuelve nuestro registro de partido para un game de la API."""
+    api_id = como_int(m.get("id"))
+    if api_id is not None:
+        filas = sb_get("partidos",
+                       {"api_fixture_id": f"eq.{api_id}", "select": "*"})
+        if filas:
+            return filas[0]
 
-    home = (m.get("homeTeam") or {}).get("name") or ""
-    away = (m.get("awayTeam") or {}).get("name") or ""
+    home = m.get("home_team_name_en") or ""
+    away = m.get("away_team_name_en") or ""
     local = nuestro_nombre(home)
     visita = nuestro_nombre(away)
     if not local or not visita:
@@ -220,137 +253,123 @@ def buscar_partido(m: dict) -> dict | None:
               f" -- agregar a EQUIPOS")
         return None
 
-    fecha_api = (m.get("utcDate") or "")[:10]  # YYYY-MM-DD
+    # local_date viene como "MM/DD/YYYY HH:MM" (formato US, Mundial en USA/MEX/CAN)
+    fecha_api = None
+    try:
+        fecha_api = datetime.strptime(
+            (m.get("local_date") or "").strip(), "%m/%d/%Y %H:%M"
+        ).date().isoformat()
+    except (ValueError, TypeError):
+        pass
+
     filas = sb_get("partidos", {
         "equipo_local": f"eq.{local}",
         "equipo_visita": f"eq.{visita}",
         "select": "*",
     })
     for p in filas:
-        if str(p["fecha"])[:10] == fecha_api:
-            sb_patch("partidos", {"id": f"eq.{p['id']}"},
-                     {"api_fixture_id": api_id})
+        if fecha_api and str(p["fecha"])[:10] == fecha_api:
+            if api_id is not None:
+                sb_patch("partidos", {"id": f"eq.{p['id']}"},
+                         {"api_fixture_id": api_id})
             return p
+    # Sin fecha confiable: si hay un solo partido entre estos equipos, ese es
+    if len(filas) == 1:
+        if api_id is not None:
+            sb_patch("partidos", {"id": f"eq.{filas[0]['id']}"},
+                     {"api_fixture_id": api_id})
+        return filas[0]
     return None
 
 
 # ------------------------------------------------------------- actualizaciones
-# Prioridad de estado: nunca degradar un partido (proteccion contra retrasos
-# del feed y contra pisar ediciones manuales).
-PRIORIDAD_ESTADO = {
-    "programado": 0, "suspendido": 0,
-    "en_vivo": 1, "entretiempo": 1,
-    "alargue": 2, "penales": 3,
-    "final": 4,
-}
-
-
 def actualizar_partido(p: dict, m: dict) -> str | None:
-    status = m.get("status") or "SCHEDULED"
-    nuevo_estado = ESTADO_MAP.get(status, "programado")
+    """Devuelve el estado nuevo, o None si se salto la actualizacion."""
+    nuevo_estado = derivar_estado(m)
 
-    # Salvaguarda 1: no degradar el estado. Si la DB ya dice en_vivo/final/etc
-    # y la API trae algo "menos avanzado", ignoramos la actualizacion. Esto
-    # cubre dos casos: (a) feed con delay, (b) edicion manual del admin.
+    # Salvaguarda 1: no degradar el estado.
     prio_db = PRIORIDAD_ESTADO.get(p.get("estado") or "", 0)
     prio_api = PRIORIDAD_ESTADO.get(nuevo_estado, 0)
     if prio_api < prio_db:
-        print(f"  saltado (API={status} retrocederia '{p.get('estado')}'): "
+        print(f"  saltado (API={nuevo_estado} retrocederia '{p.get('estado')}'): "
               f"{p['equipo_local']} vs {p['equipo_visita']}")
         return None
 
-    score = m.get("score") or {}
-    ft = score.get("fullTime") or {}
-    pen = score.get("penalties") or {}
+    home = como_int(m.get("home_score"))
+    away = como_int(m.get("away_score"))
 
     body: dict = {"estado": nuevo_estado}
-
-    # Salvaguarda 2: no escribir null encima de un valor real. Si la API trae
-    # None (porque todavia no carga el dato o se reseteo el feed), respetamos
-    # lo que ya esta en DB (sea del robot anterior o del admin).
-    if ft.get("home") is not None:
-        body["goles_local"] = ft.get("home")
-    if ft.get("away") is not None:
-        body["goles_visita"] = ft.get("away")
-    if m.get("minute") is not None:
-        body["minuto"] = m.get("minute")
-
-    if pen.get("home") is not None or pen.get("away") is not None:
-        body["penales_local"] = pen.get("home")
-        body["penales_visita"] = pen.get("away")
-        if pen.get("home") is not None and pen.get("away") is not None:
-            body["ganador_penales"] = (
-                "local" if pen["home"] > pen["away"] else "visita"
-            )
-    if status in ESTADOS_FINAL:
+    # Salvaguarda 2: no escribir null encima de un valor real.
+    if home is not None:
+        body["goles_local"] = home
+    if away is not None:
+        body["goles_visita"] = away
+    if nuevo_estado == "final":
         body["minuto"] = None
         body["finalizado_at"] = datetime.now(timezone.utc).isoformat()
+    # worldcup26.ir no da minuto numerico; lo dejamos como esta.
 
     sb_patch("partidos", {"id": f"eq.{p['id']}"}, body)
-    return status
+    return nuevo_estado
 
 
-def sincronizar_eventos(p: dict, m: dict) -> None:
-    """Reemplaza los eventos del partido (idempotente: borrar + insertar)."""
-    # Detalle del partido = goles + amonestaciones
-    data = api_get(f"matches/{m['id']}")
-    home_name = (m.get("homeTeam") or {}).get("name") or ""
-    eventos = []
+def sincronizar_goles(p: dict, m: dict) -> None:
+    """Agrega goles nuevos a partido_eventos sin pisar los existentes.
 
-    for g in data.get("goals") or []:
-        tequipo = (g.get("team") or {}).get("name") or ""
-        equipo = "local" if tequipo == home_name else "visita"
-        minuto = (g.get("minute") or 0) + (g.get("injuryTime") or 0)
-        eventos.append({
+    No borramos nada: el admin puede haber agregado asistencias, tarjetas u
+    otros datos manuales en filas que ya existen. Solo INSERT cuando el
+    (jugador, minuto, equipo) no esta presente todavia.
+    """
+    home_nombre = (m.get("home_team_name_en") or "").strip()
+    parsed: list[tuple[str, int, str]] = []
+    for jugador, minuto in parsear_scorers(m.get("home_scorers")):
+        parsed.append((jugador, minuto, "local"))
+    for jugador, minuto in parsear_scorers(m.get("away_scorers")):
+        parsed.append((jugador, minuto, "visita"))
+
+    if not parsed:
+        return
+
+    existentes = sb_get("partido_eventos", {
+        "partido_id": f"eq.{p['id']}",
+        "tipo": "eq.gol",
+        "select": "jugador,minuto,equipo",
+    })
+    ya = {(e["jugador"], e["minuto"], e["equipo"]) for e in existentes}
+
+    nuevos = []
+    for jugador, minuto, equipo in parsed:
+        clave = (jugador, minuto, equipo)
+        if clave in ya:
+            continue
+        ya.add(clave)  # evita duplicar si la API repite
+        nuevos.append({
             "partido_id": p["id"],
             "tipo": "gol",
             "equipo": equipo,
             "minuto": minuto,
-            "jugador": (g.get("scorer") or {}).get("name"),
-            "asistencia": (g.get("assist") or {}).get("name"),
-            "detalle": detalle_gol(g.get("type")),
+            "jugador": jugador,
+            "asistencia": None,   # worldcup26.ir no la trae; admin la carga despues
+            "detalle": "normal",  # tampoco distingue penal/autogol
         })
-
-    for b in data.get("bookings") or []:
-        carta = (b.get("card") or "").upper()
-        if carta not in ("YELLOW", "YELLOW_RED", "RED"):
-            continue
-        tipo = "amarilla" if carta == "YELLOW" else "roja"
-        tequipo = (b.get("team") or {}).get("name") or ""
-        equipo = "local" if tequipo == home_name else "visita"
-        minuto = (b.get("minute") or 0) + (b.get("injuryTime") or 0)
-        eventos.append({
-            "partido_id": p["id"],
-            "tipo": tipo,
-            "equipo": equipo,
-            "minuto": minuto,
-            "jugador": (b.get("player") or {}).get("name"),
-            "asistencia": None,
-            "detalle": None,
-        })
-
-    sb_delete("partido_eventos", {"partido_id": f"eq.{p['id']}"})
-    sb_insert("partido_eventos", eventos)
+    if nuevos:
+        sb_insert("partido_eventos", nuevos)
+        print(f"  +{len(nuevos)} gol(es) nuevos en {p['equipo_local']} vs {p['equipo_visita']}")
+    # Nota visible: home_nombre solo se usa si en el futuro queremos validar
+    # consistencia de equipo; por ahora lo dejamos.
+    _ = home_nombre
 
 
-def detalle_gol(tipo: str | None) -> str:
-    t = (tipo or "").upper()
-    if "PENALTY" in t:
-        return "penal"
-    if "OWN" in t:
-        return "autogol"
-    return "normal"
-
-
-def necesita_eventos(p: dict, status: str) -> bool:
-    """En vivo: siempre. Final: solo si aun no guardamos sus eventos."""
-    if status in ESTADOS_VIVOS:
-        return True
-    if status in ESTADOS_FINAL:
-        ya = sb_get("partido_eventos",
-                    {"partido_id": f"eq.{p['id']}", "select": "id", "limit": "1"})
-        return len(ya) == 0
-    return False
+def relevante_para_hoy(m: dict) -> bool:
+    """Solo procesamos partidos de ayer/hoy/mañana (margen para zonas horarias)."""
+    try:
+        fecha = datetime.strptime(
+            (m.get("local_date") or "").strip(), "%m/%d/%Y %H:%M"
+        ).date()
+    except (ValueError, TypeError):
+        return False
+    hoy = date.today()
+    return abs((fecha - hoy).days) <= 1
 
 
 # ------------------------------------------------------------------------ main
@@ -359,31 +378,28 @@ def main() -> None:
         print("No hay partidos en vivo ni por empezar. Sin requests a la API.")
         return
 
-    hoy = date.today().isoformat()
-    manana = (date.today() + timedelta(days=1)).isoformat()
-    data = api_get(f"competitions/{COMPETICION}/matches",
-                   {"dateFrom": hoy, "dateTo": manana})
-    matches = data.get("matches") or []
-    print(f"Matches recibidos: {len(matches)} (competicion={COMPETICION})")
+    todos = api_get_juegos()
+    relevantes = [m for m in todos if relevante_para_hoy(m)]
+    print(f"Partidos totales: {len(todos)} | relevantes hoy +/-1d: {len(relevantes)}")
 
-    for m in matches:
+    for m in relevantes:
         p = buscar_partido(m)
         if not p:
             continue
         try:
-            status = actualizar_partido(p, m)
-            if status is None:
-                continue  # saltado por salvaguarda; no tocar eventos tampoco
-            if necesita_eventos(p, status):
+            estado = actualizar_partido(p, m)
+            if estado is None:
+                continue
+            if estado in ESTADOS_VIVOS or estado in ESTADOS_FINAL:
                 try:
-                    sincronizar_eventos(p, m)
+                    sincronizar_goles(p, m)
                 except Exception as exc:
-                    print(f"  eventos fallaron para partido {p['id']}: {exc}")
-            print(f"  OK {p['equipo_local']} vs {p['equipo_visita']} -> {status}")
+                    print(f"  goles fallaron para partido {p['id']}: {exc}")
+            print(f"  OK {p['equipo_local']} vs {p['equipo_visita']} -> {estado}")
         except Exception as exc:
             print(f"  fallo {p['equipo_local']} vs {p['equipo_visita']}: {exc}")
 
-    print(f"Listo. Requests hechos: {_reqs}")
+    print("Listo.")
 
 
 if __name__ == "__main__":

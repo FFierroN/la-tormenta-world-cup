@@ -115,6 +115,12 @@ export interface JugadorAdmin {
   ajuste_motivo: string | null;
 }
 
+// Una entrada del ranking de goleadores o asistidores (Top N).
+export interface FilaGoleo {
+  jugador: string;
+  total: number;
+}
+
 // Fila derivada de la tabla de posiciones.
 export interface FilaTabla {
   jugador_id: string;

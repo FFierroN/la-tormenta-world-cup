@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Flag from "../components/Flag";
 import RelojVivo from "../components/RelojVivo";
+import EstadoBadge from "../components/EstadoBadge";
+import { BallIcon, EventoIcono, ShoeIcon } from "../components/Iconos";
 import type { EventoPartido, Partido, PronosticoVista } from "../lib/types";
-import { ESTADO_LABEL, ESTADOS_EN_CURSO } from "../lib/estados";
+import { ESTADOS_EN_CURSO } from "../lib/estados";
 import { useAsync } from "../lib/useAsync";
 import { useAuth } from "../lib/auth";
 import {
@@ -96,11 +98,8 @@ export default function PartidoDetalle() {
           <div className="mt-2 flex items-center justify-between">
             <TeamHead code={partido.pais_local} nombre={partido.equipo_local} />
             <div className="text-center">
-              <div className="text-xs text-neutral-200 flex items-center justify-center gap-1.5">
-                {ESTADOS_EN_CURSO.includes(partido.estado) && (
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                )}
-                {ESTADO_LABEL[partido.estado]}
+              <div className="flex items-center justify-center">
+                <EstadoBadge estado={partido.estado} className="text-xs" />
               </div>
               {partido.estado === "programado" ? (
                 <div className="text-2xl font-bold mt-1">
@@ -375,26 +374,28 @@ function Detalles({
         {orden.map((e) => (
           <li
             key={e.id}
-            className={`flex items-center py-3 px-4 border-b border-borde last:border-0 ${
+            className={`flex items-center gap-2 py-3 px-4 border-b border-borde last:border-0 ${
               e.equipo === "local" ? "" : "flex-row-reverse text-right"
             }`}
           >
-            <div className="flex items-center gap-2">
-              <EventoIcono tipo={e.tipo} />
-              <div className="leading-tight">
-                {e.jugador && <span className="text-sm">{e.jugador}</span>}
+            <EventoIcono tipo={e.tipo} />
+            <div className="leading-tight">
+              <div>
+                {e.jugador && <span className="text-sm">{e.jugador} </span>}
+                <span className="text-sm font-semibold tabular-nums text-neutral-300">
+                  {e.minuto}'
+                </span>
                 {e.tipo === "gol" && e.detalle && e.detalle !== "normal" && (
                   <span className="text-xs text-neutral-400"> ({e.detalle})</span>
                 )}
-                {e.asistencia && (
-                  <div className="text-xs text-neutral-500">asist. {e.asistencia}</div>
-                )}
               </div>
+              {e.asistencia && (
+                <div className="mt-0.5 text-xs text-neutral-500">
+                  <ShoeIcon className="inline w-3.5 h-3.5 text-emerald-400 align-text-bottom mr-1" />
+                  {e.asistencia}
+                </div>
+              )}
             </div>
-            <span className="flex-1" />
-            <span className="text-sm font-semibold tabular-nums text-neutral-300">
-              {e.minuto}'
-            </span>
           </li>
         ))}
       </ul>
@@ -486,24 +487,4 @@ function Pronosticos({
   );
 }
 
-/* ---------- iconos ---------- */
-function EventoIcono({ tipo }: { tipo: EventoPartido["tipo"] }) {
-  if (tipo === "gol") return <BallIcon />;
-  if (tipo === "amarilla") return <YellowCard />;
-  return <RedCard />;
-}
-function BallIcon() {
-  return (
-    <svg className="w-4 h-4 text-neutral-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7l3 2.2-1.2 3.6h-3.6L9 9.2 12 7z" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-function YellowCard() {
-  return <span className="inline-block w-3 h-4 rounded-sm bg-yellow-400" aria-label="Tarjeta amarilla" />;
-}
 
-function RedCard() {
-  return <span className="inline-block w-3 h-4 rounded-sm bg-red-600" aria-label="Tarjeta roja" />;
-}

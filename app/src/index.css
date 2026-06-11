@@ -51,6 +51,27 @@ body {
   }
 }
 
+/* Punto de estado de partido (en vivo / entretiempo / penales) con el mismo
+   pulso del boton de especiales, pero coloreable via currentColor. El color lo
+   pone Tailwind (text-red-500 / text-yellow-400) y el glow lo toma de ahi. */
+@keyframes pulso-punto {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 10px 3px currentColor;
+  }
+}
+.glow-punto {
+  animation: pulso-punto 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow-punto {
+    animation: none;
+    box-shadow: 0 0 8px 2px currentColor;
+  }
+}
+
 /* Oculta la barra de scroll en las pestanas horizontales de Copa. */
 .no-scrollbar {
   -ms-overflow-style: none;

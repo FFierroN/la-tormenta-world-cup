@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Flag from "../components/Flag";
+import EstadoBadge from "../components/EstadoBadge";
 import { listarPartidos, misPronosticos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { useAuth } from "../lib/auth";
 import { useSwipe } from "../lib/useSwipe";
-import { ESTADO_LABEL, enCurso } from "../lib/estados";
-import { fmtFechaHora, fmtDiaLargo, claveDia, claveHoy } from "../lib/fechas";
+import { fmtHora, fmtDiaLargo, claveDia, claveHoy } from "../lib/fechas";
 import type { Partido } from "../lib/types";
 
 // Orden de las fases de eliminacion (para mostrarlas en secuencia).
@@ -264,7 +264,6 @@ function Panel({
   tab: Tab;
   pronosticadoIds: Set<string>;
 }) {
-  const porDia = tab.id === "proximos"; // en "Proximos" agrupamos por dia
   return (
     <div
       role="tabpanel"
@@ -285,7 +284,7 @@ function Panel({
             ? "No hay partidos en esta fecha."
             : "Aun no hay partidos en esta fase."}
         </p>
-      ) : porDia ? (
+      ) : (
         <div className="flex flex-col gap-5">
           {agruparPorDia(tab.partidos).map((g) => (
             <section key={g.dia}>
@@ -306,17 +305,6 @@ function Panel({
             </section>
           ))}
         </div>
-      ) : (
-        <ul className="px-4 flex flex-col gap-3">
-          {tab.partidos.map((p) => (
-            <PartidoCard
-              key={p.id}
-              p={p}
-              mostrarFase={tab.mostrarFase}
-              pronosticado={pronosticadoIds.has(p.id)}
-            />
-          ))}
-        </ul>
       )}
     </div>
   );
@@ -333,15 +321,20 @@ function PartidoCard({
 }) {
   const navigate = useNavigate();
   const puedePronosticar = esPronosticable(p);
+  const jugado = p.estado === "final"; // tarjeta atenuada cuando ya termino
   return (
     <li>
       <button
         onClick={() => navigate(`/partido/${p.id}`)}
-        className="w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
+        className={`w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform ${
+          jugado ? "opacity-80" : ""
+        }`}
       >
         <div className="flex items-center justify-between gap-2 text-xs text-neutral-400 mb-3">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="truncate">{fmtFechaHora(p.fecha)}</span>
+            <span className="tabular-nums font-semibold text-neutral-300">
+              {fmtHora(p.fecha)}
+            </span>
             {puedePronosticar && (
               <span
                 className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
@@ -354,13 +347,7 @@ function PartidoCard({
               </span>
             )}
           </div>
-          <span
-            className={
-              enCurso(p.estado) ? "text-oro font-semibold" : "text-neutral-400"
-            }
-          >
-            {ESTADO_LABEL[p.estado]}
-          </span>
+          <EstadoBadge estado={p.estado} className="text-xs" />
         </div>
         {mostrarFase && (
           <div className="text-[11px] text-neutral-500 mb-2">

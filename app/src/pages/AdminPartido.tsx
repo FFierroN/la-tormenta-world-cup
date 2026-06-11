@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAsync } from "../lib/useAsync";
 import { ESTADO_LABEL, enCurso } from "../lib/estados";
+import { ShoeIcon } from "../components/Iconos";
 import {
   agregarEvento,
   eliminarEvento,
@@ -196,6 +197,7 @@ function EventosForm({
   const [equipo, setEquipo] = useState<"local" | "visita">("local");
   const [minuto, setMinuto] = useState(1);
   const [jugador, setJugador] = useState("");
+  const [asistencia, setAsistencia] = useState("");
   const [guardando, setGuardando] = useState(false);
 
   const agregar = async () => {
@@ -207,9 +209,12 @@ function EventosForm({
         equipo,
         minuto,
         jugador: jugador.trim() || null,
+        // la asistencia solo aplica a goles; en tarjetas va null
+        asistencia: tipo === "gol" ? asistencia.trim() || null : null,
         detalle: null,
       });
       setJugador("");
+      setAsistencia("");
       onCambio();
     } finally {
       setGuardando(false);
@@ -249,6 +254,13 @@ function EventosForm({
                 {LABEL[e.tipo]} ·{" "}
                 {e.equipo === "local" ? partido.equipo_local : partido.equipo_visita}
                 {e.jugador ? ` · ${e.jugador}` : ""}
+                {e.asistencia && (
+                  <span className="text-xs text-neutral-400">
+                    {" "}
+                    <ShoeIcon className="inline w-3 h-3 text-emerald-400 align-text-bottom" />{" "}
+                    {e.asistencia}
+                  </span>
+                )}
               </span>
               <button
                 onClick={() => borrar(e.id)}
@@ -299,6 +311,22 @@ function EventosForm({
           />
         </div>
       </div>
+
+      {/* Asistidor: solo tiene sentido en goles. La API no lo trae -> se carga aca. */}
+      {tipo === "gol" && (
+        <div className="mb-3">
+          <label className="flex items-center gap-1.5 text-[11px] text-neutral-400 mb-1">
+            <ShoeIcon className="w-3.5 h-3.5 text-emerald-400" />
+            Asistidor (opcional)
+          </label>
+          <input
+            value={asistencia}
+            onChange={(e) => setAsistencia(e.target.value)}
+            placeholder="Quien asistio el gol"
+            className="w-full px-3 py-2 rounded-lg bg-carbon-soft border border-borde text-sm"
+          />
+        </div>
+      )}
       <button
         onClick={agregar}
         disabled={guardando}

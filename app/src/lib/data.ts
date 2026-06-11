@@ -7,6 +7,7 @@ import type {
   EstadoPartido,
   Especiales,
   EventoPartido,
+  FilaGoleo,
   FilaGrupo,
   FilaTabla,
   Jugador,
@@ -228,6 +229,38 @@ export async function obtenerTablaGrupos(): Promise<FilaGrupo[]> {
   return (data ?? []).map(aFilaGrupo);
 }
 
+// Top goleadores y asistidores, agregados desde partido_eventos en el cliente
+// (son ~pocos cientos de eventos en todo el Mundial; no amerita una vista SQL).
+// Goles: cuenta por 'jugador' excluyendo autogoles. Asist.: cuenta por 'asistencia'.
+export async function obtenerGoleo(
+  topN = 5
+): Promise<{ goleadores: FilaGoleo[]; asistidores: FilaGoleo[] }> {
+  const { data, error } = await supabase
+    .from("partido_eventos")
+    .select("jugador, asistencia, detalle")
+    .eq("tipo", "gol");
+  lanzarSi(error);
+
+  const goles = new Map<string, number>();
+  const asist = new Map<string, number>();
+  for (const r of data ?? []) {
+    if (r.jugador && r.detalle !== "autogol") {
+      goles.set(r.jugador, (goles.get(r.jugador) ?? 0) + 1);
+    }
+    if (r.asistencia) {
+      asist.set(r.asistencia, (asist.get(r.asistencia) ?? 0) + 1);
+    }
+  }
+
+  const ordenar = (m: Map<string, number>): FilaGoleo[] =>
+    [...m.entries()]
+      .map(([jugador, total]) => ({ jugador, total }))
+      .sort((a, b) => b.total - a.total || a.jugador.localeCompare(b.jugador))
+      .slice(0, topN);
+
+  return { goleadores: ordenar(goles), asistidores: ordenar(asist) };
+}
+
 // ---------- ADMIN: cargar resultados y eventos ----------
 // La app gatea esto a es_admin; las tablas tienen escritura abierta al grupo.
 
@@ -258,6 +291,7 @@ export interface EventoInput {
   equipo: "local" | "visita";
   minuto: number;
   jugador: string | null;
+  asistencia: string | null;
   detalle: string | null;
 }
 
@@ -268,6 +302,7 @@ export async function agregarEvento(e: EventoInput): Promise<void> {
     equipo: e.equipo,
     minuto: e.minuto,
     jugador: e.jugador,
+    asistencia: e.asistencia,
     detalle: e.detalle,
   });
   lanzarSi(error);

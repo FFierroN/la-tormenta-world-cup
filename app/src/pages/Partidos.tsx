@@ -321,15 +321,20 @@ function PartidoCard({
 }) {
   const navigate = useNavigate();
   const puedePronosticar = esPronosticable(p);
-  const jugado = p.estado === "final"; // tarjeta atenuada cuando ya termino
+  const jugado = p.estado === "final"; // velo gris cuando el partido ya termino
   return (
     <li>
       <button
         onClick={() => navigate(`/partido/${p.id}`)}
-        className={`w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform ${
-          jugado ? "opacity-80" : ""
-        }`}
+        className="relative overflow-hidden w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
       >
+        {/* Velo gris (40%) que marca el partido como finalizado/sellado. */}
+        {jugado && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-2xl bg-neutral-500/40"
+          />
+        )}
         <div className="flex items-center justify-between gap-2 text-xs text-neutral-400 mb-3">
           <div className="flex items-center gap-2 min-w-0">
             <span className="tabular-nums font-semibold text-neutral-300">

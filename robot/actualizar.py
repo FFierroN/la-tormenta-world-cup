@@ -1,62 +1,63 @@
-"""Robot de sincronizacion: API-Football  ->  Supabase.
+"""Robot de sincronizacion: football-data.org  ->  Supabase.
 
-Que hace (en orden, cuidando la cuota de 100 req/dia):
-  1. Revisa la guardia de cuota; si ya gastamos demasiado hoy, no hace nada.
+Cambio del 2026-06-11: API-Football quito acceso al Mundial 2026 del plan
+free. Migramos a football-data.org (free, incluye Copa Mundial, 10 req/min).
+
+Que hace, en orden:
+  1. Pregunta GRATIS a Supabase si hay partidos en vivo o por empezar.
+     Si no hay, sale sin tocar la API (cero requests).
   2. Pide los partidos del Mundial 2026 de HOY (1 request).
   3. Empareja cada partido de la API con el nuestro (por api_fixture_id ya
-     aprendido, o por nombres+fecha la primera vez) y actualiza marcador,
+     aprendido o por nombres+fecha la primera vez) y actualiza marcador,
      minuto, estado y penales en Supabase.
   4. Para los partidos EN VIVO o RECIEN finalizados, baja los eventos
-     (goles/amarillas/rojas con minuto, goleador y asistencia) -> 1 req c/u.
-  5. Actualiza el contador de cuota del dia.
+     (goles/amarillas/rojas con minuto, goleador y asistencia). 1 req c/u.
 
-NUNCA corre en el navegador de los amigos. Corre en un GitHub Action con la
-API key y la service-role key guardadas como SECRETOS del repo.
+NUNCA corre en el navegador de los amigos. Corre en GitHub Actions con el
+token de football-data.org y la service-role key guardadas como SECRETOS.
 
 Variables de entorno requeridas:
-  APIFOOTBALL_KEY        -> tu key de dashboard.api-football.com
+  FOOTBALL_DATA_TOKEN    -> tu token de football-data.org (free)
   SUPABASE_URL           -> https://TUPROYECTO.supabase.co
-  SUPABASE_SERVICE_KEY   -> service_role key (NO la anon; esta salta el RLS)
+  SUPABASE_SERVICE_KEY   -> service_role key (NO la anon; bypassea RLS)
 
-Opcionales:
-  LEAGUE_ID (default 1)  SEASON (default 2026)
-  MAX_CUOTA (default 95) MODO ('hoy' | 'vivo', default 'hoy')
+Opcional:
+  COMPETICION (default WC = World Cup)
 """
 from __future__ import annotations
 
 import os
 import sys
+import time
 from datetime import date, datetime, timedelta, timezone
 
 import requests
 
-API_BASE = "https://v3.football.api-sports.io"
-LEAGUE_ID = int(os.getenv("LEAGUE_ID", "1"))
-SEASON = int(os.getenv("SEASON", "2026"))
-MAX_CUOTA = int(os.getenv("MAX_CUOTA", "95"))
-MODO = os.getenv("MODO", "hoy")  # 'hoy' = todo el dia | 'vivo' = solo en vivo
+API_BASE = "https://api.football-data.org/v4"
+COMPETICION = os.getenv("COMPETICION", "WC")  # WC = Copa Mundial
 
-APIFOOTBALL_KEY = os.environ["APIFOOTBALL_KEY"]
+FOOTBALL_DATA_TOKEN = os.environ["FOOTBALL_DATA_TOKEN"]
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 
-# Estado de API-Football (status.short)  ->  nuestro estado
-ESTADO_MAP = {
-    "TBD": "programado", "NS": "programado",
-    "1H": "en_vivo", "2H": "en_vivo", "LIVE": "en_vivo",
-    "HT": "entretiempo",
-    "ET": "alargue", "BT": "alargue",
-    "P": "penales",
-    "FT": "final", "AET": "final", "PEN": "final",
-    "SUSP": "suspendido", "INT": "suspendido", "PST": "suspendido",
-    "CANC": "suspendido", "ABD": "suspendido", "AWD": "final", "WO": "final",
-}
-ESTADOS_VIVOS = {"1H", "2H", "LIVE", "HT", "ET", "BT", "P"}
-ESTADOS_FINAL = {"FT", "AET", "PEN", "AWD", "WO"}
+# Pequena pausa entre llamadas para no chocar contra el limite (10 req/min)
+PAUSA_ENTRE_REQ = float(os.getenv("PAUSA_REQ", "1.5"))
 
-# Traduccion nombre API (ingles) -> nombre nuestro (espanol).
-# Best-effort para los equipos conocidos del fixture. Si la API usa otro
-# nombre, el robot lo logea como "SIN MAPEAR" para que lo agregues aca.
+# Estado de football-data.org (status)  ->  nuestro estado
+ESTADO_MAP = {
+    "SCHEDULED": "programado", "TIMED": "programado",
+    "IN_PLAY": "en_vivo", "PAUSED": "entretiempo",
+    "EXTRA_TIME": "alargue", "PENALTY_SHOOTOUT": "penales",
+    "FINISHED": "final", "AWARDED": "final",
+    "SUSPENDED": "suspendido", "POSTPONED": "suspendido",
+    "CANCELLED": "suspendido",
+}
+ESTADOS_VIVOS = {"IN_PLAY", "PAUSED", "EXTRA_TIME", "PENALTY_SHOOTOUT"}
+ESTADOS_FINAL = {"FINISHED", "AWARDED"}
+
+# Traduccion nombre API (ingles) -> nombre nuestro (espanol). Ajusta si
+# football-data.org devuelve un nombre que no esta aca (queda en el log
+# como "SIN MAPEAR").
 EQUIPOS = {
     "Mexico": "México", "South Africa": "Sudáfrica",
     "South Korea": "República de Corea", "Korea Republic": "República de Corea",
@@ -85,29 +86,34 @@ EQUIPOS = {
 }
 
 
-# ---------------------------------------------------------------- API-Football
-class CuotaAgotada(Exception):
-    pass
+# ---------------------------------------------------------------- football-data
+_reqs = 0
 
 
-_requests_hechos = 0
-
-
-def api_get(path: str, params: dict) -> dict:
-    """GET a API-Football contando cada llamada para la guardia de cuota."""
-    global _requests_hechos
-    _requests_hechos += 1
+def api_get(path: str, params: dict | None = None) -> dict:
+    """GET a football-data.org con throttle conservador."""
+    global _reqs
+    if _reqs > 0:
+        time.sleep(PAUSA_ENTRE_REQ)
+    _reqs += 1
     r = requests.get(
         f"{API_BASE}/{path}",
-        headers={"x-apisports-key": APIFOOTBALL_KEY},
-        params=params,
+        headers={"X-Auth-Token": FOOTBALL_DATA_TOKEN},
+        params=params or {},
         timeout=20,
     )
+    if r.status_code == 429:
+        # Rate limit: esperar 1 minuto completo y reintentar 1 vez
+        print("  [API 429] Rate limit. Esperando 60s.", file=sys.stderr)
+        time.sleep(60)
+        r = requests.get(
+            f"{API_BASE}/{path}",
+            headers={"X-Auth-Token": FOOTBALL_DATA_TOKEN},
+            params=params or {},
+            timeout=20,
+        )
     r.raise_for_status()
-    data = r.json()
-    if data.get("errors"):
-        print("  [API errors]", data["errors"], file=sys.stderr)
-    return data
+    return r.json()
 
 
 # ------------------------------------------------------------------- Supabase
@@ -171,22 +177,13 @@ def sb_insert(tabla: str, filas: list[dict]) -> None:
 
 # ------------------------------------------------------ auto-gatillo (ventana)
 def hay_trabajo() -> bool:
-    """Pregunta GRATIS a Supabase (no gasta cuota de API) si vale la pena
-    llamar a la API. Devuelve True si hay algun partido en vivo o a punto de
-    empezar / en curso. Esto da la "ventana movil" automatica: se ajusta sola
-    por jornada y por fase, sin tocar el cron. now() comparado contra fecha
-    (ambos UTC en la DB) -> timezone-safe.
-    """
-    # 1) partidos rodando ahora mismo
+    """Si no hay partidos en vivo ni por empezar, salimos sin tocar la API."""
     vivos = sb_get("partidos", {
         "estado": "in.(en_vivo,entretiempo,alargue,penales)",
         "select": "id", "limit": "1",
     })
     if vivos:
         return True
-    # 2) programados que arrancan pronto o que ya deberian haber empezado pero
-    #    el robot aun no los marco (ventana: desde 3h atras hasta 20min adelante,
-    #    cubre toda la vida de un partido por si nos saltamos corridas).
     ahora = datetime.now(timezone.utc)
     lo = (ahora - timedelta(hours=3)).isoformat()
     hi = (ahora + timedelta(minutes=20)).isoformat()
@@ -198,45 +195,27 @@ def hay_trabajo() -> bool:
     return bool(proximos)
 
 
-# ------------------------------------------------------------ guardia de cuota
-def leer_cuota_hoy() -> int:
-    hoy = date.today().isoformat()
-    filas = sb_get("api_cuota", {"fecha": f"eq.{hoy}", "select": "usados"})
-    return filas[0]["usados"] if filas else 0
-
-
-def guardar_cuota(total: int) -> None:
-    hoy = date.today().isoformat()
-    # upsert manual: intentar patch, si no existe insert
-    existentes = sb_get("api_cuota", {"fecha": f"eq.{hoy}", "select": "fecha"})
-    if existentes:
-        sb_patch("api_cuota", {"fecha": f"eq.{hoy}"}, {"usados": total})
-    else:
-        sb_insert("api_cuota", [{"fecha": hoy, "usados": total}])
-
-
 # ----------------------------------------------------------------- matching
 def nuestro_nombre(api_nombre: str) -> str | None:
     return EQUIPOS.get(api_nombre)
 
 
-def buscar_partido(fx: dict) -> dict | None:
-    """Devuelve nuestro registro de partido para un fixture de la API."""
-    api_id = fx["fixture"]["id"]
-    # 1) ya aprendido
+def buscar_partido(m: dict) -> dict | None:
+    """Devuelve nuestro registro de partido para un match de la API."""
+    api_id = m["id"]
     filas = sb_get("partidos", {"api_fixture_id": f"eq.{api_id}", "select": "*"})
     if filas:
         return filas[0]
 
-    # 2) por nombres + fecha (primera vez)
-    local = nuestro_nombre(fx["teams"]["home"]["name"])
-    visita = nuestro_nombre(fx["teams"]["away"]["name"])
+    home = (m.get("homeTeam") or {}).get("name") or ""
+    away = (m.get("awayTeam") or {}).get("name") or ""
+    local = nuestro_nombre(home)
+    visita = nuestro_nombre(away)
     if not local or not visita:
-        print(f"  SIN MAPEAR: '{fx['teams']['home']['name']}' vs "
-              f"'{fx['teams']['away']['name']}' (agregar a EQUIPOS)")
+        print(f"  SIN MAPEAR: '{home}' vs '{away}' (agregar a EQUIPOS)")
         return None
 
-    fecha_api = fx["fixture"]["date"][:10]  # YYYY-MM-DD
+    fecha_api = (m.get("utcDate") or "")[:10]  # YYYY-MM-DD
     filas = sb_get("partidos", {
         "equipo_local": f"eq.{local}",
         "equipo_visita": f"eq.{visita}",
@@ -244,7 +223,6 @@ def buscar_partido(fx: dict) -> dict | None:
     })
     for p in filas:
         if str(p["fecha"])[:10] == fecha_api:
-            # aprender el id para la proxima
             sb_patch("partidos", {"id": f"eq.{p['id']}"},
                      {"api_fixture_id": api_id})
             return p
@@ -252,18 +230,18 @@ def buscar_partido(fx: dict) -> dict | None:
 
 
 # ------------------------------------------------------------- actualizaciones
-def actualizar_partido(p: dict, fx: dict) -> str:
-    short = fx["fixture"]["status"]["short"]
-    estado = ESTADO_MAP.get(short, "programado")
-    goles = fx["goals"]
-    score = fx.get("score", {})
-    pen = (score.get("penalty") or {})
+def actualizar_partido(p: dict, m: dict) -> str:
+    status = m.get("status") or "SCHEDULED"
+    estado = ESTADO_MAP.get(status, "programado")
+    score = m.get("score") or {}
+    ft = score.get("fullTime") or {}
+    pen = score.get("penalties") or {}
 
     body: dict = {
         "estado": estado,
-        "goles_local": goles.get("home"),
-        "goles_visita": goles.get("away"),
-        "minuto": fx["fixture"]["status"].get("elapsed"),
+        "goles_local": ft.get("home"),
+        "goles_visita": ft.get("away"),
+        "minuto": m.get("minute"),
     }
     if pen.get("home") is not None or pen.get("away") is not None:
         body["penales_local"] = pen.get("home")
@@ -272,66 +250,71 @@ def actualizar_partido(p: dict, fx: dict) -> str:
             body["ganador_penales"] = (
                 "local" if pen["home"] > pen["away"] else "visita"
             )
-    if short in ESTADOS_FINAL:
+    if status in ESTADOS_FINAL:
         body["minuto"] = None
         body["finalizado_at"] = datetime.now(timezone.utc).isoformat()
 
     sb_patch("partidos", {"id": f"eq.{p['id']}"}, body)
-    return short
+    return status
 
 
-def sincronizar_eventos(p: dict, fx: dict) -> None:
+def sincronizar_eventos(p: dict, m: dict) -> None:
     """Reemplaza los eventos del partido (idempotente: borrar + insertar)."""
-    data = api_get("fixtures/events", {"fixture": fx["fixture"]["id"]})
+    # Detalle del partido = goles + amonestaciones
+    data = api_get(f"matches/{m['id']}")
+    home_name = (m.get("homeTeam") or {}).get("name") or ""
     eventos = []
-    home_name = fx["teams"]["home"]["name"]
-    for e in data.get("response", []):
-        tipo = clasificar_evento(e)
-        if tipo is None:
+
+    for g in data.get("goals") or []:
+        tequipo = (g.get("team") or {}).get("name") or ""
+        equipo = "local" if tequipo == home_name else "visita"
+        minuto = (g.get("minute") or 0) + (g.get("injuryTime") or 0)
+        eventos.append({
+            "partido_id": p["id"],
+            "tipo": "gol",
+            "equipo": equipo,
+            "minuto": minuto,
+            "jugador": (g.get("scorer") or {}).get("name"),
+            "asistencia": (g.get("assist") or {}).get("name"),
+            "detalle": detalle_gol(g.get("type")),
+        })
+
+    for b in data.get("bookings") or []:
+        carta = (b.get("card") or "").upper()
+        if carta not in ("YELLOW", "YELLOW_RED", "RED"):
             continue
-        equipo = "local" if e["team"]["name"] == home_name else "visita"
-        minuto = (e["time"].get("elapsed") or 0) + (e["time"].get("extra") or 0)
+        tipo = "amarilla" if carta == "YELLOW" else "roja"
+        tequipo = (b.get("team") or {}).get("name") or ""
+        equipo = "local" if tequipo == home_name else "visita"
+        minuto = (b.get("minute") or 0) + (b.get("injuryTime") or 0)
         eventos.append({
             "partido_id": p["id"],
             "tipo": tipo,
             "equipo": equipo,
             "minuto": minuto,
-            "jugador": (e.get("player") or {}).get("name"),
-            "asistencia": (e.get("assist") or {}).get("name") if tipo == "gol" else None,
-            "detalle": detalle_gol(e) if tipo == "gol" else None,
+            "jugador": (b.get("player") or {}).get("name"),
+            "asistencia": None,
+            "detalle": None,
         })
+
     sb_delete("partido_eventos", {"partido_id": f"eq.{p['id']}"})
     sb_insert("partido_eventos", eventos)
 
 
-def clasificar_evento(e: dict) -> str | None:
-    t = (e.get("type") or "").lower()
-    d = (e.get("detail") or "").lower()
-    if t == "goal":
-        return "gol"
-    if t == "card":
-        if "yellow" in d:
-            return "amarilla"
-        if "red" in d:
-            return "roja"
-    return None  # ignoramos cambios, VAR, etc (Fase 1)
-
-
-def detalle_gol(e: dict) -> str:
-    d = (e.get("detail") or "").lower()
-    if "penalty" in d:
+def detalle_gol(tipo: str | None) -> str:
+    t = (tipo or "").upper()
+    if "PENALTY" in t:
         return "penal"
-    if "own" in d:
+    if "OWN" in t:
         return "autogol"
     return "normal"
 
 
-def necesita_eventos(p: dict, short: str) -> bool:
-    """En vivo: siempre. Final: solo si aun no guardamos sus eventos
-    (evita gastar cuota re-bajando partidos ya cerrados)."""
-    if short in ESTADOS_VIVOS:
+def necesita_eventos(p: dict, status: str) -> bool:
+    """En vivo: siempre. Final: solo si aun no guardamos sus eventos."""
+    if status in ESTADOS_VIVOS:
         return True
-    if short in ESTADOS_FINAL:
+    if status in ESTADOS_FINAL:
         ya = sb_get("partido_eventos",
                     {"partido_id": f"eq.{p['id']}", "select": "id", "limit": "1"})
         return len(ya) == 0
@@ -340,46 +323,33 @@ def necesita_eventos(p: dict, short: str) -> bool:
 
 # ------------------------------------------------------------------------ main
 def main() -> None:
-    usados_previos = leer_cuota_hoy()
-    if usados_previos >= MAX_CUOTA:
-        print(f"Cuota del dia ya alcanzada ({usados_previos}/{MAX_CUOTA}). Salgo.")
-        return
-
-    # Auto-gatillo: si no hay partidos en vivo ni a punto de empezar, NO tocamos
-    # la API (0 requests). Esta consulta a Supabase no gasta cuota.
     if not hay_trabajo():
         print("No hay partidos en vivo ni por empezar. Sin requests a la API.")
         return
 
-    if MODO == "vivo":
-        data = api_get("fixtures", {"league": LEAGUE_ID, "season": SEASON, "live": "all"})
-    else:
-        hoy = date.today().isoformat()
-        data = api_get("fixtures",
-                       {"league": LEAGUE_ID, "season": SEASON, "date": hoy})
+    hoy = date.today().isoformat()
+    manana = (date.today() + timedelta(days=1)).isoformat()
+    data = api_get(f"competitions/{COMPETICION}/matches",
+                   {"dateFrom": hoy, "dateTo": manana})
+    matches = data.get("matches") or []
+    print(f"Matches recibidos: {len(matches)} (competicion={COMPETICION})")
 
-    fixtures = data.get("response", [])
-    print(f"Fixtures recibidos: {len(fixtures)} (modo={MODO})")
-
-    for fx in fixtures:
-        # freno duro de cuota a mitad de camino
-        if usados_previos + _requests_hechos >= MAX_CUOTA:
-            print("Llegamos al limite de cuota. Corto aca.")
-            break
-        p = buscar_partido(fx)
+    for m in matches:
+        p = buscar_partido(m)
         if not p:
             continue
-        short = actualizar_partido(p, fx)
-        if necesita_eventos(p, short):
-            try:
-                sincronizar_eventos(p, fx)
-            except Exception as exc:  # un evento fallido no debe tumbar todo
-                print(f"  eventos fallaron para partido {p['id']}: {exc}")
-        print(f"  OK {p['equipo_local']} vs {p['equipo_visita']} -> {short}")
+        try:
+            status = actualizar_partido(p, m)
+            if necesita_eventos(p, status):
+                try:
+                    sincronizar_eventos(p, m)
+                except Exception as exc:
+                    print(f"  eventos fallaron para partido {p['id']}: {exc}")
+            print(f"  OK {p['equipo_local']} vs {p['equipo_visita']} -> {status}")
+        except Exception as exc:
+            print(f"  fallo {p['equipo_local']} vs {p['equipo_visita']}: {exc}")
 
-    total = usados_previos + _requests_hechos
-    guardar_cuota(total)
-    print(f"Listo. Requests hoy: {total}/{MAX_CUOTA}")
+    print(f"Listo. Requests hechos: {_reqs}")
 
 
 if __name__ == "__main__":

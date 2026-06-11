@@ -16,9 +16,11 @@ const SELECTS: { clave: ClaveReal; label: string }[] = [
   { clave: "real_semi_2", label: "Semifinalista 2" },
   { clave: "real_semi_3", label: "Semifinalista 3" },
   { clave: "real_semi_4", label: "Semifinalista 4" },
+  { clave: "real_tercer", label: "3er lugar" },
 ];
 const TEXTOS: { clave: ClaveReal; label: string }[] = [
   { clave: "real_goleador", label: "Goleador" },
+  { clave: "real_asistidor", label: "Asistidor" },
   { clave: "real_mejor_jugador", label: "Mejor jugador" },
   { clave: "real_mejor_arquero", label: "Mejor arquero" },
   { clave: "real_mejor_joven", label: "Mejor joven" },

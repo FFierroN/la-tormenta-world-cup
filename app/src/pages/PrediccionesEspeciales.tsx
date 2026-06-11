@@ -18,6 +18,7 @@ const VACIO: Especiales = {
   semifinalista_3: null,
   semifinalista_4: null,
   goleador: null,
+  asistidor: null,
   mejor_jugador: null,
   mejor_arquero: null,
   mejor_joven: null,
@@ -107,6 +108,7 @@ export default function PrediccionesEspeciales() {
 
         <Seccion titulo="Premios individuales">
           <TextoCampo label="Goleador" valor={datos.goleador} ro={ro} onChange={(v) => set("goleador", v)} />
+          <TextoCampo label="Asistidor" valor={datos.asistidor} ro={ro} onChange={(v) => set("asistidor", v)} />
           <TextoCampo label="Mejor jugador" valor={datos.mejor_jugador} ro={ro} onChange={(v) => set("mejor_jugador", v)} />
           <TextoCampo label="Mejor arquero" valor={datos.mejor_arquero} ro={ro} onChange={(v) => set("mejor_arquero", v)} />
           <TextoCampo label="Mejor joven" valor={datos.mejor_joven} ro={ro} onChange={(v) => set("mejor_joven", v)} />

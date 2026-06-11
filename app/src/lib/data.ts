@@ -353,7 +353,7 @@ export async function misEspeciales(
   const { data, error } = await supabase
     .from("predicciones_especiales")
     .select(
-      "campeon, finalista_1, finalista_2, semifinalista_1, semifinalista_2, semifinalista_3, semifinalista_4, goleador, mejor_jugador, mejor_arquero, mejor_joven"
+      "campeon, finalista_1, finalista_2, semifinalista_1, semifinalista_2, semifinalista_3, semifinalista_4, goleador, asistidor, mejor_jugador, mejor_arquero, mejor_joven"
     )
     .eq("jugador_id", Number(jugadorId))
     .maybeSingle();
@@ -376,6 +376,7 @@ export async function guardarEspeciales(
     p_semi_3: e.semifinalista_3,
     p_semi_4: e.semifinalista_4,
     p_goleador: e.goleador,
+    p_asistidor: e.asistidor,
     p_mejor_jugador: e.mejor_jugador,
     p_mejor_arquero: e.mejor_arquero,
     p_mejor_joven: e.mejor_joven,
@@ -408,7 +409,9 @@ const CLAVES_REALES = [
   "real_semi_2",
   "real_semi_3",
   "real_semi_4",
+  "real_tercer",
   "real_goleador",
+  "real_asistidor",
   "real_mejor_jugador",
   "real_mejor_arquero",
   "real_mejor_joven",

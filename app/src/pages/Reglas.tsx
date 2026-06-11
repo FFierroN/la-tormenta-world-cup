@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { BONUS, PUNTOS_ESPECIALES, PUNTOS_PARTIDO } from "../lib/reglas";
+import { PUNTOS_DISTINCION, PUNTOS_PAIS, PUNTOS_PARTIDO } from "../lib/reglas";
 
 export default function Reglas() {
   const navigate = useNavigate();
@@ -27,7 +27,10 @@ export default function Reglas() {
           <ul className="text-sm text-neutral-300 space-y-1 mb-3">
             <li>
               <span className="text-oro font-semibold">Exacto:</span> achuntas el
-              marcador clavado.
+              marcador clavado. Vale mas si <b>pocos</b> lo clavaron:{" "}
+              <span className="text-oro">unico</span> (solo tu),{" "}
+              <span className="text-oro">x2</span> (otra persona tambien) o{" "}
+              <span className="text-oro">x3+</span> (tres o mas).
             </li>
             <li>
               <span className="text-sky-400 font-semibold">Diferencia:</span>{" "}
@@ -43,23 +46,35 @@ export default function Reglas() {
               achuntas ni el resultado. 0 puntos.
             </li>
           </ul>
+          <p className="text-xs text-neutral-500 mb-3">
+            En partidos que terminan en <b>empate</b> no existe “Diferencia”: solo
+            Exacto (con sus tiers) o Acierto.
+          </p>
 
           <div className="overflow-hidden rounded-xl border border-borde">
-            <table className="w-full text-sm">
-              <thead className="bg-carbon-soft text-neutral-400 text-xs uppercase">
+            <table className="w-full text-xs">
+              <thead className="bg-carbon-soft text-neutral-400 uppercase">
                 <tr>
-                  <th className="py-2 px-2 text-left">Fase</th>
-                  <th className="py-2 px-1 text-center">Exacto</th>
-                  <th className="py-2 px-1 text-center">Dif.</th>
-                  <th className="py-2 px-1 text-center">Acierto</th>
+                  <th className="py-2 px-1.5 text-left">Fase</th>
+                  <th className="py-2 px-1 text-center">Unic</th>
+                  <th className="py-2 px-1 text-center">x2</th>
+                  <th className="py-2 px-1 text-center">x3+</th>
+                  <th className="py-2 px-1 text-center">Dif</th>
+                  <th className="py-2 px-1 text-center">Ac</th>
                 </tr>
               </thead>
               <tbody>
                 {PUNTOS_PARTIDO.map((f) => (
                   <tr key={f.fase} className="border-t border-borde">
-                    <td className="py-2 px-2">{f.fase}</td>
+                    <td className="py-2 px-1.5">{f.fase}</td>
                     <td className="py-2 px-1 text-center font-bold text-oro tabular-nums">
-                      {f.exacto}
+                      {f.unico}
+                    </td>
+                    <td className="py-2 px-1 text-center font-bold text-oro/80 tabular-nums">
+                      {f.x2}
+                    </td>
+                    <td className="py-2 px-1 text-center font-bold text-oro/60 tabular-nums">
+                      {f.x3}
                     </td>
                     <td className="py-2 px-1 text-center font-bold text-sky-400 tabular-nums">
                       {f.diferencia}
@@ -74,39 +89,44 @@ export default function Reglas() {
           </div>
         </section>
 
-        {/* Bonus por riesgo */}
-        <section className="bg-carbon-card border border-borde rounded-2xl p-4">
-          <h2 className="text-sm font-bold text-oro uppercase tracking-wide mb-2">
-            Bonus por riesgo
-          </h2>
-          <p className="text-sm text-neutral-300 mb-3">
-            Solo si achuntas el marcador <b>exacto</b>, sumas puntos extra por
-            atreverte con partidos de muchos goles:
-          </p>
-          <ul className="space-y-1.5">
-            {BONUS.map((b) => (
-              <li
-                key={b.pts}
-                className="flex items-center gap-3 text-sm bg-carbon-soft rounded-lg px-3 py-2"
-              >
-                <span className="font-bold text-oro w-8 tabular-nums">{b.pts}</span>
-                <span className="text-neutral-300">{b.ejemplo}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
         {/* Predicciones especiales */}
         <section className="bg-carbon-card border border-borde rounded-2xl p-4">
           <h2 className="text-sm font-bold text-oro uppercase tracking-wide mb-2">
             Predicciones especiales
           </h2>
           <p className="text-sm text-neutral-300 mb-3">
-            Antes de que arranque el Mundial eliges tus apuestas grandes. Cada
-            acierto suma al final del torneo:
+            Antes de que arranque el Mundial eliges tus apuestas grandes. Hay dos
+            tipos y se suman al final del torneo:
+          </p>
+
+          <h3 className="text-xs font-bold text-neutral-200 uppercase tracking-wide mb-1">
+            Pais
+          </h3>
+          <p className="text-xs text-neutral-400 mb-2">
+            Eliges Campeon, 2 finalistas y 4 semifinalistas. Por cada equipo
+            cobras <b>solo la ronda mas alta que realmente logro</b> (un mismo
+            equipo no paga dos veces).
+          </p>
+          <ul className="space-y-1.5 mb-4">
+            {PUNTOS_PAIS.map((e) => (
+              <li
+                key={e.item}
+                className="flex items-center justify-between text-sm bg-carbon-soft rounded-lg px-3 py-2"
+              >
+                <span className="text-neutral-300">{e.item}</span>
+                <span className="font-bold text-oro tabular-nums">{e.pts} pts</span>
+              </li>
+            ))}
+          </ul>
+
+          <h3 className="text-xs font-bold text-neutral-200 uppercase tracking-wide mb-1">
+            Distincion
+          </h3>
+          <p className="text-xs text-neutral-400 mb-2">
+            Premios individuales. Cada uno suma por separado.
           </p>
           <ul className="space-y-1.5">
-            {PUNTOS_ESPECIALES.map((e) => (
+            {PUNTOS_DISTINCION.map((e) => (
               <li
                 key={e.item}
                 className="flex items-center justify-between text-sm bg-carbon-soft rounded-lg px-3 py-2"

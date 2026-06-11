@@ -82,6 +82,7 @@ export interface Especiales {
   semifinalista_3: string | null;
   semifinalista_4: string | null;
   goleador: string | null;
+  asistidor: string | null;
   mejor_jugador: string | null;
   mejor_arquero: string | null;
   mejor_joven: string | null;

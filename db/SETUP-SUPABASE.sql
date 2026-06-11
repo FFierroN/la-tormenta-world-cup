@@ -99,11 +99,11 @@ create table if not exists predicciones_especiales (
   campeon         text,
   finalista_1     text, finalista_2 text,
   semifinalista_1 text, semifinalista_2 text, semifinalista_3 text, semifinalista_4 text,
-  goleador        text, mejor_jugador text, mejor_arquero text, mejor_joven text,
-  puntos_campeon         int not null default 0,
-  puntos_finalistas      int not null default 0,
-  puntos_semifinalistas  int not null default 0,
+  goleador        text, asistidor text, mejor_jugador text, mejor_arquero text, mejor_joven text,
+  -- puntos_pais: campeon/finalista/semi/3er ya con dedup por equipo (ronda mas alta).
+  puntos_pais            int not null default 0,
   puntos_goleador        int not null default 0,
+  puntos_asistidor       int not null default 0,
   puntos_mejor_jugador   int not null default 0,
   puntos_mejor_arquero   int not null default 0,
   puntos_mejor_joven     int not null default 0,
@@ -125,8 +125,9 @@ on conflict (clave) do nothing;
 insert into configuracion (clave, valor) values
   ('real_campeon',''), ('real_finalista_1',''), ('real_finalista_2',''),
   ('real_semi_1',''), ('real_semi_2',''), ('real_semi_3',''), ('real_semi_4',''),
-  ('real_goleador',''), ('real_mejor_jugador',''), ('real_mejor_arquero',''),
-  ('real_mejor_joven','')
+  ('real_tercer',''),
+  ('real_goleador',''), ('real_asistidor',''), ('real_mejor_jugador',''),
+  ('real_mejor_arquero',''), ('real_mejor_joven','')
 on conflict (clave) do nothing;
 
 -- Traduccion de nombres: API-Football usa ingles, nuestra base usa espanol.
@@ -147,45 +148,44 @@ create table if not exists api_cuota (
 -- 2. CALCULO DE PUNTOS (4 niveles: EXACTO+bonus / DIFERENCIA / ACIERTO / FALLA)
 -- =====================================================================
 
+-- Cambia la firma (ahora recibe n_exactos), por eso eliminamos la version vieja.
+drop function if exists calcular_puntos_pronostico(int,int,int,int,text);
 create or replace function calcular_puntos_pronostico(
-  pred_local int, pred_visita int, res_local int, res_visita int, p_fase text
+  pred_local int, pred_visita int, res_local int, res_visita int, p_fase text, n_exactos int
 ) returns int as $$
 declare
-  pts_exacto int; pts_dif int; pts_gan int; bonus int := 0;
-  maxg int; ming int;
+  pts_unico int; pts_x2 int; pts_x3 int; pts_dif int; pts_gan int;
 begin
   if pred_local is null or pred_visita is null
      or res_local is null or res_visita is null then
     return 0;
   end if;
 
-  if    p_fase in ('Grupos','Dieciseisavos') then pts_exacto:=6;  pts_dif:=4;  pts_gan:=2;
-  elsif p_fase in ('Octavos','Cuartos')      then pts_exacto:=8;  pts_dif:=6;  pts_gan:=4;
-  elsif p_fase = 'Semifinales'               then pts_exacto:=10; pts_dif:=8;  pts_gan:=6;
-  elsif p_fase = 'Tercer Puesto'             then pts_exacto:=8;  pts_dif:=6;  pts_gan:=4;
-  elsif p_fase = 'Final'                     then pts_exacto:=12; pts_dif:=10; pts_gan:=8;
+  -- Puntos por fase: [exacto unico, exacto x2, exacto x3+, diferencia, acierto]
+  if    p_fase in ('Grupos','Dieciseisavos')      then pts_unico:=6;  pts_x2:=5;  pts_x3:=4;  pts_dif:=3; pts_gan:=2;
+  elsif p_fase in ('Octavos','Cuartos')           then pts_unico:=9;  pts_x2:=7;  pts_x3:=6;  pts_dif:=4; pts_gan:=3;
+  elsif p_fase in ('Semifinales','Tercer Puesto') then pts_unico:=12; pts_x2:=10; pts_x3:=8;  pts_dif:=6; pts_gan:=4;
+  elsif p_fase = 'Final'                          then pts_unico:=15; pts_x2:=12; pts_x3:=10; pts_dif:=7; pts_gan:=5;
   else  return 0;
   end if;
 
-  -- 1) EXACTO: marcador clavado (+ bonus por riesgo segun cantidad de goles)
+  -- 1) EXACTO: marcador clavado. El valor depende de cuantos lo clavaron (rareza).
+  --    n_exactos = total de jugadores que acertaron el exacto (incluido este). Aplica
+  --    igual en empates (1-1, etc.).
   if pred_local = res_local and pred_visita = res_visita then
-    maxg := greatest(res_local,res_visita);
-    ming := least(res_local,res_visita);
-    if    (maxg>=4 and ming>=2) or (maxg>=5)          then bonus:=3;
-    elsif (maxg=3 and ming=2) or (maxg=4 and ming<=1) then bonus:=2;
-    elsif (maxg=2 and ming=2) or (maxg=3 and ming<=1) then bonus:=1;
-    else bonus:=0;
+    if    coalesce(n_exactos,1) <= 1 then return pts_unico;  -- solo yo
+    elsif n_exactos = 2             then return pts_x2;     -- otra persona tambien
+    else                                return pts_x3;     -- 3 o mas
     end if;
-    return pts_exacto + bonus;
   end if;
 
-  -- 2) DIFERENCIA: misma diferencia de goles y no fue empate
+  -- 2) DIFERENCIA: misma diferencia de goles y NO fue empate (en empate no existe).
   if res_local <> res_visita
      and (res_local - res_visita) = (pred_local - pred_visita) then
     return pts_dif;
   end if;
 
-  -- 3) ACIERTO: solo el resultado (ganador o empate)
+  -- 3) ACIERTO: solo el resultado (ganador correcto, o empate predicho como empate).
   if (res_local > res_visita and pred_local > pred_visita)
      or (res_local < res_visita and pred_local < pred_visita)
      or (res_local = res_visita and pred_local = pred_visita) then
@@ -196,14 +196,31 @@ begin
 end;
 $$ language plpgsql immutable;
 
+-- Cuenta cuantos jugadores clavaron el marcador EXACTO de un partido ya final.
+-- Define el tier (unico/x2/x3+). Estable: tras el pitazo los pronosticos no cambian.
+create or replace function contar_exactos(p_partido_id int)
+returns int language sql stable security definer set search_path = public, extensions as $$
+  select count(*)::int
+  from pronosticos pr
+  join partidos p on p.id = pr.partido_id
+  where pr.partido_id = p_partido_id
+    and p.goles_local is not null and p.goles_visita is not null
+    and pr.pred_local = p.goles_local and pr.pred_visita = p.goles_visita;
+$$;
+
 -- Trigger: al marcar un partido como 'final' con goles, recalcula sus pronosticos
 create or replace function tg_actualizar_puntos() returns trigger as $$
+declare n int;
 begin
   if new.estado = 'final'
      and new.goles_local is not null and new.goles_visita is not null then
+    -- cuantos clavaron el exacto (define el tier unico/x2/x3+)
+    select count(*) into n from pronosticos
+      where partido_id = new.id
+        and pred_local = new.goles_local and pred_visita = new.goles_visita;
     update pronosticos
        set puntos = calcular_puntos_pronostico(
-             pred_local, pred_visita, new.goles_local, new.goles_visita, new.fase),
+             pred_local, pred_visita, new.goles_local, new.goles_visita, new.fase, n),
            updated_at = now()
      where partido_id = new.id;
   end if;
@@ -303,7 +320,7 @@ language sql security definer set search_path = public, extensions as $$
          coalesce(j.alias, j.nombre) as nombre,
          pr.pred_local, pr.pred_visita,
          calcular_puntos_pronostico(pr.pred_local, pr.pred_visita,
-           p.goles_local, p.goles_visita, p.fase) as puntos
+           p.goles_local, p.goles_visita, p.fase, contar_exactos(p.id)) as puntos
   from pronosticos pr
   join jugadores j on j.id = pr.jugador_id
   join partidos  p on p.id = pr.partido_id
@@ -332,11 +349,13 @@ $$;
 
 -- Guardar predicciones especiales. Solo si la ventana esta habilitada
 -- (configuracion.edicion_predicciones_habilitada = 'true'). 'ok' | 'cerrado'.
+-- Cambia la firma (agrega p_asistidor), por eso eliminamos la version vieja.
+drop function if exists guardar_especiales(int,text,text,text,text,text,text,text,text,text,text,text);
 create or replace function guardar_especiales(
   p_jugador_id int,
   p_campeon text, p_finalista_1 text, p_finalista_2 text,
   p_semi_1 text, p_semi_2 text, p_semi_3 text, p_semi_4 text,
-  p_goleador text, p_mejor_jugador text, p_mejor_arquero text, p_mejor_joven text)
+  p_goleador text, p_asistidor text, p_mejor_jugador text, p_mejor_arquero text, p_mejor_joven text)
 returns text language plpgsql security definer set search_path = public, extensions as $$
 declare habil text;
 begin
@@ -346,16 +365,17 @@ begin
   insert into predicciones_especiales (
     jugador_id, campeon, finalista_1, finalista_2,
     semifinalista_1, semifinalista_2, semifinalista_3, semifinalista_4,
-    goleador, mejor_jugador, mejor_arquero, mejor_joven)
+    goleador, asistidor, mejor_jugador, mejor_arquero, mejor_joven)
   values (p_jugador_id, p_campeon, p_finalista_1, p_finalista_2,
     p_semi_1, p_semi_2, p_semi_3, p_semi_4,
-    p_goleador, p_mejor_jugador, p_mejor_arquero, p_mejor_joven)
+    p_goleador, p_asistidor, p_mejor_jugador, p_mejor_arquero, p_mejor_joven)
   on conflict (jugador_id) do update set
     campeon = excluded.campeon,
     finalista_1 = excluded.finalista_1, finalista_2 = excluded.finalista_2,
     semifinalista_1 = excluded.semifinalista_1, semifinalista_2 = excluded.semifinalista_2,
     semifinalista_3 = excluded.semifinalista_3, semifinalista_4 = excluded.semifinalista_4,
-    goleador = excluded.goleador, mejor_jugador = excluded.mejor_jugador,
+    goleador = excluded.goleador, asistidor = excluded.asistidor,
+    mejor_jugador = excluded.mejor_jugador,
     mejor_arquero = excluded.mejor_arquero, mejor_joven = excluded.mejor_joven;
   return 'ok';
 end;
@@ -363,17 +383,21 @@ $$;
 
 -- Recalcula los puntos de las predicciones especiales comparando contra los
 -- resultados reales (configuracion.real_*). Puntajes:
---   Campeon 20 | cada Finalista 8 | cada Semifinalista 5
---   Goleador 10 | Mejor jugador 8 | Mejor arquero 6 | Mejor joven 6
+--   PAIS (dedup por equipo, ronda mas alta lograda): Campeon 30 | Finalista 12
+--         | 3er lugar 8 | Semifinalista 6
+--   DISTINCION (cada una aparte): Goleador 15 | Asistidor 10 | Mejor jugador 10
+--         | Mejor arquero 10 | Mejor joven 10
 -- Match sin distinguir mayusculas/espacios. Lo dispara el admin.
 create or replace function recalcular_especiales()
 returns void language plpgsql security definer set search_path = public, extensions as $$
 declare
-  r_camp text; r_gol text; r_mj text; r_ma text; r_mjov text;
+  r_camp text; r_ter text; r_gol text; r_asi text; r_mj text; r_ma text; r_mjov text;
   v_fin text[]; v_semi text[];
 begin
   select lower(trim(valor)) into r_camp from configuracion where clave='real_campeon';
+  select lower(trim(valor)) into r_ter  from configuracion where clave='real_tercer';
   select lower(trim(valor)) into r_gol  from configuracion where clave='real_goleador';
+  select lower(trim(valor)) into r_asi  from configuracion where clave='real_asistidor';
   select lower(trim(valor)) into r_mj   from configuracion where clave='real_mejor_jugador';
   select lower(trim(valor)) into r_ma   from configuracion where clave='real_mejor_arquero';
   select lower(trim(valor)) into r_mjov from configuracion where clave='real_mejor_joven';
@@ -388,20 +412,36 @@ begin
     lower(trim((select valor from configuracion where clave='real_semi_4')))], '')
     into v_semi;
 
+  -- DISTINCIONES individuales: cada una suma por separado.
   update predicciones_especiales pe set
-    puntos_campeon = case when r_camp <> '' and lower(trim(coalesce(pe.campeon,'')))=r_camp then 20 else 0 end,
-    puntos_finalistas =
-      (case when lower(trim(coalesce(pe.finalista_1,''))) = any(v_fin) then 8 else 0 end) +
-      (case when lower(trim(coalesce(pe.finalista_2,''))) = any(v_fin) then 8 else 0 end),
-    puntos_semifinalistas =
-      (case when lower(trim(coalesce(pe.semifinalista_1,''))) = any(v_semi) then 5 else 0 end) +
-      (case when lower(trim(coalesce(pe.semifinalista_2,''))) = any(v_semi) then 5 else 0 end) +
-      (case when lower(trim(coalesce(pe.semifinalista_3,''))) = any(v_semi) then 5 else 0 end) +
-      (case when lower(trim(coalesce(pe.semifinalista_4,''))) = any(v_semi) then 5 else 0 end),
-    puntos_goleador      = case when r_gol  <> '' and lower(trim(coalesce(pe.goleador,'')))=r_gol      then 10 else 0 end,
-    puntos_mejor_jugador = case when r_mj   <> '' and lower(trim(coalesce(pe.mejor_jugador,'')))=r_mj   then 8  else 0 end,
-    puntos_mejor_arquero = case when r_ma   <> '' and lower(trim(coalesce(pe.mejor_arquero,'')))=r_ma   then 6  else 0 end,
-    puntos_mejor_joven   = case when r_mjov <> '' and lower(trim(coalesce(pe.mejor_joven,'')))=r_mjov   then 6  else 0 end;
+    puntos_goleador      = case when r_gol  <> '' and lower(trim(coalesce(pe.goleador,'')))=r_gol      then 15 else 0 end,
+    puntos_asistidor     = case when r_asi  <> '' and lower(trim(coalesce(pe.asistidor,'')))=r_asi     then 10 else 0 end,
+    puntos_mejor_jugador = case when r_mj   <> '' and lower(trim(coalesce(pe.mejor_jugador,'')))=r_mj   then 10 else 0 end,
+    puntos_mejor_arquero = case when r_ma   <> '' and lower(trim(coalesce(pe.mejor_arquero,'')))=r_ma   then 10 else 0 end,
+    puntos_mejor_joven   = case when r_mjov <> '' and lower(trim(coalesce(pe.mejor_joven,'')))=r_mjov   then 10 else 0 end;
+
+  -- PAIS: por cada equipo DISTINTO que elegiste (en cualquier slot), cobras su
+  -- ronda mas alta REALMENTE lograda. Un mismo equipo paga una sola vez (dedup).
+  update predicciones_especiales pe set
+    puntos_pais = coalesce((
+      select sum(valor_equipo) from (
+        select t.equipo,
+          max(case
+            when r_camp <> '' and t.equipo = r_camp  then 30
+            when t.equipo = any(v_fin)               then 12
+            when r_ter  <> '' and t.equipo = r_ter   then 8
+            when t.equipo = any(v_semi)              then 6
+            else 0 end) as valor_equipo
+        from (
+          select lower(trim(x)) as equipo from unnest(array[
+            pe.campeon, pe.finalista_1, pe.finalista_2,
+            pe.semifinalista_1, pe.semifinalista_2, pe.semifinalista_3, pe.semifinalista_4
+          ]) as x
+          where x is not null and trim(x) <> ''
+        ) t
+        group by t.equipo
+      ) s
+    ), 0);
 end;
 $$;
 
@@ -457,12 +497,12 @@ with base as (
     -- nunca quedan desincronizados de exactos/aciertos aunque se cargue el
     -- pronostico despues del resultado.
     coalesce(sum(calcular_puntos_pronostico(
-        pr.pred_local, pr.pred_visita, p.goles_local, p.goles_visita, p.fase)),0)
+        pr.pred_local, pr.pred_visita, p.goles_local, p.goles_visita, p.fase,
+        contar_exactos(p.id))),0)
       + coalesce(j.ajuste_puntos, 0)            -- ajuste manual del admin (suma/resta)
       + coalesce((
-          select pe.puntos_campeon + pe.puntos_finalistas + pe.puntos_semifinalistas
-               + pe.puntos_goleador + pe.puntos_mejor_jugador
-               + pe.puntos_mejor_arquero + pe.puntos_mejor_joven
+          select pe.puntos_pais + pe.puntos_goleador + pe.puntos_asistidor
+               + pe.puntos_mejor_jugador + pe.puntos_mejor_arquero + pe.puntos_mejor_joven
           from predicciones_especiales pe where pe.jugador_id = j.id), 0) as puntos,
     count(*) filter (where p.estado='final'
         and pr.pred_local=p.goles_local and pr.pred_visita=p.goles_visita) as exactos,
@@ -566,9 +606,10 @@ grant execute on function cambiar_pin(int,text,text)      to anon, authenticated
 grant execute on function set_onboarding(int,boolean)     to anon, authenticated;
 grant execute on function guardar_pronostico(int,int,int,int) to anon, authenticated;
 grant execute on function pronosticos_partido(int,int)    to anon, authenticated;
+grant execute on function contar_exactos(int)             to anon, authenticated;
 grant execute on function mis_pronosticos(int)             to anon, authenticated;
 grant execute on function actualizar_alias(int,text)       to anon, authenticated;
-grant execute on function guardar_especiales(int,text,text,text,text,text,text,text,text,text,text,text) to anon, authenticated;
+grant execute on function guardar_especiales(int,text,text,text,text,text,text,text,text,text,text,text,text) to anon, authenticated;
 grant execute on function recalcular_especiales()         to anon, authenticated;
 grant execute on function listar_jugadores_admin()        to anon, authenticated;
 grant execute on function set_jugador_activo(int,boolean)  to anon, authenticated;

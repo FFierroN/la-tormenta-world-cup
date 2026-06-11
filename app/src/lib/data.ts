@@ -318,6 +318,26 @@ export async function setPrediccionesHabilitadas(on: boolean): Promise<void> {
   lanzarSi(error);
 }
 
+// ---------- FOTO DE FONDO DEL ULTIMO LUGAR (toggle admin) ----------
+// Lee/escribe la llave 'foto_ultimo_habilitada' (mismo patron que arriba).
+export async function fotoUltimoHabilitada(): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("configuracion")
+    .select("valor")
+    .eq("clave", "foto_ultimo_habilitada")
+    .maybeSingle();
+  lanzarSi(error);
+  return data?.valor === "true";
+}
+
+export async function setFotoUltimoHabilitada(on: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("configuracion")
+    .update({ valor: on ? "true" : "false", updated_at: new Date().toISOString() })
+    .eq("clave", "foto_ultimo_habilitada");
+  lanzarSi(error);
+}
+
 export async function misEspeciales(
   jugadorId: string
 ): Promise<Especiales | null> {

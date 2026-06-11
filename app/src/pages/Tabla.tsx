@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar";
 import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
-import { obtenerTabla } from "../lib/data";
+import { obtenerTabla, fotoUltimoHabilitada } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import type { FilaTabla } from "../lib/types";
 
@@ -10,8 +10,10 @@ type Pestana = "galeria" | "clasica";
 export default function Tabla() {
   const [pestana, setPestana] = useState<Pestana>("galeria");
   const { data, cargando, error } = useAsync(obtenerTabla, []);
+  const { data: fotoCfg } = useAsync(fotoUltimoHabilitada, []);
   const filas = data ?? [];
   const total = filas.length;
+  const fotoUltimoOn = fotoCfg ?? false;
 
   return (
     <div className="max-w-md mx-auto">
@@ -41,7 +43,7 @@ export default function Tabla() {
       </div>
 
       {pestana === "galeria" ? (
-        <Galeria filas={filas} total={total} />
+        <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} />
       ) : (
         <Clasica filas={filas} />
       )}
@@ -71,32 +73,53 @@ function TabBtn({
 }
 
 /* ---------- Pestana 1: galeria de avatares ---------- */
-function Galeria({ filas, total }: { filas: FilaTabla[]; total: number }) {
+function Galeria({
+  filas,
+  total,
+  fotoUltimoOn,
+}: {
+  filas: FilaTabla[];
+  total: number;
+  fotoUltimoOn: boolean;
+}) {
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
-      {filas.map((f) => (
-        <article
-          key={f.jugador_id}
-          className="bg-carbon-card border border-borde rounded-2xl px-4 py-5 flex flex-col items-center text-center"
-        >
-          <Avatar
-            src={avatarPorPosicion(f, total)}
-            nombre={f.nombre}
-            width={150}
-            variante={bordePorPosicion(f.posicion, total)}
-          />
-          <div className="mt-3 text-2xl font-extrabold text-oro">#{f.posicion}</div>
-          <div className="text-lg font-bold">{f.alias ?? f.nombre}</div>
-          <div className="mt-1 text-3xl font-black tabular-nums">{f.puntos}</div>
-          <div className="text-xs uppercase tracking-wide text-neutral-400">puntos</div>
+      {filas.map((f) => {
+        // Foto de fondo SOLO para el ultimo lugar y si el admin la activo.
+        const conFoto = fotoUltimoOn && total > 0 && f.posicion === total;
+        return (
+          <article
+            key={f.jugador_id}
+            style={conFoto ? { backgroundImage: "url('/ultimo.png')" } : undefined}
+            className={`relative overflow-hidden bg-carbon-card border border-borde rounded-2xl ${
+              conFoto ? "bg-cover bg-center" : ""
+            }`}
+          >
+            {/* Scrim oscuro para mantener legible el texto sobre la foto (WCAG). */}
+            {conFoto && (
+              <div className="absolute inset-0 bg-black/60" aria-hidden="true" />
+            )}
+            <div className="relative z-10 px-4 py-5 flex flex-col items-center text-center">
+              <Avatar
+                src={avatarPorPosicion(f, total)}
+                nombre={f.nombre}
+                width={150}
+                variante={bordePorPosicion(f.posicion, total)}
+              />
+              <div className="mt-3 text-2xl font-extrabold text-oro">#{f.posicion}</div>
+              <div className="text-lg font-bold">{f.alias ?? f.nombre}</div>
+              <div className="mt-1 text-3xl font-black tabular-nums">{f.puntos}</div>
+              <div className="text-xs uppercase tracking-wide text-neutral-400">puntos</div>
 
-          <div className="mt-4 grid grid-cols-3 gap-2 w-full">
-            <Stat label="Exactos" valor={f.exactos} />
-            <Stat label="Aciertos" valor={f.aciertos} />
-            <Stat label="Fallas" valor={f.fallas} />
-          </div>
-        </article>
-      ))}
+              <div className="mt-4 grid grid-cols-3 gap-2 w-full">
+                <Stat label="Exactos" valor={f.exactos} />
+                <Stat label="Aciertos" valor={f.aciertos} />
+                <Stat label="Fallas" valor={f.fallas} />
+              </div>
+            </div>
+          </article>
+        );
+      })}
     </div>
   );
 }

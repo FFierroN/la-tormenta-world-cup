@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   listarPartidos,
   prediccionesHabilitadas,
   setPrediccionesHabilitadas,
+  fotoUltimoHabilitada,
+  setFotoUltimoHabilitada,
 } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { ESTADO_LABEL, enCurso } from "../lib/estados";
 import { fmtFechaHora } from "../lib/fechas";
+import ConfigToggle from "../components/ConfigToggle";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -30,7 +33,21 @@ export default function Admin() {
         </p>
       </header>
 
-      <ToggleEspeciales />
+      <ConfigToggle
+        titulo="Predicciones especiales"
+        descripcionOn="Ventana ABIERTA: pueden editar."
+        descripcionOff="Ventana cerrada."
+        cargar={prediccionesHabilitadas}
+        guardar={setPrediccionesHabilitadas}
+      />
+
+      <ConfigToggle
+        titulo="Foto del último lugar"
+        descripcionOn="Visible: el cuadro del último lleva foto de fondo."
+        descripcionOff="Oculta: el cuadro del último se ve normal."
+        cargar={fotoUltimoHabilitada}
+        guardar={setFotoUltimoHabilitada}
+      />
 
       <div className="px-4 mb-3">
         <button
@@ -89,55 +106,6 @@ export default function Admin() {
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-/* ---------- Toggle ventana de predicciones especiales ---------- */
-function ToggleEspeciales() {
-  const [on, setOn] = useState(false);
-  const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
-
-  useEffect(() => {
-    prediccionesHabilitadas()
-      .then(setOn)
-      .finally(() => setCargando(false));
-  }, []);
-
-  const cambiar = async () => {
-    setGuardando(true);
-    const nuevo = !on;
-    try {
-      await setPrediccionesHabilitadas(nuevo);
-      setOn(nuevo);
-    } finally {
-      setGuardando(false);
-    }
-  };
-
-  return (
-    <div className="mx-4 mb-3 bg-carbon-card border border-borde rounded-xl p-4 flex items-center justify-between gap-3">
-      <div>
-        <div className="text-sm font-semibold">Predicciones especiales</div>
-        <div className="text-xs text-neutral-400">
-          {cargando ? "..." : on ? "Ventana ABIERTA: pueden editar." : "Ventana cerrada."}
-        </div>
-      </div>
-      <button
-        onClick={cambiar}
-        disabled={cargando || guardando}
-        aria-pressed={on}
-        className={`relative w-14 h-8 rounded-full transition-colors disabled:opacity-50 ${
-          on ? "bg-oro" : "bg-carbon-soft border border-borde"
-        }`}
-      >
-        <span
-          className={`absolute top-1 w-6 h-6 rounded-full bg-white transition-all ${
-            on ? "left-7" : "left-1"
-          }`}
-        />
-      </button>
     </div>
   );
 }

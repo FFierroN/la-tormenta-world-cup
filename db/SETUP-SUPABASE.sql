@@ -115,8 +115,9 @@ create table if not exists configuracion (
   valor      text not null default 'false',
   updated_at timestamptz not null default now()
 );
-insert into configuracion (clave, valor)
-values ('edicion_predicciones_habilitada', 'false')
+insert into configuracion (clave, valor) values
+  ('edicion_predicciones_habilitada', 'false'),
+  ('foto_ultimo_habilitada', 'false')
 on conflict (clave) do nothing;
 
 -- Resultados reales para puntuar las predicciones especiales (los carga el

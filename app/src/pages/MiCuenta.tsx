@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { actualizarAlias, cambiarPin } from "../lib/data";
 import Avatar from "../components/Avatar";
+import BotonEspeciales from "../components/BotonEspeciales";
 import type { Jugador } from "../lib/types";
 
 export default function MiCuenta() {
@@ -44,12 +45,7 @@ export default function MiCuenta() {
 
       <MisAvatares jugador={jugador} />
 
-      <button
-        onClick={() => navigate("/especiales")}
-        className="glow-oro mt-4 w-full bg-carbon-card border-2 border-oro rounded-2xl py-3 font-semibold text-oro active:bg-carbon-soft"
-      >
-        Mis predicciones especiales
-      </button>
+      <BotonEspeciales className="mt-4" />
 
       <button
         onClick={() => navigate("/reglas")}

@@ -63,6 +63,7 @@ EQUIPOS = {
     "South Korea": "República de Corea", "Korea Republic": "República de Corea",
     "Czech Republic": "Chequia", "Czechia": "Chequia",
     "Canada": "Canadá", "Bosnia and Herzegovina": "Bosnia y Herzegovina",
+    "Bosnia-Herzegovina": "Bosnia y Herzegovina",
     "USA": "Estados Unidos", "United States": "Estados Unidos",
     "Paraguay": "Paraguay", "Qatar": "Catar", "Switzerland": "Suiza",
     "Brazil": "Brasil", "Morocco": "Marruecos", "Haiti": "Haití",
@@ -212,7 +213,11 @@ def buscar_partido(m: dict) -> dict | None:
     local = nuestro_nombre(home)
     visita = nuestro_nombre(away)
     if not local or not visita:
-        print(f"  SIN MAPEAR: '{home}' vs '{away}' (agregar a EQUIPOS)")
+        faltan = []
+        if not local:  faltan.append(f"'{home}'")
+        if not visita: faltan.append(f"'{away}'")
+        print(f"  SIN MAPEAR ({', '.join(faltan)}): {home} vs {away}"
+              f" -- agregar a EQUIPOS")
         return None
 
     fecha_api = (m.get("utcDate") or "")[:10]  # YYYY-MM-DD
@@ -230,19 +235,46 @@ def buscar_partido(m: dict) -> dict | None:
 
 
 # ------------------------------------------------------------- actualizaciones
-def actualizar_partido(p: dict, m: dict) -> str:
+# Prioridad de estado: nunca degradar un partido (proteccion contra retrasos
+# del feed y contra pisar ediciones manuales).
+PRIORIDAD_ESTADO = {
+    "programado": 0, "suspendido": 0,
+    "en_vivo": 1, "entretiempo": 1,
+    "alargue": 2, "penales": 3,
+    "final": 4,
+}
+
+
+def actualizar_partido(p: dict, m: dict) -> str | None:
     status = m.get("status") or "SCHEDULED"
-    estado = ESTADO_MAP.get(status, "programado")
+    nuevo_estado = ESTADO_MAP.get(status, "programado")
+
+    # Salvaguarda 1: no degradar el estado. Si la DB ya dice en_vivo/final/etc
+    # y la API trae algo "menos avanzado", ignoramos la actualizacion. Esto
+    # cubre dos casos: (a) feed con delay, (b) edicion manual del admin.
+    prio_db = PRIORIDAD_ESTADO.get(p.get("estado") or "", 0)
+    prio_api = PRIORIDAD_ESTADO.get(nuevo_estado, 0)
+    if prio_api < prio_db:
+        print(f"  saltado (API={status} retrocederia '{p.get('estado')}'): "
+              f"{p['equipo_local']} vs {p['equipo_visita']}")
+        return None
+
     score = m.get("score") or {}
     ft = score.get("fullTime") or {}
     pen = score.get("penalties") or {}
 
-    body: dict = {
-        "estado": estado,
-        "goles_local": ft.get("home"),
-        "goles_visita": ft.get("away"),
-        "minuto": m.get("minute"),
-    }
+    body: dict = {"estado": nuevo_estado}
+
+    # Salvaguarda 2: no escribir null encima de un valor real. Si la API trae
+    # None (porque todavia no carga el dato o se reseteo el feed), respetamos
+    # lo que ya esta en DB (sea del robot anterior o del admin).
+    if ft.get("home") is not None:
+        body["goles_local"] = ft.get("home")
+    if ft.get("away") is not None:
+        body["goles_visita"] = ft.get("away")
+    if m.get("minute") is not None:
+        body["minuto"] = m.get("minute")
+
     if pen.get("home") is not None or pen.get("away") is not None:
         body["penales_local"] = pen.get("home")
         body["penales_visita"] = pen.get("away")
@@ -340,6 +372,8 @@ def main() -> None:
             continue
         try:
             status = actualizar_partido(p, m)
+            if status is None:
+                continue  # saltado por salvaguarda; no tocar eventos tampoco
             if necesita_eventos(p, status):
                 try:
                     sincronizar_eventos(p, m)

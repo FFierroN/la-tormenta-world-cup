@@ -6,7 +6,13 @@ import { fmtFechaHora } from "../lib/fechas";
 import { armarCuadro, enPares, type LlavePartido } from "../lib/llaves";
 import type { Partido } from "../lib/types";
 
-export default function Llave({ partidos }: { partidos: Partido[] }) {
+export default function Llave({
+  partidos,
+  titulo,
+}: {
+  partidos: Partido[];
+  titulo?: string; // reemplaza "Partido N" cuando la fase es un unico partido
+}) {
   if (partidos.length === 0) {
     return (
       <p className="px-4 py-8 text-center text-neutral-400 text-sm">
@@ -22,10 +28,12 @@ export default function Llave({ partidos }: { partidos: Partido[] }) {
 
   if (!conCuadro) {
     const todos = [...izquierda, ...derecha];
+    // El titulo solo aplica si la fase es un unico partido (ej. La Gran Final).
+    const tituloUnico = todos.length === 1 ? titulo : undefined;
     return (
       <div className="px-4 py-4 flex flex-col gap-3">
         {todos.map((lp) => (
-          <TarjetaLlave key={lp.partido.id} lp={lp} />
+          <TarjetaLlave key={lp.partido.id} lp={lp} titulo={tituloUnico} />
         ))}
       </div>
     );
@@ -81,12 +89,12 @@ function LadoCuadro({ items }: { items: LlavePartido[] }) {
   );
 }
 
-function TarjetaLlave({ lp }: { lp: LlavePartido }) {
+function TarjetaLlave({ lp, titulo }: { lp: LlavePartido; titulo?: string }) {
   const { n, partido: p } = lp;
   return (
     <article className="bg-carbon-card border border-borde rounded-2xl p-4">
       <header className="flex items-center justify-between gap-2 mb-3">
-        <span className="text-sm font-bold">Partido {n}</span>
+        <span className="text-sm font-bold">{titulo ?? `Partido ${n}`}</span>
         <span className="text-[11px] text-neutral-400 text-right">
           {fmtFechaHora(p.fecha)}
           {p.ciudad ? ` \u00b7 ${p.ciudad}` : ""}

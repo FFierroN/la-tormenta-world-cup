@@ -62,7 +62,14 @@ export default function Copa() {
       )}
 
       {!cargando && !error && (
-        esGrupos ? <TablaGrupos /> : <Llave partidos={partidosFase} />
+        esGrupos ? (
+          <TablaGrupos />
+        ) : (
+          <Llave
+            partidos={partidosFase}
+            titulo={tab.key === "final" ? "La Gran Final" : undefined}
+          />
+        )
       )}
     </div>
   );

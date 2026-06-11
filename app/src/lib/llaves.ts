@@ -20,7 +20,8 @@ export const TABS_COPA: TabCopa[] = [
   { key: "octavos", label: "Octavos", fases: ["Octavos"] },
   { key: "cuartos", label: "Cuartos", fases: ["Cuartos"] },
   { key: "semifinales", label: "Semifinales", fases: ["Semifinales"] },
-  { key: "final", label: "Final", fases: ["Final", "Tercer Puesto"] },
+  { key: "tercer", label: "3er lugar", fases: ["Tercer Puesto"] },
+  { key: "final", label: "Final", fases: ["Final"] },
 ];
 
 export interface LlavePartido {

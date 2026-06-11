@@ -6,7 +6,16 @@ name: Sincronizar resultados (worldcup26.ir -> Supabase)
 # (worldcup26.ir no requiere API key)
 
 on:
-  workflow_dispatch: {}        # permite correrlo a mano desde la pestana Actions
+  workflow_dispatch:           # permite correrlo a mano desde la pestana Actions
+    inputs:
+      modo:
+        description: "auto = normal | todos = re-sincroniza los 64 partidos (corrige nombres de goleadores)"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - todos
   schedule:
     # Cada 5 min, las 24h, SOLO en junio/julio (el Mundial 2026).
     # Repo PUBLICO = minutos de Actions ILIMITADOS.
@@ -39,4 +48,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          MODO: ${{ github.event.inputs.modo || 'auto' }}
         run: python robot/actualizar.py

@@ -38,6 +38,17 @@ API_URL = "https://worldcup26.ir/get/games"
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 
+# MODO:
+#   'auto'  (default) -> el cron normal: trabaja si hay partidos en vivo, por
+#                        empezar, o finalizados hace poco (re-sincroniza nombres).
+#   'todos'           -> ignora el auto-gatillo y re-sincroniza los 64 partidos.
+#                        Util al final del Mundial para limpiar todos los
+#                        goleadores de una. Se dispara a mano desde Actions.
+MODO = os.getenv("MODO", "auto").strip().lower()
+# Cuanto tiempo despues del pitazo seguimos re-sincronizando un partido final,
+# para darle a la API tiempo de cargar/corregir los nombres de goleadores.
+HORAS_REVISION_FINAL = int(os.getenv("HORAS_REVISION_FINAL", "12"))
+
 # Estado nuestro derivado de los campos finished + time_elapsed de la API.
 #   finished=TRUE                 -> final
 #   finished=FALSE + live         -> en_vivo
@@ -207,9 +218,22 @@ def sb_insert(tabla: str, filas: list[dict]) -> None:
     r.raise_for_status()
 
 
+def sb_delete(tabla: str, filtro: dict) -> None:
+    r = requests.delete(
+        f"{SUPABASE_URL}/rest/v1/{tabla}",
+        headers=sb_headers({"Prefer": "return=minimal"}),
+        params=filtro,
+        timeout=20,
+    )
+    r.raise_for_status()
+
+
 # ------------------------------------------------------ auto-gatillo (ventana)
 def hay_trabajo() -> bool:
-    """Si no hay partidos en vivo ni por empezar, salimos sin tocar la API."""
+    """Decide si vale la pena llamar a la API (consulta GRATIS a Supabase).
+    True si hay partidos: (a) en vivo, (b) por empezar pronto, o (c) finalizados
+    hace poco -> seguimos corrigiendo nombres de goleadores un rato post-pitazo.
+    """
     vivos = sb_get("partidos", {
         "estado": "in.(en_vivo,entretiempo,alargue,penales)",
         "select": "id", "limit": "1",
@@ -224,7 +248,17 @@ def hay_trabajo() -> bool:
         "and": f"(fecha.gte.{lo},fecha.lte.{hi})",
         "select": "id", "limit": "1",
     })
-    return bool(proximos)
+    if proximos:
+        return True
+    # Finalizados hace poco: seguimos re-sincronizando para corregir nombres
+    # mal escritos a mano (la API tarda en cargar los goleadores definitivos).
+    desde = (ahora - timedelta(hours=HORAS_REVISION_FINAL)).isoformat()
+    recien = sb_get("partidos", {
+        "estado": "eq.final",
+        "finalizado_at": f"gte.{desde}",
+        "select": "id", "limit": "1",
+    })
+    return bool(recien)
 
 
 # ----------------------------------------------------------------- matching
@@ -314,13 +348,16 @@ def actualizar_partido(p: dict, m: dict) -> str | None:
 
 
 def sincronizar_goles(p: dict, m: dict) -> None:
-    """Agrega goles nuevos a partido_eventos sin pisar los existentes.
+    """La API es la FUENTE DE VERDAD de los goleadores (nombre + minuto).
 
-    No borramos nada: el admin puede haber agregado asistencias, tarjetas u
-    otros datos manuales en filas que ya existen. Solo INSERT cuando el
-    (jugador, minuto, equipo) no esta presente todavia.
+    Borra y reinserta los goles desde la API -> corrige nombres mal escritos a
+    mano (clave para el premio Goleador, que agrupa por nombre). PERO preserva
+    los datos que el admin cargo a mano y la API no trae (asistencia, penal,
+    autogol, etc.), restaurandolos por (equipo, minuto).
+
+    Salvaguarda: si la API NO trae goles (lista vacia, p.ej. un glitch o feed
+    aun sin cargar), NO borra nada. Asi un hipo de la API no te borra el partido.
     """
-    home_nombre = (m.get("home_team_name_en") or "").strip()
     parsed: list[tuple[str, int, str]] = []
     for jugador, minuto in parsear_scorers(m.get("home_scorers")):
         parsed.append((jugador, minuto, "local"))
@@ -328,36 +365,44 @@ def sincronizar_goles(p: dict, m: dict) -> None:
         parsed.append((jugador, minuto, "visita"))
 
     if not parsed:
-        return
+        return  # la API no asegura goles -> no tocamos nada
 
+    # Guardar los datos manuales existentes (asistencia/detalle) por equipo+minuto
     existentes = sb_get("partido_eventos", {
         "partido_id": f"eq.{p['id']}",
         "tipo": "eq.gol",
-        "select": "jugador,minuto,equipo",
+        "select": "equipo,minuto,asistencia,detalle",
     })
-    ya = {(e["jugador"], e["minuto"], e["equipo"]) for e in existentes}
+    manual = {}
+    for e in existentes:
+        manual[(e["equipo"], e["minuto"])] = {
+            "asistencia": e.get("asistencia"),
+            "detalle": e.get("detalle") or "normal",
+        }
 
-    nuevos = []
+    # Reconstruir goles 100% desde la API, restaurando lo manual donde calce.
+    filas = []
+    vistos = set()
     for jugador, minuto, equipo in parsed:
-        clave = (jugador, minuto, equipo)
-        if clave in ya:
-            continue
-        ya.add(clave)  # evita duplicar si la API repite
-        nuevos.append({
+        if (jugador, minuto, equipo) in vistos:
+            continue  # la API a veces repite
+        vistos.add((jugador, minuto, equipo))
+        prev = manual.get((equipo, minuto), {})
+        filas.append({
             "partido_id": p["id"],
             "tipo": "gol",
             "equipo": equipo,
             "minuto": minuto,
-            "jugador": jugador,
-            "asistencia": None,   # worldcup26.ir no la trae; admin la carga despues
-            "detalle": "normal",  # tampoco distingue penal/autogol
+            "jugador": jugador,                      # nombre correcto de la API
+            "asistencia": prev.get("asistencia"),    # preservado del admin
+            "detalle": prev.get("detalle", "normal"),  # preservado del admin
         })
-    if nuevos:
-        sb_insert("partido_eventos", nuevos)
-        print(f"  +{len(nuevos)} gol(es) nuevos en {p['equipo_local']} vs {p['equipo_visita']}")
-    # Nota visible: home_nombre solo se usa si en el futuro queremos validar
-    # consistencia de equipo; por ahora lo dejamos.
-    _ = home_nombre
+
+    sb_delete("partido_eventos",
+              {"partido_id": f"eq.{p['id']}", "tipo": "eq.gol"})
+    sb_insert("partido_eventos", filas)
+    print(f"  {len(filas)} gol(es) sincronizados en "
+          f"{p['equipo_local']} vs {p['equipo_visita']}")
 
 
 def relevante_para_hoy(m: dict) -> bool:
@@ -374,13 +419,20 @@ def relevante_para_hoy(m: dict) -> bool:
 
 # ------------------------------------------------------------------------ main
 def main() -> None:
-    if not hay_trabajo():
-        print("No hay partidos en vivo ni por empezar. Sin requests a la API.")
+    modo_todos = MODO == "todos"
+    if not modo_todos and not hay_trabajo():
+        print("No hay partidos en vivo, por empezar ni finalizados hace poco. "
+              "Sin requests a la API.")
         return
 
     todos = api_get_juegos()
-    relevantes = [m for m in todos if relevante_para_hoy(m)]
-    print(f"Partidos totales: {len(todos)} | relevantes hoy +/-1d: {len(relevantes)}")
+    if modo_todos:
+        relevantes = todos
+        print(f"MODO=todos -> re-sincronizando los {len(todos)} partidos.")
+    else:
+        relevantes = [m for m in todos if relevante_para_hoy(m)]
+        print(f"Partidos totales: {len(todos)} | relevantes hoy +/-1d: "
+              f"{len(relevantes)}")
 
     for m in relevantes:
         p = buscar_partido(m)

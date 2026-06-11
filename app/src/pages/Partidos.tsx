@@ -4,7 +4,7 @@ import Flag from "../components/Flag";
 import { listarPartidos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { ESTADO_LABEL, enCurso } from "../lib/estados";
-import { fmtFechaHora, fmtFechaCorta, claveDia, claveHoy } from "../lib/fechas";
+import { fmtFechaHora, claveDia, claveHoy } from "../lib/fechas";
 import type { Partido } from "../lib/types";
 
 // Orden de las fases de eliminacion (para mostrarlas en secuencia).
@@ -17,46 +17,56 @@ const ORDEN_FASE = [
   "Final",
 ];
 
+// Las 3 fechas (jornadas) de la fase de grupos, con su rango (YYYY-MM-DD).
+const FECHAS = [
+  { id: "fecha1", label: "Fecha 1", desde: "2026-06-11", hasta: "2026-06-17" },
+  { id: "fecha2", label: "Fecha 2", desde: "2026-06-18", hasta: "2026-06-23" },
+  { id: "fecha3", label: "Fecha 3", desde: "2026-06-24", hasta: "2026-06-27" },
+];
+
 type Tab = {
-  id: string; // "proximos" | "g-A".."g-L" | "f-Octavos"...
+  id: string; // "fecha1".. | "g-A".."g-L" | "f-Octavos"...
   label: string; // texto del chip
-  subtitulo?: string; // solo "Proximos": etiqueta del dia
+  subtitulo?: string; // etiqueta superior (rango de fechas)
+  mostrarFase?: boolean; // muestra grupo/fase en cada tarjeta (tabs mixtas)
   partidos: Partido[];
 };
 
 const porFecha = (a: Partido, b: Partido) => a.fecha.localeCompare(b.fecha);
 
-// Partidos de HOY; si hoy no hay, el proximo dia que tenga partidos.
-function proximoDia(partidos: Partido[]): { dia: string | null; lista: Partido[] } {
-  const hoy = claveHoy();
-  const deHoy = partidos.filter((p) => claveDia(p.fecha) === hoy);
-  if (deHoy.length) return { dia: hoy, lista: [...deHoy].sort(porFecha) };
-
-  const futuros = partidos
-    .filter((p) => claveDia(p.fecha) > hoy)
-    .sort(porFecha);
-  if (!futuros.length) return { dia: null, lista: [] };
-
-  const prox = claveDia(futuros[0].fecha);
-  return { dia: prox, lista: futuros.filter((p) => claveDia(p.fecha) === prox) };
+// "2026-06-11" -> "11/06"
+function ddmm(clave: string): string {
+  const [, m, d] = clave.split("-");
+  return `${d}/${m}`;
 }
 
-function etiquetaDia(dia: string): string {
-  const texto = fmtFechaCorta(`${dia}T12:00:00`);
-  return dia === claveHoy() ? `Hoy \u00b7 ${texto}` : texto;
+// Pestana de fecha que se abre por defecto: la jornada en curso o la proxima
+// (si ya pasaron todas, la ultima).
+function fechaActivaPorDefecto(): string {
+  const hoy = claveHoy();
+  for (const f of FECHAS) if (hoy <= f.hasta) return f.id;
+  return FECHAS[FECHAS.length - 1].id;
 }
 
 function construirTabs(partidos: Partido[]): Tab[] {
   const tabs: Tab[] = [];
 
-  // 1) Pestana maestra: proximos partidos (del dia).
-  const { dia, lista } = proximoDia(partidos);
-  tabs.push({
-    id: "proximos",
-    label: "Pr\u00f3ximos",
-    subtitulo: dia ? etiquetaDia(dia) : undefined,
-    partidos: lista,
-  });
+  // 1) Una pestana por fecha (jornada): TODOS los partidos de ese rango.
+  for (const f of FECHAS) {
+    const lista = partidos
+      .filter((p) => {
+        const d = claveDia(p.fecha);
+        return d >= f.desde && d <= f.hasta;
+      })
+      .sort(porFecha);
+    tabs.push({
+      id: f.id,
+      label: f.label,
+      subtitulo: `${ddmm(f.desde)} al ${ddmm(f.hasta)}`,
+      mostrarFase: true,
+      partidos: lista,
+    });
+  }
 
   // 2) Fase de grupos: una pestana por grupo (A..L).
   const grupos = partidos.filter((p) => p.grupo);
@@ -78,6 +88,7 @@ function construirTabs(partidos: Partido[]): Tab[] {
     tabs.push({
       id: `f-${fase}`,
       label: fase,
+      mostrarFase: true,
       partidos: llaves.filter((p) => p.fase === fase).sort(porFecha),
     });
   }
@@ -93,7 +104,7 @@ export default function Partidos() {
   const [params] = useSearchParams();
   const grupoParam = params.get("grupo");
   const [activo, setActivo] = useState<string>(
-    grupoParam ? `g-${grupoParam}` : "proximos"
+    grupoParam ? `g-${grupoParam}` : fechaActivaPorDefecto()
   );
 
   // Si llega un ?grupo despues de montar (o cambia), seguimos el deep-link.
@@ -212,7 +223,7 @@ function Panel({ tab }: { tab: Tab }) {
       tabIndex={0}
       className="outline-none pt-4 pb-2"
     >
-      {tab.id === "proximos" && tab.subtitulo && (
+      {tab.subtitulo && (
         <p className="px-4 mb-3 text-sm font-bold text-oro uppercase tracking-wide">
           {tab.subtitulo}
         </p>
@@ -220,14 +231,14 @@ function Panel({ tab }: { tab: Tab }) {
 
       {tab.partidos.length === 0 ? (
         <p className="px-4 text-neutral-400 text-sm">
-          {tab.id === "proximos"
-            ? "No hay partidos programados proximamente."
+          {tab.mostrarFase
+            ? "No hay partidos en esta fecha."
             : "Aun no hay partidos en esta fase."}
         </p>
       ) : (
         <ul className="px-4 flex flex-col gap-3">
           {tab.partidos.map((p) => (
-            <PartidoCard key={p.id} p={p} mostrarFase={tab.id === "proximos"} />
+            <PartidoCard key={p.id} p={p} mostrarFase={tab.mostrarFase} />
           ))}
         </ul>
       )}

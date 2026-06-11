@@ -316,6 +316,14 @@ language sql security definer set search_path = public, extensions as $$
   order by puntos desc nulls last, nombre;
 $$;
 
+-- Devuelve los IDs de partidos que el jugador YA pronostico (para marcar
+-- 'Pronosticado'/'Pendiente' en la lista). No expone los marcadores ajenos.
+create or replace function mis_pronosticos(p_jugador_id int)
+returns table(partido_id int)
+language sql security definer set search_path = public, extensions as $$
+  select pr.partido_id from pronosticos pr where pr.jugador_id = p_jugador_id;
+$$;
+
 -- Actualizar alias (jugadores esta cerrada al anon, por eso via RPC).
 create or replace function actualizar_alias(p_jugador_id int, p_alias text)
 returns void language sql security definer set search_path = public, extensions as $$
@@ -558,6 +566,7 @@ grant execute on function cambiar_pin(int,text,text)      to anon, authenticated
 grant execute on function set_onboarding(int,boolean)     to anon, authenticated;
 grant execute on function guardar_pronostico(int,int,int,int) to anon, authenticated;
 grant execute on function pronosticos_partido(int,int)    to anon, authenticated;
+grant execute on function mis_pronosticos(int)             to anon, authenticated;
 grant execute on function actualizar_alias(int,text)       to anon, authenticated;
 grant execute on function guardar_especiales(int,text,text,text,text,text,text,text,text,text,text,text) to anon, authenticated;
 grant execute on function recalcular_especiales()         to anon, authenticated;

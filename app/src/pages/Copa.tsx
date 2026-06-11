@@ -6,6 +6,7 @@ import TablaGrupos from "../components/TablaGrupos";
 import BotonEspeciales from "../components/BotonEspeciales";
 import { listarPartidos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
+import { useSwipe } from "../lib/useSwipe";
 import { TABS_COPA } from "../lib/llaves";
 
 // Arranque del Mundial: 11/06/2026 15:00 hora de Chile (UTC-4).
@@ -20,6 +21,14 @@ export default function Copa() {
   const tab = TABS_COPA.find((t) => t.key === tabKey) ?? TABS_COPA[0];
   const esGrupos = tab.fases.length === 0;
   const partidosFase = partidos.filter((p) => tab.fases.includes(p.fase));
+
+  // Swipe: desliza a los lados para cambiar de pestana (con tope en extremos).
+  const irRelativo = (delta: number) => {
+    const i = TABS_COPA.findIndex((t) => t.key === tabKey);
+    const j = Math.min(TABS_COPA.length - 1, Math.max(0, i + delta));
+    if (j !== i) setTabKey(TABS_COPA[j].key);
+  };
+  const swipe = useSwipe(() => irRelativo(1), () => irRelativo(-1));
 
   return (
     <div className="max-w-md mx-auto">
@@ -52,25 +61,27 @@ export default function Copa() {
         </div>
       </div>
 
-      {cargando && (
-        <p className="px-4 py-6 text-neutral-400 text-sm">Cargando...</p>
-      )}
-      {error && (
-        <p className="px-4 py-6 text-red-400 text-sm">
-          No se pudo cargar. Revisa la conexion con Supabase.
-        </p>
-      )}
+      <div {...swipe} className="min-h-[60vh]">
+        {cargando && (
+          <p className="px-4 py-6 text-neutral-400 text-sm">Cargando...</p>
+        )}
+        {error && (
+          <p className="px-4 py-6 text-red-400 text-sm">
+            No se pudo cargar. Revisa la conexion con Supabase.
+          </p>
+        )}
 
-      {!cargando && !error && (
-        esGrupos ? (
-          <TablaGrupos />
-        ) : (
-          <Llave
-            partidos={partidosFase}
-            titulo={tab.key === "final" ? "La Gran Final" : undefined}
-          />
-        )
-      )}
+        {!cargando && !error && (
+          esGrupos ? (
+            <TablaGrupos />
+          ) : (
+            <Llave
+              partidos={partidosFase}
+              titulo={tab.key === "final" ? "La Gran Final" : undefined}
+            />
+          )
+        )}
+      </div>
     </div>
   );
 }

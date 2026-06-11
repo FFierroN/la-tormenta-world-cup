@@ -200,6 +200,15 @@ export async function guardarPronostico(
   return String(data);
 }
 
+// IDs de partidos que el jugador YA pronostico (para etiqueta Pronosticado/Pendiente).
+export async function misPronosticos(jugadorId: string): Promise<Set<string>> {
+  const { data, error } = await supabase.rpc("mis_pronosticos", {
+    p_jugador_id: Number(jugadorId),
+  });
+  lanzarSi(error);
+  return new Set((data ?? []).map((r: any) => String(r.partido_id)));
+}
+
 export async function obtenerTabla(): Promise<FilaTabla[]> {
   const { data, error } = await supabase
     .from("tabla_posiciones")

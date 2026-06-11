@@ -26,6 +26,18 @@ export function fmtFechaHora(iso: string): string {
   return `${fmtFechaCorta(iso)} \u00b7 ${fmtHora(iso)}`;
 }
 
+// Ej: "Jueves 11 de junio" (encabezado de dia, con mayuscula inicial).
+export function fmtDiaLargo(iso: string): string {
+  const s = new Date(iso).toLocaleDateString("es-CL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: TZ,
+  });
+  const limpio = s.replace(",", ""); // "jueves, 11 de junio" -> "jueves 11 de junio"
+  return limpio.charAt(0).toUpperCase() + limpio.slice(1);
+}
+
 // Clave de dia para agrupar (YYYY-MM-DD en la zona local).
 export function claveDia(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: TZ });

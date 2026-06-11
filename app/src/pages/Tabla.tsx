@@ -3,6 +3,7 @@ import Avatar from "../components/Avatar";
 import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
 import { obtenerTabla, fotoUltimoHabilitada } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
+import { useSwipe } from "../lib/useSwipe";
 import type { FilaTabla } from "../lib/types";
 
 type Pestana = "galeria" | "clasica";
@@ -14,6 +15,12 @@ export default function Tabla() {
   const filas = data ?? [];
   const total = filas.length;
   const fotoUltimoOn = fotoCfg ?? false;
+
+  // Swipe: desliza a los lados para cambiar entre Tabla y Clasica.
+  const swipe = useSwipe(
+    () => setPestana("clasica"),
+    () => setPestana("galeria")
+  );
 
   return (
     <div className="max-w-md mx-auto">
@@ -43,9 +50,13 @@ export default function Tabla() {
       </div>
 
       {pestana === "galeria" ? (
-        <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} />
+        <div {...swipe}>
+          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} />
+        </div>
       ) : (
-        <Clasica filas={filas} />
+        <div {...swipe}>
+          <Clasica filas={filas} />
+        </div>
       )}
     </div>
   );

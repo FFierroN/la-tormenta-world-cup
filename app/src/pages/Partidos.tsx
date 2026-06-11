@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Flag from "../components/Flag";
-import { listarPartidos } from "../lib/data";
+import { listarPartidos, misPronosticos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
+import { useAuth } from "../lib/auth";
+import { useSwipe } from "../lib/useSwipe";
 import { ESTADO_LABEL, enCurso } from "../lib/estados";
-import { fmtFechaHora, claveDia, claveHoy } from "../lib/fechas";
+import { fmtFechaHora, fmtDiaLargo, claveDia, claveHoy } from "../lib/fechas";
 import type { Partido } from "../lib/types";
 
 // Orden de las fases de eliminacion (para mostrarlas en secuencia).
@@ -33,6 +35,27 @@ type Tab = {
 };
 
 const porFecha = (a: Partido, b: Partido) => a.fecha.localeCompare(b.fecha);
+
+// Un partido se puede pronosticar si sigue programado y aun no empieza
+// (misma regla que valida el servidor en guardar_pronostico).
+function esPronosticable(p: Partido): boolean {
+  return p.estado === "programado" && new Date(p.fecha).getTime() > Date.now();
+}
+
+// Agrupa una lista (ya ordenada por fecha) en secciones por dia.
+function agruparPorDia(partidos: Partido[]): { dia: string; partidos: Partido[] }[] {
+  const grupos: { dia: string; partidos: Partido[] }[] = [];
+  let claveActual = "";
+  for (const p of partidos) {
+    const c = claveDia(p.fecha);
+    if (c !== claveActual) {
+      grupos.push({ dia: fmtDiaLargo(p.fecha), partidos: [] });
+      claveActual = c;
+    }
+    grupos[grupos.length - 1].partidos.push(p);
+  }
+  return grupos;
+}
 
 // "2026-06-11" -> "11/06"
 function ddmm(clave: string): string {
@@ -98,8 +121,16 @@ function construirTabs(partidos: Partido[]): Tab[] {
 }
 
 export default function Partidos() {
+  const { jugador } = useAuth();
   const { data: partidos, cargando, error } = useAsync(listarPartidos, []);
   const tabs = useMemo(() => (partidos ? construirTabs(partidos) : []), [partidos]);
+
+  // IDs de partidos que YO ya pronostique (para la etiqueta).
+  const { data: pronIds } = useAsync(
+    () => (jugador ? misPronosticos(jugador.id) : Promise.resolve(new Set<string>())),
+    [jugador?.id]
+  );
+  const pronosticadoIds = pronIds ?? new Set<string>();
 
   // Deep-link desde Grupos: /partidos?grupo=A -> abre esa pestana.
   const [params] = useSearchParams();
@@ -114,6 +145,15 @@ export default function Partidos() {
   }, [grupoParam]);
 
   const tabActiva = tabs.find((t) => t.id === activo) ?? tabs[0];
+
+  // Swipe: desliza a los lados para cambiar de pestana (con tope en los extremos).
+  const irRelativo = (delta: number) => {
+    const ids = tabs.map((t) => t.id);
+    const i = ids.indexOf(tabActiva?.id ?? "");
+    const j = Math.min(ids.length - 1, Math.max(0, i + delta));
+    if (j !== i) setActivo(ids[j]);
+  };
+  const swipe = useSwipe(() => irRelativo(1), () => irRelativo(-1));
 
   return (
     <div className="max-w-md mx-auto">
@@ -136,7 +176,9 @@ export default function Partidos() {
       {partidos && partidos.length > 0 && tabActiva && (
         <>
           <BarraPestanas tabs={tabs} activo={tabActiva.id} onSelect={setActivo} />
-          <Panel tab={tabActiva} />
+          <div {...swipe}>
+            <Panel tab={tabActiva} pronosticadoIds={pronosticadoIds} />
+          </div>
         </>
       )}
     </div>
@@ -215,7 +257,14 @@ function BarraPestanas({
 }
 
 // ------------------------------------------------------------------- panel
-function Panel({ tab }: { tab: Tab }) {
+function Panel({
+  tab,
+  pronosticadoIds,
+}: {
+  tab: Tab;
+  pronosticadoIds: Set<string>;
+}) {
+  const porDia = tab.id === "proximos"; // en "Proximos" agrupamos por dia
   return (
     <div
       role="tabpanel"
@@ -236,10 +285,36 @@ function Panel({ tab }: { tab: Tab }) {
             ? "No hay partidos en esta fecha."
             : "Aun no hay partidos en esta fase."}
         </p>
+      ) : porDia ? (
+        <div className="flex flex-col gap-5">
+          {agruparPorDia(tab.partidos).map((g) => (
+            <section key={g.dia}>
+              <h2 className="px-4 mb-2 flex items-center gap-2 text-sm font-bold text-neutral-200">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-oro" />
+                {g.dia}
+              </h2>
+              <ul className="px-4 flex flex-col gap-3">
+                {g.partidos.map((p) => (
+                  <PartidoCard
+                    key={p.id}
+                    p={p}
+                    mostrarFase={tab.mostrarFase}
+                    pronosticado={pronosticadoIds.has(p.id)}
+                  />
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       ) : (
         <ul className="px-4 flex flex-col gap-3">
           {tab.partidos.map((p) => (
-            <PartidoCard key={p.id} p={p} mostrarFase={tab.mostrarFase} />
+            <PartidoCard
+              key={p.id}
+              p={p}
+              mostrarFase={tab.mostrarFase}
+              pronosticado={pronosticadoIds.has(p.id)}
+            />
           ))}
         </ul>
       )}
@@ -247,16 +322,38 @@ function Panel({ tab }: { tab: Tab }) {
   );
 }
 
-function PartidoCard({ p, mostrarFase }: { p: Partido; mostrarFase?: boolean }) {
+function PartidoCard({
+  p,
+  mostrarFase,
+  pronosticado,
+}: {
+  p: Partido;
+  mostrarFase?: boolean;
+  pronosticado?: boolean;
+}) {
   const navigate = useNavigate();
+  const puedePronosticar = esPronosticable(p);
   return (
     <li>
       <button
         onClick={() => navigate(`/partido/${p.id}`)}
         className="w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
       >
-        <div className="flex items-center justify-between text-xs text-neutral-400 mb-3">
-          <span>{fmtFechaHora(p.fecha)}</span>
+        <div className="flex items-center justify-between gap-2 text-xs text-neutral-400 mb-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="truncate">{fmtFechaHora(p.fecha)}</span>
+            {puedePronosticar && (
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  pronosticado
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-red-500/20 text-red-400"
+                }`}
+              >
+                {pronosticado ? "Pronosticado" : "Pendiente"}
+              </span>
+            )}
+          </div>
           <span
             className={
               enCurso(p.estado) ? "text-oro font-semibold" : "text-neutral-400"

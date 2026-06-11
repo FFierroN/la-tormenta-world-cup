@@ -41,7 +41,7 @@ SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 # MODO:
 #   'auto'  (default) -> el cron normal: trabaja si hay partidos en vivo, por
 #                        empezar, o finalizados hace poco (re-sincroniza nombres).
-#   'todos'           -> ignora el auto-gatillo y re-sincroniza los 64 partidos.
+#   'todos'           -> ignora el auto-gatillo y re-sincroniza los 104 partidos.
 #                        Util al final del Mundial para limpiar todos los
 #                        goleadores de una. Se dispara a mano desde Actions.
 MODO = os.getenv("MODO", "auto").strip().lower()
@@ -161,7 +161,7 @@ def parsear_scorers(crudo) -> list[tuple[str, int]]:
 
 # ------------------------------------------------------------------- worldcup26
 def api_get_juegos() -> list[dict]:
-    """Una sola llamada trae los 64 partidos del Mundial. Sin auth."""
+    """Una sola llamada trae los 104 partidos del Mundial. Sin auth."""
     r = requests.get(API_URL, timeout=20)
     r.raise_for_status()
     data = r.json()

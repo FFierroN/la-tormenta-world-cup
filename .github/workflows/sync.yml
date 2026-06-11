@@ -9,7 +9,7 @@ on:
   workflow_dispatch:           # permite correrlo a mano desde la pestana Actions
     inputs:
       modo:
-        description: "auto = normal | todos = re-sincroniza los 64 partidos (corrige nombres de goleadores)"
+        description: "auto = normal | todos = re-sincroniza los 104 partidos (corrige nombres de goleadores)"
         required: false
         default: "auto"
         type: choice
@@ -20,7 +20,7 @@ on:
     # Cada 5 min, las 24h, SOLO en junio/julio (el Mundial 2026).
     # Repo PUBLICO = minutos de Actions ILIMITADOS.
     # worldcup26.ir: gratis, sin auth, sin tope conocido. Por corrida hacemos
-    # 1 request (trae los 64 partidos en un JSON). El auto-gatillo pregunta
+    # 1 request (trae los 104 partidos en un JSON). El auto-gatillo pregunta
     # gratis a Supabase y si no hay partidos en vivo ni por empezar, sale sin
     # tocar la API (0 requests).
     - cron: "*/5 * * 6,7 *"

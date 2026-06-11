@@ -99,7 +99,13 @@ export default function PartidoDetalle() {
             <TeamHead code={partido.pais_local} nombre={partido.equipo_local} />
             <div className="text-center">
               <div className="flex items-center justify-center">
-                <EstadoBadge estado={partido.estado} className="text-xs" />
+                {partido.estado === "final" ? (
+                  <span className="text-sm font-bold text-neutral-100">
+                    Partido Finalizado
+                  </span>
+                ) : (
+                  <EstadoBadge estado={partido.estado} className="text-xs" />
+                )}
               </div>
               {partido.estado === "programado" ? (
                 <div className="text-2xl font-bold mt-1">

@@ -41,7 +41,7 @@ export function estiloEstado(estado: EstadoPartido): EstiloEstado {
     case "penales":
       return { mostrar: true, punto: "text-yellow-400", glow: true };
     case "final":
-      return { mostrar: true, punto: null, glow: false };
+      return { mostrar: false, punto: null, glow: false };
     default: // suspendido
       return { mostrar: true, punto: null, glow: false };
   }

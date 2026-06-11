@@ -77,9 +77,11 @@ function construirTabs(partidos: Partido[]): Tab[] {
   const tabs: Tab[] = [];
 
   // 1) Pestana "Proximos": SOLO la jornada activa (rola sola en el 'desde').
+  //    Ademas escondemos los que ya terminaron: esos viven en su grupo/fase.
   const f = fechaActiva();
   const lista = partidos
     .filter((p) => {
+      if (p.estado === "final") return false; // finalizado -> fuera de Proximos
       const d = claveDia(p.fecha);
       return d >= f.desde && d <= f.hasta;
     })
@@ -321,20 +323,13 @@ function PartidoCard({
 }) {
   const navigate = useNavigate();
   const puedePronosticar = esPronosticable(p);
-  const jugado = p.estado === "final"; // velo gris cuando el partido ya termino
+  const jugado = p.estado === "final";
   return (
     <li>
       <button
         onClick={() => navigate(`/partido/${p.id}`)}
-        className="relative overflow-hidden w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
+        className="w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
       >
-        {/* Velo gris (40%) que marca el partido como finalizado/sellado. */}
-        {jugado && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-2xl bg-neutral-500/40"
-          />
-        )}
         <div className="flex items-center justify-between gap-2 text-xs text-neutral-400 mb-3">
           <div className="flex items-center gap-2 min-w-0">
             <span className="tabular-nums font-semibold text-neutral-300">
@@ -357,6 +352,11 @@ function PartidoCard({
         {mostrarFase && (
           <div className="text-[11px] text-neutral-500 mb-2">
             {p.grupo ? `Grupo ${p.grupo}` : p.fase}
+          </div>
+        )}
+        {jugado && (
+          <div className="text-center text-sm font-bold text-neutral-100 mb-2">
+            Partido Finalizado
           </div>
         )}
         <div className="flex items-center justify-between gap-2">

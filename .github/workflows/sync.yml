@@ -7,12 +7,13 @@ name: Sincronizar resultados (football-data.org -> Supabase)
 on:
   workflow_dispatch: {}        # permite correrlo a mano desde la pestana Actions
   schedule:
-    # Cada 10 min, las 24h, SOLO en junio/julio (el Mundial 2026).
+    # Cada 5 min, las 24h, SOLO en junio/julio (el Mundial 2026).
     # Repo PUBLICO = minutos de Actions ILIMITADOS.
     # football-data.org free: 10 req/min, sin tope diario. El auto-gatillo
     # pregunta GRATIS a Supabase y si no hay partidos en vivo ni por empezar
-    # sale sin tocar la API (0 requests).
-    - cron: "*/10 * * 6,7 *"
+    # sale sin tocar la API (0 requests). Por corrida hacemos 2-5 req max,
+    # asi que estamos comodos bajo el limite incluso con varios partidos.
+    - cron: "*/5 * * 6,7 *"
 
 concurrency:
   group: sync-resultados

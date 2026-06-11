@@ -2,9 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { actualizarAlias, cambiarPin } from "../lib/data";
-import Avatar from "../components/Avatar";
 import BotonEspeciales from "../components/BotonEspeciales";
-import type { Jugador } from "../lib/types";
 
 export default function MiCuenta() {
   const navigate = useNavigate();
@@ -43,8 +41,6 @@ export default function MiCuenta() {
 
       <CambiarPin jugadorId={jugador.id} />
 
-      <MisAvatares jugador={jugador} />
-
       <BotonEspeciales className="mt-4" />
 
       <button
@@ -70,47 +66,6 @@ export default function MiCuenta() {
         Cerrar sesion
       </button>
     </div>
-  );
-}
-
-/* ---------- Mis avatares (privado: solo lo ve el propio usuario) ---------- */
-function MisAvatares({ jugador }: { jugador: Jugador }) {
-  const [abierto, setAbierto] = useState(false);
-  const fotos = [
-    { src: jugador.avatar_pos1, label: "1er lugar", variante: "oro" as const },
-    { src: jugador.avatar_medio, label: "Puestos 2 a 7", variante: "gris" as const },
-    { src: jugador.avatar_pos8, label: "Último lugar", variante: "rojo" as const },
-  ];
-
-  return (
-    <section className="mt-4">
-      <button
-        onClick={() => setAbierto((v) => !v)}
-        aria-expanded={abierto}
-        className="w-full bg-carbon-card border border-borde rounded-2xl py-3 font-semibold active:bg-carbon-soft flex items-center justify-center gap-2"
-      >
-        Avatares
-        <span className={`transition-transform ${abierto ? "rotate-180" : ""}`}>
-          ▾
-        </span>
-      </button>
-
-      {abierto && (
-        <div className="mt-3 bg-carbon-card border border-borde rounded-2xl p-4">
-          <p className="text-xs text-neutral-400 mb-3 text-center">
-            Tus 3 fotos según tu posición en la tabla. Solo tú las ves aquí.
-          </p>
-          <div className="grid grid-cols-3 gap-3">
-            {fotos.map((f) => (
-              <div key={f.label} className="flex flex-col items-center gap-2 text-center">
-                <Avatar src={f.src} nombre={jugador.nombre} width={88} variante={f.variante} />
-                <span className="text-[11px] text-neutral-300 leading-tight">{f.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </section>
   );
 }
 

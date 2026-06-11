@@ -40,33 +40,34 @@ function ddmm(clave: string): string {
   return `${d}/${m}`;
 }
 
-// Pestana de fecha que se abre por defecto: la jornada en curso o la proxima
-// (si ya pasaron todas, la ultima).
-function fechaActivaPorDefecto(): string {
+// Jornada ACTIVA: la ultima fecha cuyo dia de inicio (desde, a las 00:00) ya
+// llego. Asi Fecha 2 y Fecha 3 "aparecen" recien cuando arranca su dia.
+// Antes del Mundial (hoy < Fecha 1) muestra Fecha 1.
+function fechaActiva(): (typeof FECHAS)[number] {
   const hoy = claveHoy();
-  for (const f of FECHAS) if (hoy <= f.hasta) return f.id;
-  return FECHAS[FECHAS.length - 1].id;
+  let activa = FECHAS[0];
+  for (const f of FECHAS) if (hoy >= f.desde) activa = f;
+  return activa;
 }
 
 function construirTabs(partidos: Partido[]): Tab[] {
   const tabs: Tab[] = [];
 
-  // 1) Una pestana por fecha (jornada): TODOS los partidos de ese rango.
-  for (const f of FECHAS) {
-    const lista = partidos
-      .filter((p) => {
-        const d = claveDia(p.fecha);
-        return d >= f.desde && d <= f.hasta;
-      })
-      .sort(porFecha);
-    tabs.push({
-      id: f.id,
-      label: f.label,
-      subtitulo: `${ddmm(f.desde)} al ${ddmm(f.hasta)}`,
-      mostrarFase: true,
-      partidos: lista,
-    });
-  }
+  // 1) Pestana "Proximos": SOLO la jornada activa (rola sola en el 'desde').
+  const f = fechaActiva();
+  const lista = partidos
+    .filter((p) => {
+      const d = claveDia(p.fecha);
+      return d >= f.desde && d <= f.hasta;
+    })
+    .sort(porFecha);
+  tabs.push({
+    id: "proximos",
+    label: "Pr\u00f3ximos",
+    subtitulo: `${f.label} \u00b7 ${ddmm(f.desde)} al ${ddmm(f.hasta)}`,
+    mostrarFase: true,
+    partidos: lista,
+  });
 
   // 2) Fase de grupos: una pestana por grupo (A..L).
   const grupos = partidos.filter((p) => p.grupo);
@@ -104,7 +105,7 @@ export default function Partidos() {
   const [params] = useSearchParams();
   const grupoParam = params.get("grupo");
   const [activo, setActivo] = useState<string>(
-    grupoParam ? `g-${grupoParam}` : fechaActivaPorDefecto()
+    grupoParam ? `g-${grupoParam}` : "proximos"
   );
 
   // Si llega un ?grupo despues de montar (o cambia), seguimos el deep-link.

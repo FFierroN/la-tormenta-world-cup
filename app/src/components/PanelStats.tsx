@@ -33,6 +33,28 @@ function num(v: number | null | undefined): number {
   return typeof v === "number" && isFinite(v) ? v : 0;
 }
 
+// Valor de una stat. El mayor de la fila va en recuadro de borde verde.
+// El no-destacado lleva borde transparente para que ambos midan igual.
+function Valor({
+  v,
+  fmt,
+  destacado,
+}: {
+  v: number | null | undefined;
+  fmt: Fmt;
+  destacado: boolean;
+}) {
+  return (
+    <span
+      className={`tabular-nums font-bold text-white text-sm px-2 py-0.5 rounded-lg border ${
+        destacado ? "border-emerald-500" : "border-transparent"
+      }`}
+    >
+      {fmtValor(v, fmt)}
+    </span>
+  );
+}
+
 export default function PanelStats({ partido }: { partido: Partido }) {
   const est: EstadisticasPartido | null = partido.estadisticas;
 
@@ -60,9 +82,9 @@ export default function PanelStats({ partido }: { partido: Partido }) {
     <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden">
       {/* Cabecera: que lado es cada equipo */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-borde text-xs font-semibold">
-        <span className="text-neutral-100 truncate max-w-[40%]">{partido.equipo_local}</span>
+        <span className="text-neutral-300 truncate max-w-[40%]">{partido.equipo_local}</span>
         <span className="text-neutral-400">Estadisticas</span>
-        <span className="text-neutral-400 truncate max-w-[40%] text-right">
+        <span className="text-neutral-300 truncate max-w-[40%] text-right">
           {partido.equipo_visita}
         </span>
       </div>
@@ -71,31 +93,22 @@ export default function PanelStats({ partido }: { partido: Partido }) {
         {filas.map((m) => {
           const l = est.local[m.key];
           const v = est.visita[m.key];
-          const total = num(l) + num(v);
-          const pctL = total > 0 ? (num(l) / total) * 100 : 50;
+          // El valor mayor (de cualquier equipo) se destaca con borde verde.
+          const mejor: "local" | "visita" | null =
+            num(l) > num(v) ? "local" : num(v) > num(l) ? "visita" : null;
           return (
-            <li key={m.key} className="py-2.5">
-              <div className="flex items-center justify-between text-sm mb-1.5">
-                <span className="font-bold tabular-nums w-12">
-                  {fmtValor(l, m.fmt)}
-                </span>
-                <span className="text-neutral-400 text-xs text-center flex-1">
-                  {m.label}
-                </span>
-                <span className="font-bold tabular-nums w-12 text-right">
-                  {fmtValor(v, m.fmt)}
-                </span>
+            <li
+              key={m.key}
+              className="flex items-center justify-between gap-2 py-2.5"
+            >
+              <div className="w-16 flex justify-start">
+                <Valor v={l} fmt={m.fmt} destacado={mejor === "local"} />
               </div>
-              {/* Barra comparativa: blanco (local) vs gris (visita), tonos distintos */}
-              <div className="flex h-1.5 rounded-full overflow-hidden bg-carbon-soft">
-                <div
-                  className="bg-neutral-100 transition-all"
-                  style={{ width: `${pctL}%` }}
-                />
-                <div
-                  className="bg-neutral-500 transition-all"
-                  style={{ width: `${100 - pctL}%` }}
-                />
+              <span className="flex-1 text-center text-sm font-bold text-white">
+                {m.label}
+              </span>
+              <div className="w-16 flex justify-end">
+                <Valor v={v} fmt={m.fmt} destacado={mejor === "visita"} />
               </div>
             </li>
           );

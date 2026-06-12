@@ -61,7 +61,11 @@ const EQUIPOS = {
   "Panama": "Panamá", "Uzbekistan": "Uzbekistán", "Colombia": "Colombia",
 };
 
-const nuestroNombre = (n) => EQUIPOS[(n || "").trim()] ?? null;
+const nuestroNombre = (n) => {
+  // Lookup exacto y, si falla, normaliza "&" -> "and" (consistente con comun.py).
+  const s = (n || "").trim();
+  return EQUIPOS[s] ?? EQUIPOS[s.replace(" & ", " and ")] ?? null;
+};
 
 // ----------------------------------------------------------------- casteos
 function comoInt(x) {

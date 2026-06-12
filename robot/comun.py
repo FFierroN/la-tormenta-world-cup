@@ -132,4 +132,7 @@ EQUIPOS = {
 
 
 def nuestro_nombre(api_nombre: str) -> str | None:
-    return EQUIPOS.get((api_nombre or "").strip())
+    # Lookup exacto y, si falla, normaliza "&" -> "and" (Highlightly manda
+    # "Bosnia & Herzegovina" donde el mapa usa "Bosnia and Herzegovina").
+    s = (api_nombre or "").strip()
+    return EQUIPOS.get(s) or EQUIPOS.get(s.replace(" & ", " and "))

@@ -27,16 +27,16 @@ function nombreFijo(f: FilaTormenta): string {
   return NOMBRES_FIJOS[normalizar(f.nombre)] ?? f.alias ?? f.nombre;
 }
 
-// Segmentos de la barra, de mejor a peor. Tonos de azul + blanco.
+// Segmentos de la barra, de mejor a peor. Degradado verde -> rojo.
 const SEGMENTOS: {
   key: "exactos" | "diferencias" | "aciertos" | "fallas";
   label: string;
   clase: string; // color de fondo
 }[] = [
-  { key: "exactos", label: "Exactos", clase: "bg-white" },
-  { key: "diferencias", label: "Diferencias", clase: "bg-sky-300" },
-  { key: "aciertos", label: "Aciertos", clase: "bg-sky-600" },
-  { key: "fallas", label: "Fallas", clase: "bg-sky-900" },
+  { key: "exactos", label: "Exactos", clase: "bg-emerald-400" },
+  { key: "diferencias", label: "Diferencias", clase: "bg-amber-400" },
+  { key: "aciertos", label: "Aciertos", clase: "bg-orange-500" },
+  { key: "fallas", label: "Fallas", clase: "bg-rose-500" },
 ];
 
 export default function PanelTormenta() {
@@ -80,13 +80,13 @@ export default function PanelTormenta() {
 
 function FilaMiembro({ f }: { f: FilaTormenta }) {
   return (
-    <li className="py-2.5 border-b border-borde last:border-0">
-      <div className="flex items-center gap-2 mb-1.5">
-        <span className="text-xs font-bold text-neutral-500 tabular-nums w-5">
-          {f.posicion}
-        </span>
-        <span className="text-sm font-bold text-white">{nombreFijo(f)}</span>
-      </div>
+    <li className="flex items-center gap-3 py-2.5 border-b border-borde last:border-0">
+      <span className="text-xs font-bold text-neutral-500 tabular-nums w-4 shrink-0">
+        {f.posicion}
+      </span>
+      <span className="text-sm font-bold text-white w-20 shrink-0 truncate">
+        {nombreFijo(f)}
+      </span>
       <Barra f={f} />
     </li>
   );
@@ -94,14 +94,10 @@ function FilaMiembro({ f }: { f: FilaTormenta }) {
 
 function Barra({ f }: { f: FilaTormenta }) {
   if (f.total <= 0) {
-    return (
-      <div className="h-6 rounded-full bg-carbon-soft flex items-center justify-center text-[11px] text-neutral-500">
-        Sin pronosticos aun
-      </div>
-    );
+    return <div className="flex-1 h-1.5 rounded-full bg-carbon-soft" />;
   }
   return (
-    <div className="flex h-6 rounded-full overflow-hidden bg-carbon-soft">
+    <div className="flex-1 flex h-1.5 rounded-full overflow-hidden bg-carbon-soft">
       {SEGMENTOS.map((s) => {
         const n = f[s.key];
         if (n <= 0) return null;

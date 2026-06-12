@@ -2,9 +2,9 @@ import { obtenerDesgloseTormenta } from "../lib/data";
 import type { FilaTormenta } from "../lib/types";
 import { useAsync } from "../lib/useAsync";
 
-// Nombres FIJOS de los 8 miembros, sin importar alias ni nombre en la base.
+// Nombres FIJOS de los 7 miembros, sin importar alias ni nombre en la base.
 // La llave es el nombre real normalizado (minusculas, sin tildes).
-// FALTA EL 8VO: agregar aqui cuando Felipe lo confirme.
+// (El 8vo invitado original no quiso participar: la liga es de 7.)
 const NOMBRES_FIJOS: Record<string, string> = {
   "felipe fierro": "Fierro",
   "victor soto": "Vitoko",

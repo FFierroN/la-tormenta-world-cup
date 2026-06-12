@@ -32,12 +32,11 @@ const SEGMENTOS: {
   key: "exactos" | "diferencias" | "aciertos" | "fallas";
   label: string;
   clase: string; // color de fondo
-  texto: string; // color del numero encima
 }[] = [
-  { key: "exactos", label: "Exactos", clase: "bg-white", texto: "text-carbon" },
-  { key: "diferencias", label: "Diferencias", clase: "bg-sky-300", texto: "text-carbon" },
-  { key: "aciertos", label: "Aciertos", clase: "bg-sky-600", texto: "text-white" },
-  { key: "fallas", label: "Fallas", clase: "bg-sky-900", texto: "text-white" },
+  { key: "exactos", label: "Exactos", clase: "bg-white" },
+  { key: "diferencias", label: "Diferencias", clase: "bg-sky-300" },
+  { key: "aciertos", label: "Aciertos", clase: "bg-sky-600" },
+  { key: "fallas", label: "Fallas", clase: "bg-sky-900" },
 ];
 
 export default function PanelTormenta() {
@@ -57,11 +56,17 @@ export default function PanelTormenta() {
   return (
     <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden">
       <div className="text-center text-sm font-semibold py-3 border-b border-borde">
-        LaTormenta
+        Tormenta
       </div>
 
-      {/* Leyenda */}
-      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 px-4 py-3 text-[11px] text-neutral-300">
+      <ul className="px-4 py-3">
+        {data.map((f) => (
+          <FilaMiembro key={f.jugador_id} f={f} />
+        ))}
+      </ul>
+
+      {/* Leyenda (simbologia) al fondo, debajo de las barras */}
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 px-4 py-3 border-t border-borde text-[11px] text-neutral-300">
         {SEGMENTOS.map((s) => (
           <span key={s.key} className="flex items-center gap-1.5">
             <span className={`inline-block w-3 h-3 rounded-sm ${s.clase}`} />
@@ -69,12 +74,6 @@ export default function PanelTormenta() {
           </span>
         ))}
       </div>
-
-      <ul className="px-4 pb-3">
-        {data.map((f) => (
-          <FilaMiembro key={f.jugador_id} f={f} />
-        ))}
-      </ul>
     </div>
   );
 }
@@ -87,9 +86,6 @@ function FilaMiembro({ f }: { f: FilaTormenta }) {
           {f.posicion}
         </span>
         <span className="text-sm font-bold text-white">{nombreFijo(f)}</span>
-        <span className="ml-auto text-[11px] text-neutral-500 tabular-nums">
-          {f.total} pron.
-        </span>
       </div>
       <Barra f={f} />
     </li>
@@ -113,12 +109,10 @@ function Barra({ f }: { f: FilaTormenta }) {
         return (
           <div
             key={s.key}
-            className={`flex items-center justify-center ${s.clase} ${s.texto}`}
+            className={s.clase}
             style={{ width: `${pct}%` }}
             title={`${s.label}: ${n} (${Math.round(pct)}%)`}
-          >
-            <span className="text-[10px] font-bold tabular-nums px-0.5">{n}</span>
-          </div>
+          />
         );
       })}
     </div>

@@ -48,7 +48,7 @@ function Valor({
     <span
       className={`tabular-nums font-bold text-sm px-2 py-0.5 rounded-lg border ${
         destacado
-          ? "bg-lime-400 text-carbon border-lime-400"
+          ? "bg-green-500/20 text-green-400 border-transparent"
           : "text-white border-transparent"
       }`}
     >

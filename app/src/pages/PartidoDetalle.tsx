@@ -17,7 +17,7 @@ import {
   pronosticosPartido,
 } from "../lib/data";
 
-type Pestana = "detalles" | "estadisticas" | "latormenta" | "pronosticos";
+type Pestana = "detalles" | "estadisticas" | "pronosticos" | "tormenta";
 
 // Un partido esta abierto para pronosticar si sigue programado y no empezo.
 function puedePronosticar(p: Partido): boolean {
@@ -171,11 +171,11 @@ export default function PartidoDetalle() {
         <TabBtn activo={pestana === "estadisticas"} onClick={() => setPestana("estadisticas")}>
           Estadisticas
         </TabBtn>
-        <TabBtn activo={pestana === "latormenta"} onClick={() => setPestana("latormenta")}>
-          LaTormenta
-        </TabBtn>
         <TabBtn activo={pestana === "pronosticos"} onClick={() => setPestana("pronosticos")}>
           Pronosticos
+        </TabBtn>
+        <TabBtn activo={pestana === "tormenta"} onClick={() => setPestana("tormenta")}>
+          Tormenta
         </TabBtn>
       </div>
 
@@ -184,10 +184,10 @@ export default function PartidoDetalle() {
           <Detalles partido={partido} eventos={eventos} />
         )}
         {pestana === "estadisticas" && <PanelStats partido={partido} />}
-        {pestana === "latormenta" && <PanelTormenta />}
         {pestana === "pronosticos" && (
           <Pronosticos partido={partido} pronosticos={pronosticos} />
         )}
+        {pestana === "tormenta" && <PanelTormenta />}
       </div>
     </div>
   );

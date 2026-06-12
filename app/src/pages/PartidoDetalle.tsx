@@ -398,6 +398,9 @@ function Detalles({
             <EventoIcono tipo={e.tipo} />
             <div className="leading-tight">
               <div>
+                {e.tipo === "cambio" && (
+                  <span className="text-xs text-emerald-400">Entra </span>
+                )}
                 {e.jugador && <span className="text-sm">{e.jugador} </span>}
                 <span className="text-sm font-semibold tabular-nums text-neutral-300">
                   {e.minuto}'
@@ -406,7 +409,10 @@ function Detalles({
                   <span className="text-xs text-neutral-400"> ({e.detalle})</span>
                 )}
               </div>
-              {e.asistencia && (
+              {e.asistencia && e.tipo === "cambio" && (
+                <div className="mt-0.5 text-xs text-rose-400">Sale {e.asistencia}</div>
+              )}
+              {e.asistencia && e.tipo !== "cambio" && (
                 <div className="mt-0.5 text-xs text-neutral-500">
                   <ShoeIcon className="inline w-3.5 h-3.5 text-emerald-400 align-text-bottom mr-1" />
                   {e.asistencia}

@@ -209,8 +209,9 @@ function EventosForm({
         equipo,
         minuto,
         jugador: jugador.trim() || null,
-        // la asistencia solo aplica a goles; en tarjetas va null
-        asistencia: tipo === "gol" ? asistencia.trim() || null : null,
+        // asistencia: en goles = asistidor; en cambios = quien sale; resto null
+        asistencia:
+          tipo === "gol" || tipo === "cambio" ? asistencia.trim() || null : null,
         detalle: null,
       });
       setJugador("");
@@ -231,6 +232,7 @@ function EventosForm({
     gol: "Gol",
     amarilla: "Amarilla",
     roja: "Roja",
+    cambio: "Cambio",
   };
 
   return (
@@ -284,6 +286,7 @@ function EventosForm({
           <option value="gol">Gol</option>
           <option value="amarilla">Amarilla</option>
           <option value="roja">Roja</option>
+          <option value="cambio">Cambio</option>
         </select>
         <select
           value={equipo}

@@ -56,12 +56,13 @@ MODO = os.getenv("MODO", "auto").strip().lower()
 # Minutos de gracia tras el pitazo antes de enriquecer (HL tarda en cerrar).
 MIN_GRACIA = int(os.getenv("MIN_GRACIA", "20"))
 
-# type de Highlightly -> nuestro tipo de evento. Substitution se ignora en
-# Fase 1 (nuestro esquema solo tiene gol/amarilla/roja).
+# type de Highlightly -> nuestro tipo de evento. 'Substitution' = cambio:
+# guardamos jugador=quien entra (player), asistencia=quien sale (substituted).
 TIPO_HL = {
     "Goal": "gol",
     "Yellow Card": "amarilla",
     "Red Card": "roja",
+    "Substitution": "cambio",
 }
 
 
@@ -221,13 +222,18 @@ def eventos_desde_hl(detalle: dict, p: dict) -> list[dict]:
     for ev in detalle.get("events", []):
         tipo = TIPO_HL.get(ev.get("type"))
         if not tipo:
-            continue  # Substitution u otros -> Fase 2
+            continue  # otros tipos no soportados
         minuto = como_int(str(ev.get("time", "")).split("+")[0]) or 0
         equipo = lado(ev)
         jugador = (ev.get("player") or "").strip() or None
         if tipo == "gol":
             asistencia = (ev.get("assist") or "").strip() or None
             det = detalle_manual.get((equipo, minuto), "normal")
+        elif tipo == "cambio":
+            # En sustituciones: player=entra (ya en 'jugador'),
+            # substituted=quien sale (lo guardamos en 'asistencia').
+            asistencia = (ev.get("substituted") or "").strip() or None
+            det = None
         else:
             asistencia = None
             det = None
@@ -309,10 +315,11 @@ def enriquecer_partido(p: dict, cache_fecha: dict) -> bool:
         goles = sum(1 for f in filas if f["tipo"] == "gol")
         amar = sum(1 for f in filas if f["tipo"] == "amarilla")
         rojas = sum(1 for f in filas if f["tipo"] == "roja")
+        cambios = sum(1 for f in filas if f["tipo"] == "cambio")
         asist = sum(1 for f in filas if f["tipo"] == "gol" and f["asistencia"])
         print(f"  OK eventos {p['equipo_local']} vs {p['equipo_visita']}: "
               f"{goles} gol(es) ({asist} con asist.), {amar} amarilla(s), "
-              f"{rojas} roja(s)")
+              f"{rojas} roja(s), {cambios} cambio(s)")
     else:
         print(f"  HL sin eventos para {p['equipo_local']} vs "
               f"{p['equipo_visita']} (no se tocan eventos)")

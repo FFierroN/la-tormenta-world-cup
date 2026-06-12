@@ -50,7 +50,7 @@ export interface EstadisticasPartido {
   top_players?: unknown; // crudo, para una fase futura
 }
 
-export type TipoEvento = "gol" | "amarilla" | "roja";
+export type TipoEvento = "gol" | "amarilla" | "roja" | "cambio";
 
 export interface EventoPartido {
   id: string;

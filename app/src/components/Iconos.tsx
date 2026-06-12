@@ -28,9 +28,22 @@ export function RedCard() {
   return <span className="inline-block w-3 h-4 rounded-sm bg-red-600" aria-label="Tarjeta roja" />;
 }
 
-// Icono segun el tipo de evento (gol / amarilla / roja).
+// Sustitucion: flecha verde (entra) + flecha roja (sale).
+export function SubIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-label="Cambio">
+      {/* entra (sube) */}
+      <path d="M7 21V7m0 0l-3 3m3-3l3 3" stroke="#34d399" />
+      {/* sale (baja) */}
+      <path d="M17 3v14m0 0l3-3m-3 3l-3-3" stroke="#f87171" />
+    </svg>
+  );
+}
+
+// Icono segun el tipo de evento (gol / amarilla / roja / cambio).
 export function EventoIcono({ tipo }: { tipo: TipoEvento }) {
   if (tipo === "gol") return <BallIcon />;
   if (tipo === "amarilla") return <YellowCard />;
+  if (tipo === "cambio") return <SubIcon />;
   return <RedCard />;
 }

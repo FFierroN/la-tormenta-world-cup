@@ -51,6 +51,7 @@ function aPartido(r: any): Partido {
     penales_visita: r.penales_visita ?? null,
     ganador_penales: r.ganador_penales ?? null,
     estado: r.estado,
+    estadisticas: r.estadisticas ?? null,
   };
 }
 

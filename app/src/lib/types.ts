@@ -38,6 +38,16 @@ export interface Partido {
   penales_visita: number | null;
   ganador_penales: "local" | "visita" | null;
   estado: EstadoPartido;
+  estadisticas: EstadisticasPartido | null; // panel de stats (Highlightly)
+}
+
+// Stats del partido tal como las guarda el robot (Highlightly). Las llaves son
+// los displayName crudos de la API (ej. "Possession", "Expected Goals"); el
+// front elige cuales mostrar y como formatearlas.
+export interface EstadisticasPartido {
+  local: Record<string, number | null>;
+  visita: Record<string, number | null>;
+  top_players?: unknown; // crudo, para una fase futura
 }
 
 export type TipoEvento = "gol" | "amarilla" | "roja";

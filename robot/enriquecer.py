@@ -1,9 +1,11 @@
-"""Robot de enriquecimiento: Highlightly  ->  Supabase (FASE 1: eventos).
+"""Robot de enriquecimiento: Highlightly  ->  Supabase (eventos + stats).
 
 worldcup26.ir nos da el marcador y los goles EN VIVO, pero NO trae
-asistencias ni tarjetas. Highlightly si las trae (plan free, 100 req/dia).
-Este robot corre DESPUES de que un partido termina y rellena partido_eventos
-con los eventos definitivos: goles (con asistidor), amarillas y rojas.
+asistencias ni tarjetas ni estadisticas. Highlightly si (plan free, 100
+req/dia). Este robot corre DESPUES de que un partido termina y rellena:
+  - partido_eventos: goles (con asistidor), amarillas y rojas.
+  - partidos.estadisticas (JSONB): posesion, xG, tiros, corners, etc.
+Todo con UNA sola llamada GET /matches/{id} (trae events + statistics).
 
 Decision de diseno (confirmada con Felipe):
   - Highlightly es la FUENTE DE VERDAD de los eventos en partidos FINALIZADOS.
@@ -241,6 +243,48 @@ def eventos_desde_hl(detalle: dict, p: dict) -> list[dict]:
     return filas
 
 
+def stats_desde_hl(detalle: dict, p: dict) -> dict | None:
+    """Convierte statistics[] de Highlightly a {local:{...}, visita:{...}}.
+
+    Cada bloque trae team{id,name} + statistics[{value, displayName}].
+    Guardamos TODAS las stats crudas (displayName -> value); el front elige
+    cuales mostrar y como. Tambien adjuntamos topPlayers crudo para una fase
+    futura, sin romper nada si no viene.
+    """
+    bloques = detalle.get("statistics") or []
+    if not bloques:
+        return None
+
+    home_id = como_int((detalle.get("homeTeam") or {}).get("id"))
+
+    def lado(team: dict) -> str:
+        nombre = nuestro_nombre((team or {}).get("name"))
+        if nombre and nombre == p["equipo_local"]:
+            return "local"
+        if nombre and nombre == p["equipo_visita"]:
+            return "visita"
+        tid = como_int((team or {}).get("id"))
+        return "local" if (home_id is not None and tid == home_id) else "visita"
+
+    salida: dict = {}
+    for bloque in bloques:
+        equipo = lado(bloque.get("team") or {})
+        valores = {}
+        for s in bloque.get("statistics") or []:
+            nombre = s.get("displayName")
+            if nombre is not None:
+                valores[nombre] = s.get("value")
+        salida[equipo] = valores
+
+    if not salida:
+        return None
+
+    top = detalle.get("topPlayers")
+    if top:
+        salida["top_players"] = top
+    return salida
+
+
 def enriquecer_partido(p: dict, cache_fecha: dict) -> bool:
     """Enriquece un partido. Devuelve True si lo proceso (para marcar la fecha)."""
     mid = buscar_match_id(p, cache_fecha)
@@ -253,25 +297,38 @@ def enriquecer_partido(p: dict, cache_fecha: dict) -> bool:
               f"({p['equipo_local']} vs {p['equipo_visita']})")
         return False
 
+    hizo_algo = False
+
+    # --- Eventos (asistencias + tarjetas) ---
     filas = eventos_desde_hl(detalle, p)
-    if not filas:
-        # HL no devolvio eventos utiles: no borramos lo que ya hay.
-        print(f"  HL sin eventos para {p['equipo_local']} vs {p['equipo_visita']}"
-              f" (no se toca nada)")
-        return False
+    if filas:
+        # Highlightly manda: borra+reinserta TODOS los eventos del partido.
+        sb_delete("partido_eventos", {"partido_id": f"eq.{p['id']}"})
+        sb_insert("partido_eventos", filas)
+        hizo_algo = True
+        goles = sum(1 for f in filas if f["tipo"] == "gol")
+        amar = sum(1 for f in filas if f["tipo"] == "amarilla")
+        rojas = sum(1 for f in filas if f["tipo"] == "roja")
+        asist = sum(1 for f in filas if f["tipo"] == "gol" and f["asistencia"])
+        print(f"  OK eventos {p['equipo_local']} vs {p['equipo_visita']}: "
+              f"{goles} gol(es) ({asist} con asist.), {amar} amarilla(s), "
+              f"{rojas} roja(s)")
+    else:
+        print(f"  HL sin eventos para {p['equipo_local']} vs "
+              f"{p['equipo_visita']} (no se tocan eventos)")
 
-    # Highlightly manda: borra+reinserta TODOS los eventos del partido.
-    sb_delete("partido_eventos", {"partido_id": f"eq.{p['id']}"})
-    sb_insert("partido_eventos", filas)
+    # --- Estadisticas (panel del detalle) ---
+    stats = stats_desde_hl(detalle, p)
+    if stats:
+        sb_patch("partidos", {"id": f"eq.{p['id']}"}, {"estadisticas": stats})
+        hizo_algo = True
+        n = len(stats.get("local", {}))
+        print(f"  OK stats {p['equipo_local']} vs {p['equipo_visita']}: "
+              f"{n} metricas por equipo")
+    else:
+        print(f"  HL sin stats para {p['equipo_local']} vs {p['equipo_visita']}")
 
-    goles = sum(1 for f in filas if f["tipo"] == "gol")
-    amar = sum(1 for f in filas if f["tipo"] == "amarilla")
-    rojas = sum(1 for f in filas if f["tipo"] == "roja")
-    asist = sum(1 for f in filas if f["tipo"] == "gol" and f["asistencia"])
-    print(f"  OK {p['equipo_local']} vs {p['equipo_visita']}: "
-          f"{goles} gol(es) ({asist} con asist.), {amar} amarilla(s), "
-          f"{rojas} roja(s)")
-    return True
+    return hizo_algo
 
 
 # ------------------------------------------------------------------------ main

@@ -1,0 +1,106 @@
+import type { EstadisticasPartido, Partido } from "../lib/types";
+
+// Metricas que mostramos, en orden, con su etiqueta en espanol y formato.
+// 'key' es el displayName crudo de Highlightly. Si una no viene, se omite.
+type Fmt = "pct" | "dec" | "int";
+const METRICAS: { key: string; label: string; fmt: Fmt }[] = [
+  { key: "Possession", label: "Posesion", fmt: "pct" },
+  { key: "Expected Goals", label: "Goles esperados (xG)", fmt: "dec" },
+  { key: "Shots on target", label: "Tiros al arco", fmt: "int" },
+  { key: "Shots off target", label: "Tiros afuera", fmt: "int" },
+  { key: "Blocked shots", label: "Tiros bloqueados", fmt: "int" },
+  { key: "Shots within penalty area", label: "Tiros en el area", fmt: "int" },
+  { key: "Corners", label: "Tiros de esquina", fmt: "int" },
+  { key: "Offsides", label: "Fueras de juego", fmt: "int" },
+  { key: "Fouls", label: "Faltas", fmt: "int" },
+  { key: "Yellow cards", label: "Amarillas", fmt: "int" },
+  { key: "Red cards", label: "Rojas", fmt: "int" },
+  { key: "Total passes", label: "Pases totales", fmt: "int" },
+  { key: "Successful passes", label: "Pases completados", fmt: "int" },
+  { key: "Key Passes", label: "Pases clave", fmt: "int" },
+  { key: "Goalkeeper saves", label: "Atajadas", fmt: "int" },
+  { key: "Expected Assists", label: "Asistencias esperadas (xA)", fmt: "dec" },
+];
+
+function fmtValor(v: number | null | undefined, fmt: Fmt): string {
+  if (v == null) return "-";
+  if (fmt === "pct") return `${Math.round(v * 100)}%`;
+  if (fmt === "dec") return v.toFixed(2);
+  return String(Math.round(v));
+}
+
+function num(v: number | null | undefined): number {
+  return typeof v === "number" && isFinite(v) ? v : 0;
+}
+
+export default function PanelStats({ partido }: { partido: Partido }) {
+  const est: EstadisticasPartido | null = partido.estadisticas;
+
+  if (!est || !est.local || !est.visita) {
+    return (
+      <div className="text-center text-neutral-400 py-10">
+        Las estadisticas se cargan cuando termina el partido.
+      </div>
+    );
+  }
+
+  const filas = METRICAS.filter(
+    (m) => est.local[m.key] != null || est.visita[m.key] != null
+  );
+
+  if (filas.length === 0) {
+    return (
+      <div className="text-center text-neutral-400 py-10">
+        No hay estadisticas para este partido.
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden">
+      {/* Cabecera: que lado es cada equipo */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-borde text-xs font-semibold">
+        <span className="text-oro truncate max-w-[40%]">{partido.equipo_local}</span>
+        <span className="text-neutral-400">Estadisticas</span>
+        <span className="text-sky-400 truncate max-w-[40%] text-right">
+          {partido.equipo_visita}
+        </span>
+      </div>
+
+      <ul className="px-4 py-2">
+        {filas.map((m) => {
+          const l = est.local[m.key];
+          const v = est.visita[m.key];
+          const total = num(l) + num(v);
+          const pctL = total > 0 ? (num(l) / total) * 100 : 50;
+          return (
+            <li key={m.key} className="py-2.5">
+              <div className="flex items-center justify-between text-sm mb-1.5">
+                <span className="font-bold tabular-nums w-12">
+                  {fmtValor(l, m.fmt)}
+                </span>
+                <span className="text-neutral-400 text-xs text-center flex-1">
+                  {m.label}
+                </span>
+                <span className="font-bold tabular-nums w-12 text-right">
+                  {fmtValor(v, m.fmt)}
+                </span>
+              </div>
+              {/* Barra comparativa: oro (local, izq) vs azul (visita, der) */}
+              <div className="flex h-1.5 rounded-full overflow-hidden bg-carbon-soft">
+                <div
+                  className="bg-oro transition-all"
+                  style={{ width: `${pctL}%` }}
+                />
+                <div
+                  className="bg-sky-500 transition-all"
+                  style={{ width: `${100 - pctL}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}

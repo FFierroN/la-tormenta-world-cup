@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Flag from "../components/Flag";
 import RelojVivo from "../components/RelojVivo";
 import EstadoBadge from "../components/EstadoBadge";
+import PanelStats from "../components/PanelStats";
 import { BallIcon, EventoIcono, ShoeIcon } from "../components/Iconos";
 import type { EventoPartido, Partido, PronosticoVista } from "../lib/types";
 import { ESTADOS_EN_CURSO } from "../lib/estados";
@@ -15,7 +16,7 @@ import {
   pronosticosPartido,
 } from "../lib/data";
 
-type Pestana = "detalles" | "pronosticos";
+type Pestana = "detalles" | "estadisticas" | "pronosticos";
 
 // Un partido esta abierto para pronosticar si sigue programado y no empezo.
 function puedePronosticar(p: Partido): boolean {
@@ -162,9 +163,12 @@ export default function PartidoDetalle() {
       </div>
 
       {/* ---------- Pestanas ---------- */}
-      <div className="px-4 mt-4 flex gap-2">
+      <div className="px-4 mt-4 flex flex-wrap gap-2">
         <TabBtn activo={pestana === "detalles"} onClick={() => setPestana("detalles")}>
-          Detalles del partido
+          Detalles
+        </TabBtn>
+        <TabBtn activo={pestana === "estadisticas"} onClick={() => setPestana("estadisticas")}>
+          Estadisticas
         </TabBtn>
         <TabBtn activo={pestana === "pronosticos"} onClick={() => setPestana("pronosticos")}>
           Pronosticos
@@ -172,9 +176,11 @@ export default function PartidoDetalle() {
       </div>
 
       <div className="px-4 py-4 pb-10">
-        {pestana === "detalles" ? (
+        {pestana === "detalles" && (
           <Detalles partido={partido} eventos={eventos} />
-        ) : (
+        )}
+        {pestana === "estadisticas" && <PanelStats partido={partido} />}
+        {pestana === "pronosticos" && (
           <Pronosticos partido={partido} pronosticos={pronosticos} />
         )}
       </div>

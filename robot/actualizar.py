@@ -236,7 +236,12 @@ def actualizar_partido(p: dict, m: dict) -> str | None:
         body["goles_visita"] = away
     if nuevo_estado == "final":
         body["minuto"] = None
-        body["finalizado_at"] = datetime.now(timezone.utc).isoformat()
+        # Sellar finalizado_at SOLO la primera vez (transicion a final). Si lo
+        # re-escribieramos en cada corrida, la "gracia" de 20 min del
+        # enriquecedor (enriquecer.py) nunca se cumpliria. (El robot vivo real
+        # ahora es el Worker de Cloudflare, que tiene este mismo arreglo.)
+        if not p.get("finalizado_at"):
+            body["finalizado_at"] = datetime.now(timezone.utc).isoformat()
     # worldcup26.ir no da minuto numerico; lo dejamos como esta.
 
     sb_patch("partidos", {"id": f"eq.{p['id']}"}, body)

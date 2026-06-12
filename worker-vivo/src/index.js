@@ -263,7 +263,11 @@ async function actualizarPartido(supa, p, m, log) {
   if (away !== null) body.goles_visita = away;
   if (nuevoEstado === "final") {
     body.minuto = null;
-    body.finalizado_at = new Date().toISOString();
+    // Sellar finalizado_at SOLO la primera vez (transicion a final). Si lo
+    // re-escribieramos cada minuto, la "gracia" de 20 min del enriquecedor
+    // (enriquecer.py) nunca se cumpliria y Highlightly jamas correria.
+    // Bug encontrado 2026-06-12 al pasar el robot vivo a cron de 1 min.
+    if (!p.finalizado_at) body.finalizado_at = new Date().toISOString();
   }
 
   await supa.patch("partidos", { id: `eq.${p.id}` }, body);

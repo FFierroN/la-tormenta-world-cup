@@ -60,9 +60,9 @@ export default function PanelStats({ partido }: { partido: Partido }) {
     <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden">
       {/* Cabecera: que lado es cada equipo */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-borde text-xs font-semibold">
-        <span className="text-oro truncate max-w-[40%]">{partido.equipo_local}</span>
+        <span className="text-neutral-100 truncate max-w-[40%]">{partido.equipo_local}</span>
         <span className="text-neutral-400">Estadisticas</span>
-        <span className="text-sky-400 truncate max-w-[40%] text-right">
+        <span className="text-neutral-400 truncate max-w-[40%] text-right">
           {partido.equipo_visita}
         </span>
       </div>
@@ -86,14 +86,14 @@ export default function PanelStats({ partido }: { partido: Partido }) {
                   {fmtValor(v, m.fmt)}
                 </span>
               </div>
-              {/* Barra comparativa: oro (local, izq) vs azul (visita, der) */}
+              {/* Barra comparativa: blanco (local) vs gris (visita), tonos distintos */}
               <div className="flex h-1.5 rounded-full overflow-hidden bg-carbon-soft">
                 <div
-                  className="bg-oro transition-all"
+                  className="bg-neutral-100 transition-all"
                   style={{ width: `${pctL}%` }}
                 />
                 <div
-                  className="bg-sky-500 transition-all"
+                  className="bg-neutral-500 transition-all"
                   style={{ width: `${100 - pctL}%` }}
                 />
               </div>

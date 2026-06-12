@@ -1,0 +1,14 @@
+{
+  "name": "tormenta-vivo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Robot en vivo (worldcup26.ir -> Supabase) como Cloudflare Worker con cron de 1 min.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

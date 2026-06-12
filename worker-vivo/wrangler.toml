@@ -1,0 +1,14 @@
+name = "tormenta-vivo"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Cron cada 1 minuto, SOLO en junio y julio (el Mundial 2026).
+# El propio Worker se auto-regula: si no hay partidos en vivo ni por empezar,
+# sale sin pegarle a worldcup26.ir (solo una consulta chica a Supabase).
+[triggers]
+crons = ["* * * 6,7 *"]
+
+# Los secretos NO van aca (son sensibles). Se cargan con:
+#   wrangler secret put SUPABASE_URL
+#   wrangler secret put SUPABASE_SERVICE_KEY
+#   wrangler secret put TRIGGER_SECRET

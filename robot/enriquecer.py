@@ -92,19 +92,31 @@ def hl_listar_por_fecha(fecha_iso: str) -> list[dict]:
     return data.get("data", []) if isinstance(data, dict) else (data or [])
 
 
+def _desempacar(d):
+    """Devuelve el objeto-partido sin importar como lo envuelva Highlightly.
+    Soporta: dict directo, {"data": {...}}, {"data": [...]}, o [...].
+    """
+    if isinstance(d, list):
+        return d[0] if d else None
+    if isinstance(d, dict):
+        # wrapper tipo {"data": ...} sin events/statistics en la raiz
+        if "data" in d and "events" not in d and "statistics" not in d:
+            return _desempacar(d["data"])
+        return d
+    return None
+
+
 def hl_detalle(match_id: int) -> dict | None:
     """Trae el objeto completo de un partido (events, statistics, ...)."""
     d = hl_get(f"/matches/{match_id}")
-    if not isinstance(d, dict):
+    obj = _desempacar(d)
+    if not isinstance(obj, dict):
+        forma = (list(d.keys()) if isinstance(d, dict)
+                 else f"list(len={len(d)})" if isinstance(d, list)
+                 else type(d).__name__)
+        print(f"  [debug] forma inesperada de /matches/{match_id}: {forma}")
         return None
-    if "events" in d or "statistics" in d:
-        return d
-    interno = d.get("data")
-    if isinstance(interno, dict):
-        return interno
-    if isinstance(interno, list) and interno:
-        return interno[0]
-    return d
+    return obj
 
 
 # ----------------------------------------------------------------- candidatos
@@ -182,6 +194,16 @@ def eventos_desde_hl(detalle: dict, p: dict) -> list[dict]:
     """Convierte los events[] de Highlightly a filas de partido_eventos."""
     home_id = como_int((detalle.get("homeTeam") or {}).get("id"))
 
+    def lado(ev: dict) -> str:
+        """local | visita. Primero por nombre (robusto), luego por id."""
+        nombre = nuestro_nombre((ev.get("team") or {}).get("name"))
+        if nombre and nombre == p["equipo_local"]:
+            return "local"
+        if nombre and nombre == p["equipo_visita"]:
+            return "visita"
+        tid = como_int((ev.get("team") or {}).get("id"))
+        return "local" if (home_id is not None and tid == home_id) else "visita"
+
     # Preservar 'detalle' (penal/autogol) manual por (equipo, minuto): HL no lo trae.
     previos = sb_get("partido_eventos", {
         "partido_id": f"eq.{p['id']}",
@@ -199,7 +221,7 @@ def eventos_desde_hl(detalle: dict, p: dict) -> list[dict]:
         if not tipo:
             continue  # Substitution u otros -> Fase 2
         minuto = como_int(str(ev.get("time", "")).split("+")[0]) or 0
-        equipo = "local" if como_int((ev.get("team") or {}).get("id")) == home_id else "visita"
+        equipo = lado(ev)
         jugador = (ev.get("player") or "").strip() or None
         if tipo == "gol":
             asistencia = (ev.get("assist") or "").strip() or None

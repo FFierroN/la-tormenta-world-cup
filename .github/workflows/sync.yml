@@ -1,21 +1,21 @@
-name: Sincronizar resultados (worldcup26.ir + Highlightly -> Supabase)
+name: Enriquecer eventos (Highlightly -> Supabase)
 
-# Robot centralizado. NO corre en el navegador de los amigos.
-# Las llaves van como SECRETOS del repo (Settings -> Secrets -> Actions):
-#   SUPABASE_URL, SUPABASE_SERVICE_KEY  (ambos robots)
-#   HIGHLIGHTLY_KEY                     (solo el de enriquecimiento)
-# (worldcup26.ir no requiere API key)
+# Robot POST-PARTIDO. NO corre en el navegador de los amigos.
+# Secretos del repo (Settings -> Secrets -> Actions):
+#   SUPABASE_URL, SUPABASE_SERVICE_KEY, HIGHLIGHTLY_KEY
 #
-# Dos robots, dos roles:
-#   actualizar.py -> worldcup26.ir: marcador + goles EN VIVO (cada 5 min).
-#   enriquecer.py -> Highlightly: al FINAL del partido rellena asistencias
-#                    y tarjetas. 1 request por partido finalizado (free 100/dia).
+# Reparto de tareas (desde 2026-06-12):
+#   - Marcador + goles EN VIVO  -> Cloudflare Worker (worker-vivo/), cron 1 min.
+#     (El cron de GitHub se estrangulaba en horas pico y perdia frescura.)
+#   - Enriquecimiento al FINAL  -> ESTE workflow: asistencias, tarjetas y stats
+#     desde Highlightly. No necesita frescura; 1 request por partido finalizado
+#     (free 100/dia). El auto-gatillo solo gasta cuando hay finales pendientes.
 
 on:
   workflow_dispatch:           # permite correrlo a mano desde la pestana Actions
     inputs:
       modo:
-        description: "auto = normal | todos = re-sincroniza/re-enriquece TODOS los partidos"
+        description: "auto = normal | todos = re-enriquece TODOS los partidos"
         required: false
         default: "auto"
         type: choice
@@ -23,21 +23,17 @@ on:
           - auto
           - todos
   schedule:
-    # Cada 5 min, las 24h, SOLO en junio/julio (el Mundial 2026).
-    # Repo PUBLICO = minutos de Actions ILIMITADOS.
-    # worldcup26.ir: gratis, sin auth. Highlightly: free 100 req/dia, pero
-    # el auto-gatillo solo gasta cuando hay partidos finalizados pendientes.
-    - cron: "*/5 * * 6,7 *"
+    # Cada 10 min, las 24h, SOLO en junio/julio (el Mundial 2026).
+    # No es critico que sea puntual: enriquece los partidos ya finalizados.
+    - cron: "*/10 * * 6,7 *"
 
 concurrency:
-  group: sync-resultados
+  group: enriquecer-eventos
   cancel-in-progress: false
 
 jobs:
-  sync:
+  enriquecer:
     runs-on: ubuntu-latest
-    # A nivel de job para poder usarlo en el 'if' del paso de enriquecimiento
-    # (el env de un step NO esta disponible en su propio 'if').
     env:
       HIGHLIGHTLY_KEY: ${{ secrets.HIGHLIGHTLY_KEY }}
     steps:
@@ -51,13 +47,6 @@ jobs:
 
       - name: Instalar dependencias
         run: pip install -r robot/requirements.txt
-
-      - name: Marcador y goles en vivo (worldcup26.ir)
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          MODO: ${{ github.event.inputs.modo || 'auto' }}
-        run: python robot/actualizar.py
 
       - name: Enriquecer eventos al final (Highlightly)
         if: ${{ env.HIGHLIGHTLY_KEY != '' }}

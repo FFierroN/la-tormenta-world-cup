@@ -46,8 +46,10 @@ function Valor({
 }) {
   return (
     <span
-      className={`tabular-nums font-bold text-white text-sm px-2 py-0.5 rounded-lg border ${
-        destacado ? "border-emerald-500" : "border-transparent"
+      className={`tabular-nums font-bold text-sm px-2 py-0.5 rounded-lg border ${
+        destacado
+          ? "bg-lime-400 text-carbon border-lime-400"
+          : "text-white border-transparent"
       }`}
     >
       {fmtValor(v, fmt)}

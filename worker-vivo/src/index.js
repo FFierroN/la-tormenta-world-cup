@@ -250,6 +250,17 @@ async function buscarPartido(supa, m, log) {
 async function actualizarPartido(supa, p, m, log) {
   const nuevoEstado = derivarEstado(m);
 
+  // Salvaguarda 0: un partido NO puede ponerse en vivo/final ANTES de su hora
+  // de inicio. worldcup26 a veces manda finished=true (o live) para partidos
+  // que aun no empiezan -> los dariamos por terminados y se sumarian puntos
+  // falsos. Bug encontrado 2026-06-12 (Paraguay vs USA dado por final 0-0
+  // antes del pitazo). Damos 2 min de gracia por desfases de reloj.
+  const kickoff = p.fecha ? new Date(p.fecha).getTime() : NaN;
+  if (!Number.isNaN(kickoff) && Date.now() < kickoff - 2 * 60e3 && nuevoEstado !== "programado") {
+    log.push(`  IGNORADO (API=${nuevoEstado} pero aun no empieza, kickoff=${p.fecha}): ${p.equipo_local} vs ${p.equipo_visita}`);
+    return null;
+  }
+
   // Salvaguarda 1: no degradar el estado.
   const prioDb = PRIORIDAD_ESTADO[p.estado || ""] ?? 0;
   const prioApi = PRIORIDAD_ESTADO[nuevoEstado] ?? 0;

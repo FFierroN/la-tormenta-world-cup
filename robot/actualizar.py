@@ -217,6 +217,22 @@ def actualizar_partido(p: dict, m: dict) -> str | None:
     """Devuelve el estado nuevo, o None si se salto la actualizacion."""
     nuevo_estado = derivar_estado(m)
 
+    # Salvaguarda 0: un partido NO puede ponerse en vivo/final ANTES de su hora
+    # de inicio (worldcup26 a veces manda finished=true para partidos que aun
+    # no empiezan). Damos 2 min de gracia. (Misma logica que el Worker.)
+    fecha = str(p.get("fecha") or "").replace("Z", "+00:00")
+    if fecha and nuevo_estado != "programado":
+        try:
+            kickoff = datetime.fromisoformat(fecha)
+            if kickoff.tzinfo is None:
+                kickoff = kickoff.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) < kickoff - timedelta(minutes=2):
+                print(f"  IGNORADO (API={nuevo_estado} pero aun no empieza): "
+                      f"{p['equipo_local']} vs {p['equipo_visita']}")
+                return None
+        except ValueError:
+            pass
+
     # Salvaguarda 1: no degradar el estado.
     prio_db = PRIORIDAD_ESTADO.get(p.get("estado") or "", 0)
     prio_api = PRIORIDAD_ESTADO.get(nuevo_estado, 0)

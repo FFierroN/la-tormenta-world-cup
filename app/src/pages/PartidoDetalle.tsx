@@ -4,6 +4,7 @@ import Flag from "../components/Flag";
 import RelojVivo from "../components/RelojVivo";
 import EstadoBadge from "../components/EstadoBadge";
 import PanelStats from "../components/PanelStats";
+import PanelTormenta from "../components/PanelTormenta";
 import { BallIcon, EventoIcono, ShoeIcon } from "../components/Iconos";
 import type { EventoPartido, Partido, PronosticoVista } from "../lib/types";
 import { ESTADOS_EN_CURSO } from "../lib/estados";
@@ -16,7 +17,7 @@ import {
   pronosticosPartido,
 } from "../lib/data";
 
-type Pestana = "detalles" | "estadisticas" | "pronosticos";
+type Pestana = "detalles" | "estadisticas" | "latormenta" | "pronosticos";
 
 // Un partido esta abierto para pronosticar si sigue programado y no empezo.
 function puedePronosticar(p: Partido): boolean {
@@ -170,6 +171,9 @@ export default function PartidoDetalle() {
         <TabBtn activo={pestana === "estadisticas"} onClick={() => setPestana("estadisticas")}>
           Estadisticas
         </TabBtn>
+        <TabBtn activo={pestana === "latormenta"} onClick={() => setPestana("latormenta")}>
+          LaTormenta
+        </TabBtn>
         <TabBtn activo={pestana === "pronosticos"} onClick={() => setPestana("pronosticos")}>
           Pronosticos
         </TabBtn>
@@ -180,6 +184,7 @@ export default function PartidoDetalle() {
           <Detalles partido={partido} eventos={eventos} />
         )}
         {pestana === "estadisticas" && <PanelStats partido={partido} />}
+        {pestana === "latormenta" && <PanelTormenta />}
         {pestana === "pronosticos" && (
           <Pronosticos partido={partido} pronosticos={pronosticos} />
         )}

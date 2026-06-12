@@ -10,6 +10,7 @@ import type {
   FilaGoleo,
   FilaGrupo,
   FilaTabla,
+  FilaTormenta,
   Jugador,
   JugadorAdmin,
   Partido,
@@ -218,6 +219,29 @@ export async function obtenerTabla(): Promise<FilaTabla[]> {
     .order("posicion");
   lanzarSi(error);
   return (data ?? []).map(aFilaTabla);
+}
+
+// Desglose de pronosticos por miembro (pestana LaTormenta del detalle).
+// Es global (todos los partidos finalizados), igual en cualquier partido.
+export async function obtenerDesgloseTormenta(): Promise<FilaTormenta[]> {
+  const { data, error } = await supabase
+    .from("desglose_tormenta")
+    .select("*")
+    .order("posicion");
+  lanzarSi(error);
+  return (data ?? []).map(
+    (r: any): FilaTormenta => ({
+      posicion: r.posicion,
+      jugador_id: String(r.jugador_id),
+      nombre: r.nombre,
+      alias: r.alias ?? null,
+      exactos: r.exactos ?? 0,
+      diferencias: r.diferencias ?? 0,
+      aciertos: r.aciertos ?? 0,
+      fallas: r.fallas ?? 0,
+      total: r.total ?? 0,
+    })
+  );
 }
 
 export async function obtenerTablaGrupos(): Promise<FilaGrupo[]> {

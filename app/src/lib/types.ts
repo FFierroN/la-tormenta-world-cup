@@ -131,6 +131,20 @@ export interface FilaGoleo {
   total: number;
 }
 
+// Desglose de pronosticos de un miembro (pestana LaTormenta). Las 4 categorias
+// suman 'total' (pronosticos de partidos ya finalizados).
+export interface FilaTormenta {
+  posicion: number;
+  jugador_id: string;
+  nombre: string;
+  alias: string | null;
+  exactos: number;
+  diferencias: number;
+  aciertos: number;
+  fallas: number;
+  total: number;
+}
+
 // Fila derivada de la tabla de posiciones.
 export interface FilaTabla {
   jugador_id: string;

@@ -1,62 +1,70 @@
-# Robot de sincronizacion (API-Football -> Supabase)
+# Robot de enriquecimiento (Highlightly -> Supabase)
 
-Mantiene los marcadores, el minuto en vivo, los penales y los eventos
-(goles / amarillas / rojas con minuto, goleador y asistencia) **al dia
-automaticamente**, sin que nadie cargue nada a mano.
+> Este robot es el de POST-partido. El marcador EN VIVO lo maneja el Cloudflare
+> Worker (carpeta `worker-vivo/`), NO este. Vision general en `APIS-Y-BOTS.md`.
 
-## Como funciona (en simple)
+Despues de que un partido termina, rellena lo que worldcup26.ir no entrega:
+asistencias, tarjetas, sustituciones (cambios) y estadisticas.
+
+## Que hay en esta carpeta
+
+| Archivo | Rol | Estado |
+|---|---|---|
+| `enriquecer.py` | Llama a Highlightly y escribe eventos + stats post-partido | ACTIVO (GitHub Actions) |
+| `comun.py` | Helpers compartidos (Supabase REST, mapa `EQUIPOS`, casts) | ACTIVO |
+| `actualizar.py` | Robot del marcador en vivo via worldcup26.ir | LEGACY: ya no corre |
+| `requirements.txt` | Dependencias (requests) | - |
+
+> `actualizar.py` fue el robot del marcador en vivo cuando corria en GitHub.
+> Se reemplazo por el Cloudflare Worker (el cron de GitHub se estrangulaba en
+> horas pico). Se conserva como fuente del port a JavaScript y por si se
+> necesita, pero NO se ejecuta en el workflow actual.
+
+## Como funciona enriquecer.py (en simple)
 
 ```
-  [API-Football]  --(robot, cada 15 min)-->  [Supabase]  --realtime-->  [los 8 amigos]
+  [Highlightly]  --(GitHub Actions, cada 10 min jun/jul)-->  [Supabase]  --realtime-->  app
 ```
 
-- El robot (`actualizar.py`) corre en un **GitHub Action programado**.
-- Llama a API-Football con tu key (guardada como secreto) y escribe en Supabase.
-- Tus amigos **solo leen** de Supabase. Nunca tocan la API ni ven tu key.
-- Cuando un partido pasa a `final`, el trigger de Supabase **recalcula los
-  puntos solo**.
+- Corre en `.github/workflows/sync.yml` (job `enriquecer`).
+- Para cada partido en estado `final` que aun no se enriquecio, llama UNA vez a
+  Highlightly y escribe:
+  - `partido_eventos`: goles (con asistidor), amarillas, rojas y cambios.
+  - `partidos.estadisticas` (JSONB): posesion, tiros, etc.
+- Da ~20 min de gracia tras el pitazo (para que Highlightly cierre los datos).
+- El minuto del cambio (`Substitution`): `player` = quien entra (campo `jugador`),
+  `substituted` = quien sale (campo `asistencia`).
 
-## Cuidado con la cuota (100 requests/dia gratis)
+## Cuota de Highlightly (free: 100 req/dia)
 
-- El robot lleva un contador en la tabla `api_cuota` y **se frena en 95**.
-- **Auto-gatillo (ventana movil automatica):** antes de llamar a la API, el robot
-  pregunta GRATIS a Supabase si hay algun partido en vivo o por empezar. Si no
-  hay, **sale sin gastar requests**. Asi se ajusta solo por jornada y por fase,
-  sin tocar el `cron`. (Comparar `now()` contra `fecha` en la DB es timezone-safe.)
-- No re-descarga eventos de partidos ya terminados (ahorra cuota).
-- En vivo: 1 request por corrida para el marcador de todos + 1 por partido
-  activo para sus eventos.
+- Auto-gatillo: si no hay partidos finalizados pendientes, sale sin gastar requests.
+- 1 GET `/matches/{id}` por partido finalizado, una sola vez. En el dia mas
+  cargado del mundial: ~10-15 requests.
+- Si recibe 429 (limite diario), corta y sigue en la proxima corrida.
 
-## Puesta en marcha (una sola vez)
+## Secretos (GitHub -> Settings -> Secrets and variables -> Actions)
 
-1. **Crea los 3 secretos** en GitHub:
-   repo -> *Settings* -> *Secrets and variables* -> *Actions* -> *New secret*
-   - `APIFOOTBALL_KEY` -> tu key de dashboard.api-football.com
-   - `SUPABASE_URL` -> `https://TUPROYECTO.supabase.co`
-   - `SUPABASE_SERVICE_KEY` -> la **service_role** key
-     (Supabase -> Project Settings -> API -> *service_role*).
-     OJO: esta key es secreta y poderosa (salta el RLS). Por eso vive solo
-     en los secretos de GitHub, **nunca** en el frontend ni en git.
+- `SUPABASE_URL` -> `https://TUPROYECTO.supabase.co`
+- `SUPABASE_SERVICE_KEY` -> la `service_role` key (secreta, salta el RLS).
+- `HIGHLIGHTLY_KEY` -> la api key (header `x-rapidapi-key`).
 
-2. **Prueba manual**: pestana *Actions* -> *Sincronizar resultados* -> *Run
-   workflow*. Mira el log: deberia decir cuantos fixtures recibio y los
-   "OK equipo vs equipo".
+> Nunca van en el codigo ni en el frontend. El frontend usa la `anon` key.
 
-3. Si ves lineas **`SIN MAPEAR: 'X' vs 'Y'`**, agrega ese nombre ingles al
-   diccionario `EQUIPOS` en `actualizar.py` (o a la tabla `equipos_api_map`).
+## Disparo manual y modos
 
-## Ajustes
+- GitHub -> Actions -> "Enriquecer eventos" -> Run workflow.
+- `MODO=auto` (default): solo los finalizados no enriquecidos, con la gracia cumplida.
+- `MODO=todos`: re-enriquece TODOS los finalizados (util para rehacer un dia).
 
-- Frecuencia / ventana: edita los `cron` en `.github/workflows/sync.yml`.
-  Hoy corre cada 15 min, las 24h, SOLO en junio/julio (Mundial 2026). El repo
-  es PUBLICO -> minutos de Actions ilimitados; el AUTO-GATILLO evita gastar
-  cuota de API cuando no hay partidos.
-- Tope de cuota: variable de entorno `MAX_CUOTA` (default 95).
-- Modo `vivo` (solo partidos en vivo, mas barato): cambia `MODO: hoy` por
-  `MODO: vivo` en el workflow.
+## Migraciones de base relacionadas
 
-## Importante
+- `db/FIX-highlightly-stats.sql` -> columna `partidos.estadisticas`.
+- Los cambios (sustituciones) NO necesitan migracion (`tipo` es texto libre).
 
-- El **admin manual sigue funcionando** como respaldo: si la API falla un dia,
-  puedes cargar resultados a mano desde Supabase y todo sigue igual.
-- Fase 2 (cuando quieras): estadisticas (posesion, tiros), alineaciones.
+## Mantenimiento
+
+- Si en el log aparece `SIN MATCH en HL` o `SIN MAPEAR`, el nombre de equipo no
+  coincide. Agregalo al diccionario `EQUIPOS` en `comun.py` (y en
+  `worker-vivo/src/index.js`, que tiene su propia copia).
+- El admin manual sigue siendo el respaldo: si Highlightly falla, se cargan los
+  eventos a mano desde el panel admin y se preservan al re-enriquecer.

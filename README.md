@@ -1,151 +1,154 @@
-#  La Tormenta World Cup
+# La Tormenta World Cup
 
-> PWA de pronósticos del Mundial de Fútbol 2026 para jugar entre 8 amigos.
-
----
-
-##  ¿Qué es?
-
-Una aplicación móvil instalable (PWA) donde 8 amigos pueden:
-
--  Pronosticar el resultado de todos los partidos del Mundial 2026
--  Acumular puntos según las reglas del juego
--  Ver la tabla de posiciones actualizada en tiempo real
--  Hacer predicciones especiales (campeón, finalistas, goleador, premios)
--  Coronar a un ganador al final del torneo
+> PWA de pronosticos del Mundial 2026 para jugar entre amigos (grupo cerrado de 7 participantes).
 
 ---
 
-##  Características
+## Que es
 
--  **Usuarios:** 8 amigos (grupo cerrado, no público)
--  **Plataforma:** PWA — se instala en iOS y Android sin App Store / Play Store
-- ⏱ **Vida útil:** Mundial 2026 (11 jun – 19 jul)
--  **Admin:** un jugador (Felipe) con permisos extra para cargar resultados
--  **Resultados automáticos:** robot que sincroniza marcadores y eventos en vivo
+Una aplicacion movil instalable (PWA) donde el grupo puede:
+
+- Pronosticar el resultado de todos los partidos del Mundial 2026.
+- Acumular puntos segun las reglas del juego.
+- Ver la tabla de posiciones actualizada en tiempo real.
+- Hacer predicciones especiales (campeon, finalistas, goleador, premios).
+- Seguir cada partido en vivo (marcador y goles casi en tiempo real).
 
 ---
 
-##  Stack técnico (el real)
+## Stack tecnico (el real, a junio 2026)
 
 | Componente | Herramienta | Plan |
 |---|---|---|
-| Frontend | Vite + React + TypeScript + Tailwind | — |
-| PWA | vite-plugin-pwa | — |
-| Backend + DB | [Supabase](https://supabase.com) | Free |
-| Hosting | [Vercel](https://vercel.com) | Hobby (gratis) |
-| Datos en vivo | [API-Football](https://dashboard.api-football.com) | Free (100 req/día) |
-| Automatización | GitHub Actions | Free |
+| Frontend | Vite + React + TypeScript + Tailwind | - |
+| PWA | vite-plugin-pwa | - |
+| Backend + DB | Supabase | Free |
+| Hosting de la app | Cloudflare Pages | Free |
+| Marcador en vivo | worldcup26.ir | Free (sin auth) |
+| Datos post-partido | Highlightly | Free (100 req/dia) |
+| Bot en vivo | Cloudflare Worker (cron 1 min) | Free |
+| Bot post-partido | GitHub Actions (cron 10 min) | Free |
 
->  **Nota histórica:** el proyecto empezó pensado para Lovable, pero se
-> abandonó cuando Lovable forzó su propio backend de pago. Hoy el frontend es
-> 100% Vite propio, conectado al Supabase personal de Felipe.
-
----
-
-##  Arquitectura
-
-```
-┌─────────────────────────────────────┐
-│   PWA (Vite + React + TS)         │
-│  - Login con PIN                    │
-│  - Lista de partidos                │
-│  - Ingreso de pronósticos           │
-│  - Predicciones especiales          │
-│  - Tabla de posiciones (realtime)   │
-│  - Panel admin (solo Felipe)        │
-└─────────────────────────────────────┘
-              ↕
-┌─────────────────────────────────────┐
-│   Supabase                        │
-│  - Tablas: jugadores, partidos,     │
-│    pronosticos, partido_eventos,    │
-│    predicciones_especiales, config  │
-│  - Login por PIN (bcrypt/pgcrypto)  │
-│  - Row Level Security (privacidad)  │
-│  - Realtime para la tabla           │
-│  - Cálculo de puntos por trigger    │
-└─────────────────────────────────────┘
-       ↑                       ↑
-       │ (anon key)            │ (service key)
-┌──────────────┐      ┌──────────────────────┐
-│   Vercel   │      │   GitHub Actions   │
-│  app pública │      │  robot/actualizar.py │
-│  para los 8  │      │  ← API-Football      │
-└──────────────┘      └──────────────────────┘
-```
+> Nota historica: el proyecto empezo pensado para Lovable, pero se abandono
+> cuando forzo su backend de pago. El frontend hoy es 100% Vite propio,
+> conectado al Supabase personal de Felipe. La capa de datos en vivo tambien
+> migro: de API-Football a worldcup26.ir + Highlightly (ver `APIS-Y-BOTS.md`).
 
 ---
 
-##  Estructura del repositorio
+## Arquitectura
+
+```
+                       App (PWA en Cloudflare Pages)
+                                  | lee (anon key, respeta RLS)
+                                  v
+                              Supabase
+                          (tablas + RLS + realtime
+                           + calculo de puntos por trigger)
+                                  ^  ^
+              escribe (service key) |  | escribe (service key)
+                                  |  |
+        Cloudflare Worker --------+  +-------- GitHub Actions
+        worldcup26.ir (1 min)           Highlightly (10 min)
+        marcador / estado / goles       asistencias / tarjetas /
+        EN VIVO                         cambios / stats POST-partido
+```
+
+Detalle completo de APIs, bots, secretos y salvaguardas en **`APIS-Y-BOTS.md`**.
+
+---
+
+## Estructura del repositorio
 
 ```
 MIPROYECTO/
-├── app/          → frontend Vite (el código de la app)
-│   └── src/
-│       ├── pages/        → 11 pantallas (Login, Partidos, Tabla, Admin...)
-│       ├── components/    → Avatar, BottomTabs, Flag
-│       └── lib/           → data.ts (capa Supabase), auth, types, reglas...
-├── db/           → SETUP-SUPABASE.sql (un solo script idempotente)
-├── robot/        → actualizar.py + workflow de GitHub Actions
-└── *.md          → documentación (esta guía y la de despliegue)
+|- app/           -> frontend Vite (el codigo de la app)
+|   \- src/
+|       |- pages/        -> pantallas (Login, Partidos, PartidoDetalle, Tabla, Admin...)
+|       |- components/    -> Avatar, BottomTabs, Flag, RelojVivo, Iconos...
+|       \- lib/           -> data.ts (capa Supabase), auth, types, reglas...
+|- db/            -> SETUP-SUPABASE.sql + migraciones FIX-*.sql
+|- robot/         -> enriquecer.py (Highlightly) + actualizar.py/comun.py (legacy port)
+|- worker-vivo/   -> Cloudflare Worker del marcador en vivo
+|- .github/       -> workflow de GitHub Actions (enriquecimiento)
+|- _archivo/      -> documentacion historica (specs y decisiones de construccion)
+\- *.md           -> esta guia, APIS-Y-BOTS.md y MIGRACION-Y-DESPLIEGUE.md
 ```
 
 ---
 
-##  Estado actual
+## Como se juega
 
- **Código completo y funcional.** Las 11 pantallas leen datos reales de
-Supabase (sin mocks). Lo que falta es **ejecución de despliegue**, no código:
+- Cada jugador ingresa su pronostico (marcador) antes del cierre de cada partido.
+- Sistema de puntos en 4 niveles:
+  - Exacto: marcador exacto.
+  - Diferencia: misma diferencia de goles (no empate).
+  - Acierto: resultado correcto (gana / empate / pierde) pero no la diferencia.
+  - Falla: ni el resultado.
+- Predicciones especiales con su propio puntaje (campeon, finalistas, semis,
+  goleador, mejor jugador, premio Asistidor, etc.).
+- Detalle completo del puntaje dentro de la pantalla Reglas de la app.
 
-1. ⏳ **Deploy** — publicar la PWA en Vercel (bloquea poder jugar).
-2. ⏳ **Robot API** — crear 3 secretos en GitHub (opcional; el admin manual lo cubre).
-3. ⏳ **Fixture** — faltan los cruces "Por definir" hasta que haya sorteo de llaves.
-
- La guía paso a paso está en **`MIGRACION-Y-DESPLIEGUE.md`**.
-
----
-
-##  Cómo se juega
-
-- Cada jugador ingresa su pronóstico (marcador) antes del cierre de cada partido.
-- Sistema de puntos en **4 niveles**:
-  -  **Exacto** — marcador exacto (+ bonus)
-  - ↔ **Diferencia** — acertaste la diferencia de goles
-  -  **Acierto** — acertaste el resultado (gana/empate/pierde)
-  -  **Falla** — ni el resultado
-- Predicciones especiales con su propio puntaje (campeón, finalistas, semis,
-  goleador, mejor jugador, etc.).
-- Detalle completo del puntaje dentro de la pantalla **Reglas** de la app.
+### Pantalla de detalle del partido (4 pestanas)
+1. **Detalles**: timeline de eventos (goles, tarjetas, cambios) con minuto.
+2. **Estadisticas**: posesion, tiros, etc. (Highlightly, post-partido).
+3. **Pronosticos**: que predijo cada jugador y cuanto sumo.
+4. **Tormenta**: desglose por jugador (exacto / diferencia / acierto / falla).
 
 ---
 
-##  Flujo de trabajo (después del primer deploy)
+## Datos en vivo: que llega y cuando
 
-Cada cambio futuro es así de simple:
+- **En vivo (Cloudflare Worker, cada 1 min):** estado del partido (en vivo /
+  final), marcador y goleadores con minuto.
+- **Post-partido (GitHub Actions + Highlightly):** asistencias, tarjetas,
+  sustituciones y estadisticas.
+- **Limitacion conocida:** worldcup26.ir no entrega el minuto numerico del
+  partido, por eso el cronometro no corre solo (necesita un ancla de minuto que
+  la API no da). El marcador y los goles si llegan en vivo.
+
+---
+
+## Flujo de trabajo (desarrollo)
+
+Ramas: se trabaja en `cambios-felipe` y se hace fast-forward a `main`.
 
 ```bash
-# editas algo en el código...
+# editas algo en el codigo...
 git add .
 git commit -m "describe tu cambio"
-git push
+git push origin cambios-felipe
+# luego (validado): merge ff a main -> Cloudflare republica la app solo
 ```
 
-Vercel detecta el push y **republica solo** en ~1 minuto. Si hubo cambios en la
-base de datos, vuelve a pegar `db/SETUP-SUPABASE.sql` en Supabase (es idempotente).
+- La **app** (Cloudflare Pages) se republica sola al push a `main`.
+- El **Worker** NO se redespliega solo: hay que correr `npx wrangler deploy`
+  dentro de `worker-vivo/` (ver `worker-vivo/README.md`).
+- Cambios de base de datos: correr el SQL correspondiente en Supabase (idempotente).
 
 ---
 
-##  Notas importantes
+## Notas importantes
 
--  El **build/dev se corre en la PC personal de Felipe** (la máquina de trabajo
-  no tiene Node).
--  Nunca subir credenciales, API keys ni el `.env` al repo (están en `.gitignore`).
--  Conviene **respaldar la base de datos** de Supabase durante el mundial.
--  El repo es **privado** en `github.com/FFierroN/la-tormenta-world-cup`.
+- El build/dev se corre en la PC personal de Felipe (la maquina de trabajo no tiene Node).
+- Nunca subir credenciales ni API keys al repo (estan en `.gitignore`).
+- El frontend usa la `anon` key (respeta RLS). Los bots usan la `service_role`
+  key, que vive solo como secreto en Cloudflare y GitHub.
+- El mapa de paises `EQUIPOS` esta duplicado en `worker-vivo/src/index.js` y
+  `robot/comun.py`: si aparece un `SIN MAPEAR`, agregar el pais en ambos.
+- Conviene respaldar la base de Supabase durante el mundial.
+- El repo es privado: `github.com/FFierroN/la-tormenta-world-cup`.
 
 ---
 
-##  Mantenido con Kira (Code Puppy)
+## Documentacion relacionada
 
-¡Mucho éxito con el mundial! 
+- `APIS-Y-BOTS.md` -> capa de datos en vivo (APIs, bots, secretos, salvaguardas).
+- `worker-vivo/README.md` -> como desplegar y operar el Worker.
+- `robot/README.md` -> el enriquecedor de Highlightly (post-partido).
+- `MIGRACION-Y-DESPLIEGUE.md` -> guia del despliegue inicial (Cloudflare + Supabase).
+- `_archivo/` -> specs y decisiones historicas de la construccion.
+
+---
+
+Mantenido con Kira (Code Puppy). Exito con el mundial.

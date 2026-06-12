@@ -207,21 +207,34 @@ En la pantalla de configuración (**Set up builds and deployments**):
 
 ---
 
-## FASE 5 - Resultados automaticos con API-Football (opcional)
+## FASE 5 - Resultados automaticos (dos bots)
 
-> **Objetivo:** que los marcadores, el minuto en vivo y los eventos (goles,
-> amarillas, rojas con goleador y asistencia) se actualicen SOLOS.
->
-> Guia detallada en `robot/README.md`. Resumen:
+> NOTA (jun 2026): la capa de datos en vivo cambio. Ya NO se usa API-Football.
+> Ahora son DOS bots con dos APIs gratis. Detalle completo en `APIS-Y-BOTS.md`.
+
+### 5.A Marcador EN VIVO - Cloudflare Worker (worker-vivo/)
+
+> Marcador, estado y goles casi en tiempo real, via worldcup26.ir (sin auth).
+> Guia de despliegue: `worker-vivo/README.md`.
+
+- [ ] `cd worker-vivo && npm install`
+- [ ] `npx wrangler login`
+- [ ] Cargar 3 secretos: `npx wrangler secret put SUPABASE_URL` (y
+      `SUPABASE_SERVICE_KEY`, `TRIGGER_SECRET`).
+- [ ] `npx wrangler deploy`. Corre solo cada 1 min en junio/julio.
+
+### 5.B Enriquecimiento POST-partido - GitHub Actions (Highlightly)
+
+> Asistencias, tarjetas, cambios y estadisticas al terminar el partido.
+> Guia: `robot/README.md`.
 
 - [ ] Crea 3 secretos en GitHub (repo -> Settings -> Secrets -> Actions):
-      `APIFOOTBALL_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`.
-- [ ] Prueba manual: pestana **Actions** -> *Sincronizar resultados* -> **Run workflow**.
-- [ ] Si aparece `SIN MAPEAR: 'X' vs 'Y'` en el log, agrega ese nombre ingles
-      a `EQUIPOS` en `robot/actualizar.py`.
-- [ ] El robot corre cada 15 min y se frena solo en 95/100 requests del dia.
+      `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `HIGHLIGHTLY_KEY`.
+- [ ] Prueba manual: pestana **Actions** -> *Enriquecer eventos* -> **Run workflow**.
+- [ ] Si aparece `SIN MATCH en HL` o `SIN MAPEAR`, agrega ese nombre ingles a
+      `EQUIPOS` en `robot/comun.py` (y en `worker-vivo/src/index.js`).
 
-> El admin manual sigue siendo el respaldo: si la API falla, cargas resultados
+> El admin manual sigue siendo el respaldo: si una API falla, cargas resultados
 > a mano en Supabase y todo sigue igual.
 
 ---
@@ -249,8 +262,8 @@ Cloudflare detecta el push y **republica solo** en ~1 minuto. No tocas nada más
 | App en blanco al recargar una ruta | Falta `_redirects` (Cloudflare) | Confirma que existe `app/public/_redirects` |
 | App en blanco en deploy | Faltan las env vars | Agrégalas en el panel del host y vuelve a desplegar |
 | Login no valida | No corriste el SQL de setup | Pega y corre `db/SETUP-SUPABASE.sql` |
-| Robot no actualiza | Faltan secretos en GitHub | Revisa APIFOOTBALL_KEY / SUPABASE_URL / SUPABASE_SERVICE_KEY |
-| Robot dice SIN MAPEAR | Nombre de equipo distinto | Agregalo a `EQUIPOS` en `robot/actualizar.py` |
+| Robot no actualiza | Faltan secretos | Worker: secretos en Cloudflare. Highlightly: SUPABASE_URL/SUPABASE_SERVICE_KEY/HIGHLIGHTLY_KEY en GitHub |
+| Robot dice SIN MAPEAR | Nombre de equipo distinto | Agregalo a `EQUIPOS` en `robot/comun.py` y `worker-vivo/src/index.js` |
 
 >  Ante cualquier duda o error: cópiame el mensaje exacto y lo resolvemos
 > juntos. **Git nos permite volver atrás** si algo sale mal, así que tranquilo:
@@ -264,6 +277,6 @@ Cloudflare detecta el push y **republica solo** en ~1 minuto. No tocas nada más
 - [ ] **F2** — Node instalado + `git clone` + `npm install` + `npm run dev` OK
 - [ ] **F3** — Pegar `SETUP-SUPABASE.sql` en Supabase + `.env` creado (8/104/72)
 - [ ] **F4** — Cloudflare Pages conectado + env vars + deploy + URL pública
-- [ ] **F5** — (opcional) Robot API-Football: 3 secretos + run manual + mapeo
+- [ ] **F5** — Bots: 5.A Worker en vivo (Cloudflare) + 5.B Highlightly (GitHub Actions)
 
  *Vamos fase por fase. No saltes pasos. Marca cada casilla. Yo te acompaño.*

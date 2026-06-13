@@ -600,37 +600,27 @@ function PrediccionesBarra({
         </span>
       </div>
 
-      <div className="flex h-3 gap-1">
-        {local > 0 && (
-          <div
-            className="rounded-full border border-sky-500"
-            style={{ width: `${w(local)}%` }}
-          />
-        )}
-        {empate > 0 && (
-          <div
-            className="rounded-full border border-neutral-400"
-            style={{ width: `${w(empate)}%` }}
-          />
-        )}
-        {visita > 0 && (
-          <div
-            className="rounded-full border border-rose-500"
-            style={{ width: `${w(visita)}%` }}
-          />
-        )}
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
-        <span className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-1.5">
+      {/* Cada caja crece segun su porcentaje (flex-grow proporcional al # de
+         votos). minWidth garantiza que incluso el 0% se vea en la grafica. */}
+      <div className="flex gap-2 text-xs">
+        <span
+          className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-2 px-1 overflow-hidden"
+          style={{ flexGrow: local, flexBasis: 0, minWidth: "3.25rem" }}
+        >
           <Flag code={partido.pais_local} size={16} nombre={partido.equipo_local} />
           <span className="font-bold tabular-nums">{p(local)}%</span>
         </span>
-        <span className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-1.5">
-          <span className="text-neutral-400">Empate</span>
+        <span
+          className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-2 px-1 overflow-hidden"
+          style={{ flexGrow: empate, flexBasis: 0, minWidth: "3.25rem" }}
+        >
+          <span className="text-neutral-400 truncate">Empate</span>
           <span className="font-bold tabular-nums">{p(empate)}%</span>
         </span>
-        <span className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-1.5">
+        <span
+          className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-2 px-1 overflow-hidden"
+          style={{ flexGrow: visita, flexBasis: 0, minWidth: "3.25rem" }}
+        >
           <Flag code={partido.pais_visita} size={16} nombre={partido.equipo_visita} />
           <span className="font-bold tabular-nums">{p(visita)}%</span>
         </span>

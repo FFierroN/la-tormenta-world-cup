@@ -25,10 +25,10 @@ export default function BotonCuenta({
     <button
       onClick={onClick}
       aria-expanded={expandido}
-      className={`${glow ? "glow-oro " : ""}w-full flex items-center gap-3 bg-carbon-card border-2 border-oro rounded-2xl px-4 py-3 text-oro font-semibold active:bg-carbon-soft ${className}`}
+      className={`${glow ? "glow-oro " : ""}w-full flex items-center gap-3 bg-carbon-card border-2 border-oro rounded-2xl px-4 py-3 font-semibold active:bg-carbon-soft ${className}`}
     >
       <span className="shrink-0 text-oro">{icon}</span>
-      <span className="flex-1 text-left">{children}</span>
+      <span className="flex-1 text-left text-white">{children}</span>
       {right && <span className="shrink-0 text-oro">{right}</span>}
     </button>
   );

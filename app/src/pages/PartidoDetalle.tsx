@@ -614,7 +614,9 @@ function PrediccionesBarra({
           className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-2 px-1 overflow-hidden"
           style={{ flexGrow: empate, flexBasis: 0, minWidth: "3.25rem" }}
         >
-          <span className="text-neutral-400 truncate">Empate</span>
+          <span className="text-neutral-400 truncate">
+            {p(empate) < 12 ? "=" : "Empate"}
+          </span>
           <span className="font-bold tabular-nums">{p(empate)}%</span>
         </span>
         <span

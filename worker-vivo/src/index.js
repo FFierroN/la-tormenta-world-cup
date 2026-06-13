@@ -74,14 +74,16 @@ function parsearScorers(crudo) {
   for (let c of crudos) {
     c = c.trim().replace(/^"|"$/g, "").trim();
     if (!c) continue;
-    // Autogol: worldcup26 lo marca con "(OG)" junto al nombre.
-    // Ej: "D. Bobadilla (OG) 9'". Lo detectamos y lo quitamos del nombre.
+    // Autogol y penal: worldcup26 los marca junto al nombre con "(OG)" / "(p)".
+    // Ej: "D. Bobadilla 7'(OG)" | "Breel Embolo 17' (p)". Los detectamos y los
+    // quitamos del nombre antes de matchear el minuto.
     const esAutogol = /\(og\)/i.test(c);
-    c = c.replace(/\(og\)/i, "").replace(/\s{2,}/g, " ").trim();
+    const esPenal = /\(p\)/i.test(c);
+    c = c.replace(/\(og\)/i, "").replace(/\(p\)/i, "").replace(/\s{2,}/g, " ").trim();
     const mm = c.match(RE_GOLEADOR);
     if (!mm) continue;
     const adicional = mm[3] ? Number(mm[3]) : null; // descuento (45+5 -> 5)
-    salida.push([mm[1].trim(), Number(mm[2]), adicional, esAutogol]);
+    salida.push([mm[1].trim(), Number(mm[2]), adicional, esAutogol, esPenal]);
   }
   return salida;
 }
@@ -243,10 +245,10 @@ async function actualizarPartido(supa, p, m, log) {
 
 async function sincronizarGoles(supa, p, m, log) {
   const parsed = [];
-  for (const [j, min, adic, og] of parsearScorers(m.home_scorers))
-    parsed.push([j, min, adic, "local", og]);
-  for (const [j, min, adic, og] of parsearScorers(m.away_scorers))
-    parsed.push([j, min, adic, "visita", og]);
+  for (const [j, min, adic, og, pen] of parsearScorers(m.home_scorers))
+    parsed.push([j, min, adic, "local", og, pen]);
+  for (const [j, min, adic, og, pen] of parsearScorers(m.away_scorers))
+    parsed.push([j, min, adic, "visita", og, pen]);
 
   if (!parsed.length) return; // la API no asegura goles -> no tocamos nada
 
@@ -265,13 +267,17 @@ async function sincronizarGoles(supa, p, m, log) {
 
   const filas = [];
   const vistos = new Set();
-  for (const [jugador, minuto, adicional, equipo, esAutogol] of parsed) {
+  for (const [jugador, minuto, adicional, equipo, esAutogol, esPenal] of parsed) {
     const k = `${jugador}|${minuto}|${adicional ?? ""}|${equipo}`;
     if (vistos.has(k)) continue; // la API a veces repite
     vistos.add(k);
     const prev = manual.get(`${equipo}|${minuto}|${adicional ?? ""}`) || {};
-    // Si la API marca autogol (OG), gana; si no, preservamos el detalle del admin.
-    const detalle = esAutogol ? "autogol" : (prev.detalle ?? "normal");
+    // Prioridad del detalle: autogol > penal (de la API) > lo del admin > normal.
+    const detalle = esAutogol
+      ? "autogol"
+      : esPenal
+      ? "penal"
+      : (prev.detalle ?? "normal");
     filas.push({
       partido_id: p.id,
       tipo: "gol",

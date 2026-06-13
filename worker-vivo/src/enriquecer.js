@@ -25,6 +25,7 @@ const MIN_GRACIA_FT = 15;
 // jugador=quien entra (player), asistencia=quien sale (substituted).
 const TIPO_HL = {
   "Goal": "gol",
+  "Penalty": "gol",
   "Yellow Card": "amarilla",
   "Red Card": "roja",
   "Substitution": "cambio",
@@ -116,13 +117,14 @@ async function buscarMatchId(env, supa, p, cacheFecha, log) {
 // Detecta el tipo de evento de HL, marcando autogol cuando corresponde.
 function tipoEvento(ev) {
   const raw = String(ev.type || "");
-  if (/own\s*goal/i.test(raw)) return { tipo: "gol", autogol: true };
+  if (/own\s*goal/i.test(raw)) return { tipo: "gol", autogol: true, penal: false };
+  if (/penalty/i.test(raw)) return { tipo: "gol", autogol: false, penal: true };
   const t = TIPO_HL[ev.type];
   if (!t) return null;
   const og =
     ev.ownGoal === true || ev.own_goal === true ||
     /\(og\)/i.test(String(ev.player || ""));
-  return { tipo: t, autogol: t === "gol" && og };
+  return { tipo: t, autogol: t === "gol" && og, penal: false };
 }
 
 async function eventosDesdeHl(detalle, p, supa) {
@@ -167,7 +169,8 @@ async function eventosDesdeHl(detalle, p, supa) {
     if (info.tipo === "gol") {
       asistencia = (ev.assist || "").trim() || null;
       const manual = detalleManual.get(`${equipo}|${minuto}|${adicional ?? ""}`);
-      det = info.autogol ? "autogol" : (manual ?? "normal");
+      // Prioridad: autogol > penal (de HL) > lo del admin/robot > normal.
+      det = info.autogol ? "autogol" : info.penal ? "penal" : (manual ?? "normal");
     } else if (info.tipo === "cambio") {
       asistencia = (ev.substituted || "").trim() || null;
     }

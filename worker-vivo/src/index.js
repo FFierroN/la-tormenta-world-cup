@@ -215,28 +215,36 @@ async function actualizarPartido(supa, p, m, log) {
     if (!p.finalizado_at) body.finalizado_at = new Date().toISOString();
   }
 
-  // Cronometro: worldcup26 no da el minuto numerico. Dos caminos:
-  //  a) Si el feed manda el tramo (h1/h2) -> anclamos 1' / 46' una vez y
-  //     RelojVivo (front) lo anima localmente.
-  //  b) Si el feed solo dice que esta "live" (caso real 2026, sin h1/h2) ->
-  //     anclamos por TIEMPO REAL transcurrido desde el kickoff y re-anclamos
-  //     cada ciclo para que se autocorrija. No corrige el parate de
-  //     entretiempo (corre ~15' adelantado en el 2T) pero al menos hay reloj.
+  // Cronometro (worldcup26 no da el minuto numerico):
+  //  a) Si el feed manda el tramo (h1/h2) -> anclamos 1'/46' una sola vez. Si
+  //     ademas manda 'hf' en el descanso, derivarEstado lo pasa a entretiempo
+  //     y el reloj se detiene solo (RelojVivo solo tickea en vivo/alargue).
+  //  b) Si solo dice "live" (caso real 2026, sin h1/h2/hf) -> Opcion B:
+  //     - 1er ciclo en vivo = PITAZO REAL: anclamos en 1' (minuto_at = ahora),
+  //       asi el reloj parte del pitazo y no de la hora programada (que solia
+  //       ir varios min adelantada).
+  //     - Tras 60' de reloj de pared (45' de juego + 15' de descanso asumido)
+  //       reanclamos en 46' para arrancar el 2do tiempo (~exacto sin gastar API).
+  //     RelojVivo (front) anima los segundos entre ciclos y se topa en 45'/90'.
   // El minuto_at lo pone solo el trigger trg_anclar_minuto al cambiar 'minuto'.
   const tramo = String(m.time_elapsed || "").trim().toLowerCase();
+  const DESCANSO_MS = 60 * 60000; // 45' jugados + 15' de entretiempo asumido
   if (tramo === "h1" && p.minuto == null) {
     body.minuto = 1; // 1er tiempo (tope del reloj = 45')
   } else if (tramo === "h2" && (p.minuto == null || p.minuto < 46)) {
     body.minuto = 46; // 2do tiempo (tope del reloj sube a 90')
-  } else if (
-    nuevoEstado === "en_vivo" &&
-    tramo !== "h1" &&
-    tramo !== "h2" &&
-    !Number.isNaN(kickoff)
-  ) {
-    // Fallback: el feed no da el tramo (ej. time_elapsed="live").
-    const mins = Math.max(1, Math.floor((Date.now() - kickoff) / 60000));
-    body.minuto = mins;
+  } else if (nuevoEstado === "en_vivo" && tramo !== "h1" && tramo !== "h2") {
+    const minutoAt = p.minuto_at ? new Date(p.minuto_at).getTime() : NaN;
+    if (p.minuto == null) {
+      body.minuto = 1; // primera vez en vivo = pitazo real
+    } else if (
+      p.minuto < 46 &&
+      !Number.isNaN(minutoAt) &&
+      Date.now() - minutoAt >= DESCANSO_MS
+    ) {
+      body.minuto = 46; // arranca el 2do tiempo (descanso de 15' asumido)
+    }
+    // si no, no tocamos minuto: RelojVivo lo anima solo desde el ancla.
   }
 
   await supa.patch("partidos", { id: `eq.${p.id}` }, body);

@@ -398,7 +398,11 @@ function Detalles({
             } ${e.equipo === "local" ? "" : "flex-row-reverse text-right"}`}
           >
             {esGol ? (
-              <BallIcon className="w-6 h-6 text-oro shrink-0" />
+              <BallIcon
+                className={`w-6 h-6 shrink-0 ${
+                  e.detalle === "autogol" ? "text-red-500" : "text-white"
+                }`}
+              />
             ) : (
               <EventoIcono tipo={e.tipo} />
             )}
@@ -477,17 +481,12 @@ function Pronosticos({
     return signoReal === signoPred ? "acierto" : "falla";
   };
 
-  const BADGE: Record<string, string> = {
-    exacto: "bg-emerald-400 text-black",
-    diferencia: "bg-amber-400 text-black",
-    acierto: "bg-orange-500 text-white",
-    falla: "bg-rose-500 text-white",
-  };
-  const BADGE_LABEL: Record<string, string> = {
-    exacto: "Exacto",
-    diferencia: "Diferencia",
-    acierto: "Acierto",
-    falla: "Falla",
+  // Marco sutil de la tarjeta segun el acierto (reemplaza la etiqueta).
+  const MARCO: Record<string, string> = {
+    exacto: "border-emerald-400",
+    diferencia: "border-amber-400",
+    acierto: "border-orange-500",
+    falla: "border-rose-500",
   };
 
   return (
@@ -517,27 +516,36 @@ function Pronosticos({
           const st = estadoAcierto(pr);
           const pickLocal = pr.pred_local > pr.pred_visita;   // eligio gana local
           const pickVisita = pr.pred_visita > pr.pred_local;  // eligio gana visita
+          const empate = !pickLocal && !pickVisita;
           return (
             <li
               key={pr.jugador_id}
-              className="bg-carbon-card border border-borde rounded-xl px-4 py-3"
+              className={`bg-carbon-card border rounded-xl px-4 py-3 ${
+                st ? MARCO[st] : "border-borde"
+              }`}
             >
-              {st && (
-                <div className="flex justify-center mb-1.5">
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full ${BADGE[st]}`}
-                  >
-                    {BADGE_LABEL[st]}
-                  </span>
+              {/* Indicador del ganador elegido: bandera en la esquina que
+                  corresponde (izq=local, der=visita) o simbolo de empate al
+                  centro, todos a la misma altura. */}
+              <div className="flex items-center justify-between h-5 mb-1.5">
+                <div className="w-6 flex justify-start">
+                  {pickLocal && (
+                    <Flag code={partido.pais_local} size={20} nombre={partido.equipo_local} />
+                  )}
                 </div>
-              )}
+                <div className="flex-1 flex justify-center">
+                  {empate && <EmpateIcon />}
+                </div>
+                <div className="w-6 flex justify-end">
+                  {pickVisita && (
+                    <Flag code={partido.pais_visita} size={20} nombre={partido.equipo_visita} />
+                  )}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between gap-2">
-                {/* Goles del pais de la IZQUIERDA (local). Pulsa si lo eligio ganador. */}
-                <span
-                  className={`text-2xl font-black tabular-nums w-11 py-1 text-center rounded-lg ${
-                    pickLocal ? "text-oro bg-oro/10 glow-oro" : "text-neutral-200"
-                  }`}
-                >
+                {/* Goles del pais de la IZQUIERDA (local). */}
+                <span className="text-2xl font-black tabular-nums w-11 text-center text-neutral-100">
                   {pr.pred_local}
                 </span>
 
@@ -550,12 +558,8 @@ function Pronosticos({
                   )}
                 </div>
 
-                {/* Goles del pais de la DERECHA (visita). Pulsa si lo eligio ganador. */}
-                <span
-                  className={`text-2xl font-black tabular-nums w-11 py-1 text-center rounded-lg ${
-                    pickVisita ? "text-oro bg-oro/10 glow-oro" : "text-neutral-200"
-                  }`}
-                >
+                {/* Goles del pais de la DERECHA (visita). */}
+                <span className="text-2xl font-black tabular-nums w-11 text-center text-neutral-100">
                   {pr.pred_visita}
                 </span>
               </div>
@@ -564,6 +568,16 @@ function Pronosticos({
         })}
       </ul>
     </>
+  );
+}
+
+/* Simbolo de empate: signo igual (=) en blanco. */
+function EmpateIcon() {
+  return (
+    <span className="flex flex-col gap-[3px]" title="Empate" aria-label="Empate">
+      <span className="block w-4 h-[3px] rounded-full bg-white" />
+      <span className="block w-4 h-[3px] rounded-full bg-white" />
+    </span>
   );
 }
 
@@ -600,19 +614,28 @@ function PrediccionesBarra({
         </span>
       </div>
 
-      <div className="flex h-8 rounded-lg overflow-hidden bg-carbon-soft text-[11px] font-bold text-white">
+      <div className="flex h-8 gap-1 text-[11px] font-bold">
         {local > 0 && (
-          <div className="bg-sky-700 flex items-center justify-center overflow-hidden" style={{ width: `${w(local)}%` }}>
+          <div
+            className="flex items-center justify-center overflow-hidden rounded-md border border-sky-500 text-sky-300"
+            style={{ width: `${w(local)}%` }}
+          >
             {p(local) >= 12 ? `${p(local)}%` : ""}
           </div>
         )}
         {empate > 0 && (
-          <div className="bg-neutral-600 flex items-center justify-center overflow-hidden" style={{ width: `${w(empate)}%` }}>
+          <div
+            className="flex items-center justify-center overflow-hidden rounded-md border border-neutral-400 text-neutral-200"
+            style={{ width: `${w(empate)}%` }}
+          >
             {p(empate) >= 12 ? `${p(empate)}%` : ""}
           </div>
         )}
         {visita > 0 && (
-          <div className="bg-rose-700 flex items-center justify-center overflow-hidden" style={{ width: `${w(visita)}%` }}>
+          <div
+            className="flex items-center justify-center overflow-hidden rounded-md border border-rose-500 text-rose-300"
+            style={{ width: `${w(visita)}%` }}
+          >
             {p(visita) >= 12 ? `${p(visita)}%` : ""}
           </div>
         )}

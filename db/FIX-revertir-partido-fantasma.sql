@@ -14,18 +14,21 @@
 -- (commit 5b40e9d). Si no, el Worker volveria a marcarlo 'final' en 1 minuto.
 -- ============================================================================
 
+-- ----------------------------------------------------------------------------
+-- NOTA: el partido real resulto ser id=4 'Estados Unidos' (local) vs
+-- 'Paraguay' (visita) -- USA es local, al reves de lo asumido. Por eso los
+-- pasos de abajo filtran por id=4 (lo mas seguro). Ajusta el id si reusas
+-- este script para otro partido fantasma.
+-- ----------------------------------------------------------------------------
+
 -- PASO 1 (verificar): mira el partido antes de tocarlo.
 select id, equipo_local, equipo_visita, fecha, estado,
        goles_local, goles_visita, finalizado_at, enriquecido_at
 from partidos
-where equipo_local = 'Paraguay' and equipo_visita = 'Estados Unidos';
+where id = 4;
 
 -- PASO 2 (limpiar eventos por si se insertaron). Inofensivo si no hay.
-delete from partido_eventos
-where partido_id in (
-  select id from partidos
-  where equipo_local = 'Paraguay' and equipo_visita = 'Estados Unidos'
-);
+delete from partido_eventos where partido_id = 4;
 
 -- PASO 3 (revertir a programado, goles en NULL). Esto recalcula la tabla.
 update partidos
@@ -36,14 +39,13 @@ set estado        = 'programado',
     enriquecido_at = null,
     minuto        = null,
     minuto_at     = null
-where equipo_local = 'Paraguay' and equipo_visita = 'Estados Unidos'
-  and estado = 'final';   -- solo si quedo mal marcado
+where id = 4 and estado = 'final';   -- solo si quedo mal marcado
 
 -- PASO 4 (confirmar): debe verse 'programado' con goles NULL.
 select id, equipo_local, equipo_visita, fecha, estado,
        goles_local, goles_visita, finalizado_at
 from partidos
-where equipo_local = 'Paraguay' and equipo_visita = 'Estados Unidos';
+where id = 4;
 
 -- PASO 5 (opcional): revisa que la tabla ya no tenga los puntos falsos.
 -- select nombre, puntos, exactos, aciertos, fallas, posicion

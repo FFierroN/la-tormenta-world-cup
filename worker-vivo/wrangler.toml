@@ -12,3 +12,4 @@ crons = ["* * * 6,7 *"]
 #   wrangler secret put SUPABASE_URL
 #   wrangler secret put SUPABASE_SERVICE_KEY
 #   wrangler secret put TRIGGER_SECRET
+#   wrangler secret put HL_KEY            # Highlightly (enriquecido HT/FT)

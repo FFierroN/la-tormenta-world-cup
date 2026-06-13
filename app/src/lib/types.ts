@@ -82,6 +82,29 @@ export interface PronosticoVista {
   puntos: number;
 }
 
+// Categoria del resultado de una prediccion ya jugada (null si aun no se juega).
+export type ResultadoPrediccion = "exacto" | "diferencia" | "acierto" | "falla";
+
+// Una prediccion mia con el detalle del partido (pantalla "Mis predicciones").
+// La devuelve la RPC mis_predicciones_detalle. Solo trae las que YO pronostique.
+export interface MiPrediccion {
+  partido_id: string;
+  fase: string;
+  grupo: string | null;
+  fecha: string; // ISO
+  estado: EstadoPartido;
+  equipo_local: string;
+  equipo_visita: string;
+  pais_local: string;
+  pais_visita: string;
+  goles_local: number | null;
+  goles_visita: number | null;
+  pred_local: number;
+  pred_visita: number;
+  puntos: number | null;
+  resultado: ResultadoPrediccion | null;
+}
+
 // Predicciones especiales pre-mundial (bonus).
 export interface Especiales {
   campeon: string | null;

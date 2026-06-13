@@ -146,6 +146,7 @@ function Stat({ label, valor }: { label: string; valor: number }) {
 
 /* ---------- Pestana 2: tabla clasica ---------- */
 function Clasica({ filas }: { filas: FilaTabla[] }) {
+  const total = filas.length;
   return (
     <div className="px-4 py-4">
       <div className="overflow-hidden rounded-2xl border border-borde">
@@ -161,16 +162,26 @@ function Clasica({ filas }: { filas: FilaTabla[] }) {
             </tr>
           </thead>
           <tbody>
-            {filas.map((f) => (
-              <tr key={f.jugador_id} className="border-t border-borde">
-                <td className="py-2.5 px-2 font-bold text-oro">{f.posicion}</td>
-                <td className="py-2.5 px-2">{f.alias ?? f.nombre}</td>
-                <td className="py-2.5 px-1 text-center font-bold tabular-nums">{f.puntos}</td>
-                <td className="py-2.5 px-1 text-center tabular-nums">{f.exactos}</td>
-                <td className="py-2.5 px-1 text-center tabular-nums">{f.aciertos}</td>
-                <td className="py-2.5 px-1 text-center tabular-nums">{f.fallas}</td>
-              </tr>
-            ))}
+            {filas.map((f) => {
+              // Realces sutiles: dorado al puntero (1°), rojo al colista.
+              const esLider = f.posicion === 1;
+              const esColista = total > 0 && f.posicion === total;
+              const realce = esLider
+                ? "bg-oro/10"
+                : esColista
+                ? "bg-rose-500/10"
+                : "";
+              return (
+                <tr key={f.jugador_id} className={`border-t border-borde ${realce}`}>
+                  <td className="py-2.5 px-2 font-bold text-oro">{f.posicion}</td>
+                  <td className="py-2.5 px-2">{f.alias ?? f.nombre}</td>
+                  <td className="py-2.5 px-1 text-center font-bold tabular-nums">{f.puntos}</td>
+                  <td className="py-2.5 px-1 text-center tabular-nums">{f.exactos}</td>
+                  <td className="py-2.5 px-1 text-center tabular-nums">{f.aciertos}</td>
+                  <td className="py-2.5 px-1 text-center tabular-nums">{f.fallas}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

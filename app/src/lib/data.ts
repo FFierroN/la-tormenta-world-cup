@@ -13,6 +13,7 @@ import type {
   FilaTormenta,
   Jugador,
   JugadorAdmin,
+  MiPrediccion,
   Partido,
   PronosticoVista,
   TipoEvento,
@@ -210,6 +211,36 @@ export async function misPronosticos(jugadorId: string): Promise<Set<string>> {
   });
   lanzarSi(error);
   return new Set((data ?? []).map((r: any) => String(r.partido_id)));
+}
+
+// Todas MIS predicciones con el detalle del partido, puntos y categoria.
+// Solo trae las que yo pronostique (las pendientes no tienen fila).
+export async function misPrediccionesDetalle(
+  jugadorId: string
+): Promise<MiPrediccion[]> {
+  const { data, error } = await supabase.rpc("mis_predicciones_detalle", {
+    p_jugador_id: Number(jugadorId),
+  });
+  lanzarSi(error);
+  return (data ?? []).map(
+    (r: any): MiPrediccion => ({
+      partido_id: String(r.partido_id),
+      fase: r.fase,
+      grupo: r.grupo ?? null,
+      fecha: r.fecha,
+      estado: r.estado,
+      equipo_local: r.equipo_local,
+      equipo_visita: r.equipo_visita,
+      pais_local: r.pais_local,
+      pais_visita: r.pais_visita,
+      goles_local: r.goles_local ?? null,
+      goles_visita: r.goles_visita ?? null,
+      pred_local: r.pred_local,
+      pred_visita: r.pred_visita,
+      puntos: r.puntos ?? null,
+      resultado: r.resultado ?? null,
+    })
+  );
 }
 
 export async function obtenerTabla(): Promise<FilaTabla[]> {

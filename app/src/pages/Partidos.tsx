@@ -76,6 +76,19 @@ function fechaActiva(): (typeof FECHAS)[number] {
 function construirTabs(partidos: Partido[]): Tab[] {
   const tabs: Tab[] = [];
 
+  // 0) Pestana "Jugados": TODOS los finalizados, mas reciente arriba.
+  //    Va a la izquierda de "Proximos" pero NO es la pestana por defecto.
+  //    Se agrupa por dia como el resto (agruparPorDia respeta el orden dado).
+  const jugados = partidos
+    .filter((p) => p.estado === "final")
+    .sort((a, b) => b.fecha.localeCompare(a.fecha)); // desc: lo ultimo primero
+  tabs.push({
+    id: "jugados",
+    label: "Jugados",
+    mostrarFase: true,
+    partidos: jugados,
+  });
+
   // 1) Pestana "Proximos": SOLO la jornada activa (rola sola en el 'desde').
   //    Ademas escondemos los que ya terminaron: esos viven en su grupo/fase.
   const f = fechaActiva();
@@ -282,7 +295,9 @@ function Panel({
 
       {tab.partidos.length === 0 ? (
         <p className="px-4 text-neutral-400 text-sm">
-          {tab.mostrarFase
+          {tab.id === "jugados"
+            ? "Aun no se ha jugado ningun partido."
+            : tab.mostrarFase
             ? "No hay partidos en esta fecha."
             : "Aun no hay partidos en esta fase."}
         </p>

@@ -118,7 +118,7 @@ function TablaGoleo() {
       <ListaGoleo
         titulo="Goleadores"
         filas={goleadores}
-        icono={<BallIcon className="w-4 h-4 text-oro" />}
+        icono={<BallIcon className="w-4 h-4 text-white" />}
         sufijo="goles"
       />
       <ListaGoleo
@@ -148,7 +148,7 @@ function ListaGoleo({
         {icono}
         {titulo}
       </h3>
-      <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden">
+      <div className="border border-borde rounded-2xl overflow-hidden">
         {filas.length === 0 ? (
           <p className="text-xs text-neutral-500 px-4 py-3">Aun sin registros.</p>
         ) : (

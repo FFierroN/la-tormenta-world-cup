@@ -6,6 +6,8 @@ import PartidoDetalle from "./pages/PartidoDetalle";
 import Tabla from "./pages/Tabla";
 import Copa from "./pages/Copa";
 import MiCuenta from "./pages/MiCuenta";
+import CambiarPin from "./pages/CambiarPin";
+import MisPredicciones from "./pages/MisPredicciones";
 import Admin from "./pages/Admin";
 import AdminPartido from "./pages/AdminPartido";
 import AdminEspeciales from "./pages/AdminEspeciales";
@@ -39,6 +41,8 @@ export default function App() {
     location.pathname.startsWith("/partido/") ||
     location.pathname.startsWith("/admin/") ||
     location.pathname === "/especiales" ||
+    location.pathname === "/cambiar-pin" ||
+    location.pathname === "/mis-predicciones" ||
     location.pathname === "/reglas";
 
   return (
@@ -56,6 +60,8 @@ export default function App() {
           <Route path="/copa" element={<Privada><Copa /></Privada>} />
           <Route path="/grupos" element={<Navigate to="/copa" replace />} />
           <Route path="/cuenta" element={<Privada><MiCuenta /></Privada>} />
+          <Route path="/cambiar-pin" element={<Privada><CambiarPin /></Privada>} />
+          <Route path="/mis-predicciones" element={<Privada><MisPredicciones /></Privada>} />
           <Route path="/especiales" element={<Privada><PrediccionesEspeciales /></Privada>} />
           <Route path="/reglas" element={<Privada><Reglas /></Privada>} />
           <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />

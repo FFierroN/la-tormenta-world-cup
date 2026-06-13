@@ -213,16 +213,28 @@ async function actualizarPartido(supa, p, m, log) {
     if (!p.finalizado_at) body.finalizado_at = new Date().toISOString();
   }
 
-  // Cronometro: worldcup26 no da el minuto numerico, asi que lo ANCLAMOS al
-  // detectar el tramo (h1 -> arranca en 1', h2 -> reancla en 46') y RelojVivo
-  // (front) lo anima localmente. No es exacto (parte del primer poll, ~1 min de
-  // delay) pero es mejor que no tener reloj; los goles se anotan igual de bien.
+  // Cronometro: worldcup26 no da el minuto numerico. Dos caminos:
+  //  a) Si el feed manda el tramo (h1/h2) -> anclamos 1' / 46' una vez y
+  //     RelojVivo (front) lo anima localmente.
+  //  b) Si el feed solo dice que esta "live" (caso real 2026, sin h1/h2) ->
+  //     anclamos por TIEMPO REAL transcurrido desde el kickoff y re-anclamos
+  //     cada ciclo para que se autocorrija. No corrige el parate de
+  //     entretiempo (corre ~15' adelantado en el 2T) pero al menos hay reloj.
   // El minuto_at lo pone solo el trigger trg_anclar_minuto al cambiar 'minuto'.
   const tramo = String(m.time_elapsed || "").trim().toLowerCase();
   if (tramo === "h1" && p.minuto == null) {
     body.minuto = 1; // 1er tiempo (tope del reloj = 45')
   } else if (tramo === "h2" && (p.minuto == null || p.minuto < 46)) {
     body.minuto = 46; // 2do tiempo (tope del reloj sube a 90')
+  } else if (
+    nuevoEstado === "en_vivo" &&
+    tramo !== "h1" &&
+    tramo !== "h2" &&
+    !Number.isNaN(kickoff)
+  ) {
+    // Fallback: el feed no da el tramo (ej. time_elapsed="live").
+    const mins = Math.max(1, Math.floor((Date.now() - kickoff) / 60000));
+    body.minuto = mins;
   }
 
   await supa.patch("partidos", { id: `eq.${p.id}` }, body);

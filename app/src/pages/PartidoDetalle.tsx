@@ -244,10 +244,11 @@ function EditorPronostico({
   const [guardando, setGuardando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Si el partido ya cerro: mostramos lo que pronostico (o que no jugo).
+  // Si el partido ya cerro (empezo o termino): mostramos lo que pronostico (o
+  // que no jugo). Sin fondo azul solido, solo el borde (igual que goleadores).
   if (!abierto) {
     return (
-      <div className="bg-carbon-card border border-borde rounded-2xl p-4 text-center">
+      <div className="border border-borde rounded-2xl p-4 text-center">
         <div className="text-xs uppercase tracking-wide text-neutral-400 mb-1">
           Tu pronostico
         </div>

@@ -58,7 +58,8 @@ export interface EventoPartido {
   tipo: TipoEvento;
   equipo: "local" | "visita";
   minuto: number;
-  jugador: string | null; // quien hizo el gol / recibio tarjeta
+  minuto_adicional: number | null; // descuento/anadido (ej. 45+5 -> minuto=45, adicional=5)
+  jugador: string | null; // quien hizo el gol / recibio la tarjeta
   asistencia: string | null; // quien asistio (solo goles)
   detalle: string | null; // 'penal' | 'autogol' | 'normal'
 }

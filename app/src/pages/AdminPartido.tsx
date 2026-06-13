@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAsync } from "../lib/useAsync";
 import { ESTADO_LABEL, enCurso } from "../lib/estados";
+import { fmtMinuto } from "../lib/eventos";
 import { ShoeIcon } from "../components/Iconos";
 import {
   agregarEvento,
@@ -196,6 +197,7 @@ function EventosForm({
   const [tipo, setTipo] = useState<TipoEvento>("gol");
   const [equipo, setEquipo] = useState<"local" | "visita">("local");
   const [minuto, setMinuto] = useState(1);
+  const [adicional, setAdicional] = useState(0);
   const [jugador, setJugador] = useState("");
   const [asistencia, setAsistencia] = useState("");
   const [guardando, setGuardando] = useState(false);
@@ -208,6 +210,7 @@ function EventosForm({
         tipo,
         equipo,
         minuto,
+        minuto_adicional: adicional > 0 ? adicional : null,
         jugador: jugador.trim() || null,
         // asistencia: en goles = asistidor; en cambios = quien sale; resto null
         asistencia:
@@ -216,6 +219,7 @@ function EventosForm({
       });
       setJugador("");
       setAsistencia("");
+      setAdicional(0);
       onCambio();
     } finally {
       setGuardando(false);
@@ -251,7 +255,7 @@ function EventosForm({
               key={e.id}
               className="flex items-center gap-2 text-sm bg-carbon-soft rounded-lg px-3 py-2"
             >
-              <span className="tabular-nums text-neutral-400 w-8">{e.minuto}'</span>
+              <span className="tabular-nums text-neutral-400 w-10">{fmtMinuto(e)}</span>
               <span className="flex-1">
                 {LABEL[e.tipo]} ·{" "}
                 {e.equipo === "local" ? partido.equipo_local : partido.equipo_visita}
@@ -298,9 +302,15 @@ function EventosForm({
         </select>
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
-        <div>
-          <label className="block text-[11px] text-neutral-400 mb-1">Minuto</label>
-          <NumInput valor={minuto} set={setMinuto} max={130} />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[11px] text-neutral-400 mb-1">Minuto</label>
+            <NumInput valor={minuto} set={setMinuto} max={130} />
+          </div>
+          <div>
+            <label className="block text-[11px] text-neutral-400 mb-1">+ Desc.</label>
+            <NumInput valor={adicional} set={setAdicional} max={20} />
+          </div>
         </div>
         <div>
           <label className="block text-[11px] text-neutral-400 mb-1">

@@ -135,21 +135,28 @@ async function eventosDesdeHl(detalle, p, supa) {
     return homeId !== null && tid === homeId ? "local" : "visita";
   };
 
-  // Preservar 'detalle' (penal/autogol) por (equipo, minuto): si el robot en
-  // vivo o el admin ya lo marcaron, no lo perdemos.
+  // Preservar 'detalle' (penal/autogol) por (equipo, minuto, adicional): si el
+  // robot en vivo o el admin ya lo marcaron, no lo perdemos.
   const previos = await supa.get("partido_eventos", {
-    partido_id: `eq.${p.id}`, tipo: "eq.gol", select: "equipo,minuto,detalle",
+    partido_id: `eq.${p.id}`, tipo: "eq.gol",
+    select: "equipo,minuto,minuto_adicional,detalle",
   });
   const detalleManual = new Map();
   for (const e of previos) {
-    detalleManual.set(`${e.equipo}|${e.minuto}`, e.detalle || "normal");
+    detalleManual.set(
+      `${e.equipo}|${e.minuto}|${e.minuto_adicional ?? ""}`,
+      e.detalle || "normal"
+    );
   }
 
   const filas = [];
   for (const ev of detalle.events || []) {
     const info = tipoEvento(ev);
     if (!info) continue;
-    const minuto = comoInt(String(ev.time ?? "").split("+")[0]) || 0;
+    // HL manda el minuto como string aparte: "9" | "45+5" | "90+2".
+    const partesTiempo = String(ev.time ?? "").split("+");
+    const minuto = comoInt(partesTiempo[0]) || 0;
+    const adicional = partesTiempo.length > 1 ? comoInt(partesTiempo[1]) : null;
     const equipo = lado(ev);
     let jugador = (ev.player || "").trim() || null;
     if (jugador) {
@@ -159,13 +166,14 @@ async function eventosDesdeHl(detalle, p, supa) {
     let det = null;
     if (info.tipo === "gol") {
       asistencia = (ev.assist || "").trim() || null;
-      const manual = detalleManual.get(`${equipo}|${minuto}`);
+      const manual = detalleManual.get(`${equipo}|${minuto}|${adicional ?? ""}`);
       det = info.autogol ? "autogol" : (manual ?? "normal");
     } else if (info.tipo === "cambio") {
       asistencia = (ev.substituted || "").trim() || null;
     }
     filas.push({
-      partido_id: p.id, tipo: info.tipo, equipo, minuto, jugador, asistencia, detalle: det,
+      partido_id: p.id, tipo: info.tipo, equipo, minuto,
+      minuto_adicional: adicional, jugador, asistencia, detalle: det,
     });
   }
   return filas;

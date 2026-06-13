@@ -8,6 +8,7 @@ import PanelTormenta from "../components/PanelTormenta";
 import { BallIcon, EventoIcono, ShoeIcon } from "../components/Iconos";
 import type { EventoPartido, Partido, PronosticoVista } from "../lib/types";
 import { ESTADOS_EN_CURSO } from "../lib/estados";
+import { fmtMinuto } from "../lib/eventos";
 import { useAsync } from "../lib/useAsync";
 import { useAuth } from "../lib/auth";
 import {
@@ -62,7 +63,7 @@ export default function PartidoDetalle() {
 
   const minutosGol = eventos
     .filter((e) => e.tipo === "gol")
-    .map((e) => `${e.minuto}'`)
+    .map((e) => fmtMinuto(e))
     .join(", ");
 
   const miPronostico =
@@ -421,7 +422,7 @@ function Detalles({
                     esGol ? "text-oro" : "text-neutral-300"
                   }`}
                 >
-                  {e.minuto}'
+                  {fmtMinuto(e)}
                 </span>
                 {esGol && e.detalle && e.detalle !== "normal" && (
                   <span className="text-xs text-neutral-400"> ({e.detalle})</span>

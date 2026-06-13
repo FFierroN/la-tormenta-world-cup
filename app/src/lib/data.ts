@@ -64,6 +64,7 @@ function aEvento(r: any): EventoPartido {
     tipo: r.tipo,
     equipo: r.equipo,
     minuto: r.minuto,
+    minuto_adicional: r.minuto_adicional ?? null,
     jugador: r.jugador ?? null,
     asistencia: r.asistencia ?? null,
     detalle: r.detalle ?? null,
@@ -363,6 +364,7 @@ export interface EventoInput {
   tipo: TipoEvento;
   equipo: "local" | "visita";
   minuto: number;
+  minuto_adicional: number | null;
   jugador: string | null;
   asistencia: string | null;
   detalle: string | null;
@@ -374,6 +376,7 @@ export async function agregarEvento(e: EventoInput): Promise<void> {
     tipo: e.tipo,
     equipo: e.equipo,
     minuto: e.minuto,
+    minuto_adicional: e.minuto_adicional,
     jugador: e.jugador,
     asistencia: e.asistencia,
     detalle: e.detalle,

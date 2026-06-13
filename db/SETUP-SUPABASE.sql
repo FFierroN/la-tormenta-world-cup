@@ -72,6 +72,7 @@ create table if not exists partido_eventos (
   tipo        text not null,   -- gol | amarilla | roja
   equipo      text not null,   -- local | visita
   minuto      int not null,
+  minuto_adicional int,         -- descuento/anadido (ej. 45+5 -> minuto=45, adicional=5)
   jugador     text,            -- quien hizo el gol / recibio la tarjeta
   asistencia  text,            -- quien asistio (solo goles)
   detalle     text,            -- 'penal' | 'autogol' | 'normal' | etc

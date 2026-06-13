@@ -58,8 +58,9 @@ function derivarEstado(m) {
   }
 }
 
-// "J. Quiñones 9'" | "R. Jiménez 67'+2" | "J. Doe 90+3'"
-const RE_GOLEADOR = /^\s*(.+?)\s+(\d+)(?:\s*\+\s*\d+)?\s*'?\s*$/;
+// "J. Quiñones 9'" | "F. Balogun 45'+5'" | "G. Reyna 90'+8'" | "J. Doe 90+3'"
+// Captura: 1=nombre, 2=minuto base, 3=descuento (opcional).
+const RE_GOLEADOR = /^\s*(.+?)\s+(\d+)\s*'?\s*(?:\+\s*(\d+)\s*'?)?\s*$/;
 
 function parsearScorers(crudo) {
   if (crudo === null || crudo === undefined) return [];
@@ -79,7 +80,8 @@ function parsearScorers(crudo) {
     c = c.replace(/\(og\)/i, "").replace(/\s{2,}/g, " ").trim();
     const mm = c.match(RE_GOLEADOR);
     if (!mm) continue;
-    salida.push([mm[1].trim(), Number(mm[2]), esAutogol]);
+    const adicional = mm[3] ? Number(mm[3]) : null; // descuento (45+5 -> 5)
+    salida.push([mm[1].trim(), Number(mm[2]), adicional, esAutogol]);
   }
   return salida;
 }
@@ -229,17 +231,21 @@ async function actualizarPartido(supa, p, m, log) {
 
 async function sincronizarGoles(supa, p, m, log) {
   const parsed = [];
-  for (const [j, min, og] of parsearScorers(m.home_scorers)) parsed.push([j, min, "local", og]);
-  for (const [j, min, og] of parsearScorers(m.away_scorers)) parsed.push([j, min, "visita", og]);
+  for (const [j, min, adic, og] of parsearScorers(m.home_scorers))
+    parsed.push([j, min, adic, "local", og]);
+  for (const [j, min, adic, og] of parsearScorers(m.away_scorers))
+    parsed.push([j, min, adic, "visita", og]);
 
   if (!parsed.length) return; // la API no asegura goles -> no tocamos nada
 
   const existentes = await supa.get("partido_eventos", {
-    partido_id: `eq.${p.id}`, tipo: "eq.gol", select: "equipo,minuto,asistencia,detalle",
+    partido_id: `eq.${p.id}`, tipo: "eq.gol",
+    select: "equipo,minuto,minuto_adicional,asistencia,detalle",
   });
   const manual = new Map();
   for (const e of existentes) {
-    manual.set(`${e.equipo}|${e.minuto}`, {
+    // clave equipo|minuto|adicional para no chocar dos goles del mismo descuento
+    manual.set(`${e.equipo}|${e.minuto}|${e.minuto_adicional ?? ""}`, {
       asistencia: e.asistencia ?? null,
       detalle: e.detalle || "normal",
     });
@@ -247,11 +253,11 @@ async function sincronizarGoles(supa, p, m, log) {
 
   const filas = [];
   const vistos = new Set();
-  for (const [jugador, minuto, equipo, esAutogol] of parsed) {
-    const k = `${jugador}|${minuto}|${equipo}`;
+  for (const [jugador, minuto, adicional, equipo, esAutogol] of parsed) {
+    const k = `${jugador}|${minuto}|${adicional ?? ""}|${equipo}`;
     if (vistos.has(k)) continue; // la API a veces repite
     vistos.add(k);
-    const prev = manual.get(`${equipo}|${minuto}`) || {};
+    const prev = manual.get(`${equipo}|${minuto}|${adicional ?? ""}`) || {};
     // Si la API marca autogol (OG), gana; si no, preservamos el detalle del admin.
     const detalle = esAutogol ? "autogol" : (prev.detalle ?? "normal");
     filas.push({
@@ -259,6 +265,7 @@ async function sincronizarGoles(supa, p, m, log) {
       tipo: "gol",
       equipo,
       minuto,
+      minuto_adicional: adicional, // descuento (45+5 -> 5); null si no hubo
       jugador, // nombre correcto de la API
       asistencia: prev.asistencia ?? null, // preservado del admin
       detalle, // autogol detectado o lo preservado del admin

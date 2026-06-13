@@ -1,15 +1,31 @@
 import { useNavigate } from "react-router-dom";
+import BotonCuenta from "./BotonCuenta";
+import { EstrellaIcon } from "./IconosCuenta";
+import { diasParaEspeciales } from "../lib/fechas";
 
-// Boton (con glow dorado) que lleva a las predicciones especiales.
-// Reusado en Mi Cuenta y en la pantalla Copa (DRY).
+// Boton (con glow dorado pulsante) que lleva a las predicciones especiales.
+// Reusado en Mi cuenta y en Copa (DRY). Incluye cuenta regresiva al cierre.
 export default function BotonEspeciales({ className = "" }: { className?: string }) {
   const navigate = useNavigate();
+  const dias = diasParaEspeciales();
+  const cuenta =
+    dias > 0 ? (
+      <span className="text-xs font-bold tabular-nums">
+        {dias} {dias === 1 ? "dia" : "dias"}
+      </span>
+    ) : (
+      <span className="text-xs font-bold">Cerrado</span>
+    );
+
   return (
-    <button
+    <BotonCuenta
+      icon={<EstrellaIcon />}
       onClick={() => navigate("/especiales")}
-      className={`glow-oro w-full bg-carbon-card border-2 border-oro rounded-2xl py-3 font-semibold text-oro active:bg-carbon-soft ${className}`}
+      right={cuenta}
+      glow
+      className={className}
     >
-      Mis predicciones especiales
-    </button>
+      Realizar predicciones especiales
+    </BotonCuenta>
   );
 }

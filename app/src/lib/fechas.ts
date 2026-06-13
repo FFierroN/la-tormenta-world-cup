@@ -48,3 +48,14 @@ export function claveDia(iso: string): string {
 export function claveHoy(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
 }
+
+// Cierre de las predicciones especiales: 17 de junio 2026 a las 23:59 (Chile,
+// UTC-4) == 18 de junio 03:59 UTC. Antes del primer partido del 18.
+const CIERRE_ESPECIALES = Date.parse("2026-06-18T03:59:00Z");
+
+// Dias que faltan para el cierre de especiales (redondeado hacia arriba).
+// 0 si ya cerro. Util para la cuenta regresiva del boton.
+export function diasParaEspeciales(): number {
+  const ms = CIERRE_ESPECIALES - Date.now();
+  return ms <= 0 ? 0 : Math.ceil(ms / 86400000);
+}

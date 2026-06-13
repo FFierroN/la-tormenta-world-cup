@@ -388,24 +388,38 @@ function Detalles({
         Acontecimientos clave
       </div>
       <ul>
-        {orden.map((e) => (
+        {orden.map((e) => {
+          const esGol = e.tipo === "gol";
+          return (
           <li
             key={e.id}
-            className={`flex items-center gap-2 py-3 px-4 border-b border-borde last:border-0 ${
-              e.equipo === "local" ? "" : "flex-row-reverse text-right"
-            }`}
+            className={`flex items-center gap-2.5 px-4 border-b border-borde last:border-0 ${
+              esGol ? "py-3.5 bg-oro/10" : "py-2.5"
+            } ${e.equipo === "local" ? "" : "flex-row-reverse text-right"}`}
           >
-            <EventoIcono tipo={e.tipo} />
+            {esGol ? (
+              <BallIcon className="w-6 h-6 text-oro shrink-0" />
+            ) : (
+              <EventoIcono tipo={e.tipo} />
+            )}
             <div className="leading-tight">
               <div>
                 {e.tipo === "cambio" && (
                   <span className="text-xs text-emerald-400">Entra </span>
                 )}
-                {e.jugador && <span className="text-sm">{e.jugador} </span>}
-                <span className="text-sm font-semibold tabular-nums text-neutral-300">
+                {e.jugador && (
+                  <span className={esGol ? "text-base font-bold text-white" : "text-sm"}>
+                    {e.jugador}{" "}
+                  </span>
+                )}
+                <span
+                  className={`text-sm font-semibold tabular-nums ${
+                    esGol ? "text-oro" : "text-neutral-300"
+                  }`}
+                >
                   {e.minuto}'
                 </span>
-                {e.tipo === "gol" && e.detalle && e.detalle !== "normal" && (
+                {esGol && e.detalle && e.detalle !== "normal" && (
                   <span className="text-xs text-neutral-400"> ({e.detalle})</span>
                 )}
               </div>
@@ -413,14 +427,15 @@ function Detalles({
                 <div className="mt-0.5 text-xs text-rose-400">Sale {e.asistencia}</div>
               )}
               {e.asistencia && e.tipo !== "cambio" && (
-                <div className="mt-0.5 text-xs text-neutral-500">
+                <div className="mt-0.5 text-xs text-neutral-400">
                   <ShoeIcon className="inline w-3.5 h-3.5 text-emerald-400 align-text-bottom mr-1" />
                   {e.asistencia}
                 </div>
               )}
             </div>
           </li>
-        ))}
+          );
+        })}
       </ul>
       <div className="text-center text-xs text-neutral-500 py-3">
         {partido.equipo_local} vs {partido.equipo_visita}
@@ -463,10 +478,10 @@ function Pronosticos({
   };
 
   const BADGE: Record<string, string> = {
-    exacto: "bg-oro text-carbon",
-    diferencia: "bg-sky-600 text-white",
-    acierto: "bg-emerald-600 text-white",
-    falla: "bg-neutral-700 text-neutral-300",
+    exacto: "bg-emerald-400 text-black",
+    diferencia: "bg-amber-400 text-black",
+    acierto: "bg-orange-500 text-white",
+    falla: "bg-rose-500 text-white",
   };
   const BADGE_LABEL: Record<string, string> = {
     exacto: "Exacto",
@@ -477,36 +492,147 @@ function Pronosticos({
 
   return (
     <>
+      {/* Barra de distribucion de pronosticos (solo cuando ya se revelaron). */}
+      {!noEmpezo && (
+        <PrediccionesBarra partido={partido} pronosticos={pronosticos} />
+      )}
+
       {noEmpezo && (
         <p className="text-xs text-neutral-500 mb-2 text-center">
           Solo ves tu pronostico. Los demas se revelan al empezar el partido.
         </p>
       )}
+
+      {/* Cabecera: banderas para ubicar izquierda (local) / derecha (visita). */}
+      <div className="flex items-center justify-between px-3 mb-2">
+        <Flag code={partido.pais_local} size={18} nombre={partido.equipo_local} />
+        <span className="flex-1 text-center text-[11px] uppercase tracking-wide text-neutral-500">
+          Pronostico
+        </span>
+        <Flag code={partido.pais_visita} size={18} nombre={partido.equipo_visita} />
+      </div>
+
       <ul className="flex flex-col gap-2">
         {pronosticos.map((pr) => {
           const st = estadoAcierto(pr);
+          const pickLocal = pr.pred_local > pr.pred_visita;   // eligio gana local
+          const pickVisita = pr.pred_visita > pr.pred_local;  // eligio gana visita
           return (
             <li
               key={pr.jugador_id}
-              className="flex items-center gap-3 bg-carbon-card border border-borde rounded-xl px-4 py-3"
+              className="bg-carbon-card border border-borde rounded-xl px-4 py-3"
             >
-              <span className="flex-1 font-medium">{pr.nombre}</span>
-              <span className="text-lg font-bold tabular-nums w-16 text-center">
-                {pr.pred_local} - {pr.pred_visita}
-              </span>
               {st && (
-                <span className={`text-xs font-semibold px-2 py-1 rounded-full ${BADGE[st]}`}>
-                  {BADGE_LABEL[st]}
-                </span>
+                <div className="flex justify-center mb-1.5">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5 rounded-full ${BADGE[st]}`}
+                  >
+                    {BADGE_LABEL[st]}
+                  </span>
+                </div>
               )}
-              <span className="w-12 text-right font-bold text-oro tabular-nums">
-                {pr.puntos ?? 0}
-              </span>
+              <div className="flex items-center justify-between gap-2">
+                {/* Goles del pais de la IZQUIERDA (local). Pulsa si lo eligio ganador. */}
+                <span
+                  className={`text-2xl font-black tabular-nums w-11 py-1 text-center rounded-lg ${
+                    pickLocal ? "text-oro bg-oro/10 glow-oro" : "text-neutral-200"
+                  }`}
+                >
+                  {pr.pred_local}
+                </span>
+
+                <div className="flex-1 text-center leading-tight min-w-0">
+                  <div className="font-semibold truncate">{pr.nombre}</div>
+                  {st && (
+                    <div className="text-xs font-bold tabular-nums text-oro">
+                      +{pr.puntos ?? 0} pts
+                    </div>
+                  )}
+                </div>
+
+                {/* Goles del pais de la DERECHA (visita). Pulsa si lo eligio ganador. */}
+                <span
+                  className={`text-2xl font-black tabular-nums w-11 py-1 text-center rounded-lg ${
+                    pickVisita ? "text-oro bg-oro/10 glow-oro" : "text-neutral-200"
+                  }`}
+                >
+                  {pr.pred_visita}
+                </span>
+              </div>
             </li>
           );
         })}
       </ul>
     </>
+  );
+}
+
+/* Barra horizontal con la distribucion local / empate / visita de los
+   pronosticos (estilo casa de apuestas). Solo se muestra cuando ya estan
+   revelados (partido iniciado). */
+function PrediccionesBarra({
+  partido,
+  pronosticos,
+}: {
+  partido: Partido;
+  pronosticos: PronosticoVista[];
+}) {
+  const total = pronosticos.length;
+  let local = 0;
+  let empate = 0;
+  let visita = 0;
+  for (const pr of pronosticos) {
+    if (pr.pred_local > pr.pred_visita) local += 1;
+    else if (pr.pred_local < pr.pred_visita) visita += 1;
+    else empate += 1;
+  }
+  const w = (n: number) => (total ? (n / total) * 100 : 0);
+  const p = (n: number) => Math.round(w(n));
+
+  return (
+    <div className="bg-carbon-card border border-borde rounded-2xl p-4 mb-3">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold uppercase tracking-wide text-neutral-300">
+          {"\u00bfQui\u00e9n ganar\u00e1?"}
+        </span>
+        <span className="text-xs text-neutral-400 tabular-nums">
+          {total} voto{total !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      <div className="flex h-8 rounded-lg overflow-hidden bg-carbon-soft text-[11px] font-bold text-white">
+        {local > 0 && (
+          <div className="bg-sky-700 flex items-center justify-center overflow-hidden" style={{ width: `${w(local)}%` }}>
+            {p(local) >= 12 ? `${p(local)}%` : ""}
+          </div>
+        )}
+        {empate > 0 && (
+          <div className="bg-neutral-600 flex items-center justify-center overflow-hidden" style={{ width: `${w(empate)}%` }}>
+            {p(empate) >= 12 ? `${p(empate)}%` : ""}
+          </div>
+        )}
+        {visita > 0 && (
+          <div className="bg-rose-700 flex items-center justify-center overflow-hidden" style={{ width: `${w(visita)}%` }}>
+            {p(visita) >= 12 ? `${p(visita)}%` : ""}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mt-2 text-xs">
+        <span className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-1.5">
+          <Flag code={partido.pais_local} size={16} nombre={partido.equipo_local} />
+          <span className="font-bold tabular-nums">{p(local)}%</span>
+        </span>
+        <span className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-1.5">
+          <span className="text-neutral-400">Empate</span>
+          <span className="font-bold tabular-nums">{p(empate)}%</span>
+        </span>
+        <span className="flex items-center justify-center gap-1.5 bg-carbon-soft rounded-lg py-1.5">
+          <Flag code={partido.pais_visita} size={16} nombre={partido.equipo_visita} />
+          <span className="font-bold tabular-nums">{p(visita)}%</span>
+        </span>
+      </div>
+    </div>
   );
 }
 

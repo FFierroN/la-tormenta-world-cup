@@ -129,6 +129,7 @@ export interface JugadorAdmin {
 export interface FilaGoleo {
   jugador: string;
   total: number;
+  pais: string | null; // codigo ISO-2 del pais del jugador (para la bandera)
 }
 
 // Desglose de pronosticos de un miembro (pestana LaTormenta). Las 4 categorias

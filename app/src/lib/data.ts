@@ -260,26 +260,43 @@ export async function obtenerTablaGrupos(): Promise<FilaGrupo[]> {
 export async function obtenerGoleo(
   topN = 5
 ): Promise<{ goleadores: FilaGoleo[]; asistidores: FilaGoleo[] }> {
+  // Traemos tambien el lado (equipo) y el pais de cada lado del partido, para
+  // poder pintar la bandera del jugador. partido_eventos -> partidos es FK.
   const { data, error } = await supabase
     .from("partido_eventos")
-    .select("jugador, asistencia, detalle")
+    .select("jugador, asistencia, detalle, equipo, partidos(pais_local, pais_visita)")
     .eq("tipo", "gol");
   lanzarSi(error);
 
-  const goles = new Map<string, number>();
-  const asist = new Map<string, number>();
-  for (const r of data ?? []) {
-    if (r.jugador && r.detalle !== "autogol") {
-      goles.set(r.jugador, (goles.get(r.jugador) ?? 0) + 1);
-    }
-    if (r.asistencia) {
-      asist.set(r.asistencia, (asist.get(r.asistencia) ?? 0) + 1);
-    }
+  // jugador -> { total, pais }. El pais se fija en la primera aparicion.
+  const goles = new Map<string, { total: number; pais: string | null }>();
+  const asist = new Map<string, { total: number; pais: string | null }>();
+  const sumar = (
+    m: Map<string, { total: number; pais: string | null }>,
+    nombre: string,
+    pais: string | null
+  ) => {
+    const cur = m.get(nombre) ?? { total: 0, pais: null };
+    cur.total += 1;
+    if (!cur.pais && pais) cur.pais = pais;
+    m.set(nombre, cur);
+  };
+
+  for (const r of (data ?? []) as any[]) {
+    const part = Array.isArray(r.partidos) ? r.partidos[0] : r.partidos;
+    const pais =
+      r.equipo === "local"
+        ? part?.pais_local ?? null
+        : part?.pais_visita ?? null;
+    if (r.jugador && r.detalle !== "autogol") sumar(goles, r.jugador, pais);
+    if (r.asistencia) sumar(asist, r.asistencia, pais);
   }
 
-  const ordenar = (m: Map<string, number>): FilaGoleo[] =>
+  const ordenar = (
+    m: Map<string, { total: number; pais: string | null }>
+  ): FilaGoleo[] =>
     [...m.entries()]
-      .map(([jugador, total]) => ({ jugador, total }))
+      .map(([jugador, v]) => ({ jugador, total: v.total, pais: v.pais }))
       .sort((a, b) => b.total - a.total || a.jugador.localeCompare(b.jugador))
       .slice(0, topN);
 

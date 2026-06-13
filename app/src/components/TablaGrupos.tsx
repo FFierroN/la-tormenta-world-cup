@@ -161,6 +161,9 @@ function ListaGoleo({
                 <span className="w-5 text-center text-xs font-bold tabular-nums text-neutral-400">
                   {i + 1}
                 </span>
+                {f.pais && (
+                  <Flag code={f.pais} size={20} nombre={f.jugador} />
+                )}
                 <span className="flex-1 text-sm leading-tight truncate" title={f.jugador}>
                   {f.jugador}
                 </span>

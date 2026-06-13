@@ -502,15 +502,6 @@ function Pronosticos({
         </p>
       )}
 
-      {/* Cabecera: banderas para ubicar izquierda (local) / derecha (visita). */}
-      <div className="flex items-center justify-between px-3 mb-2">
-        <Flag code={partido.pais_local} size={18} nombre={partido.equipo_local} />
-        <span className="flex-1 text-center text-[11px] uppercase tracking-wide text-neutral-500">
-          Pronostico
-        </span>
-        <Flag code={partido.pais_visita} size={18} nombre={partido.equipo_visita} />
-      </div>
-
       <ul className="flex flex-col gap-2">
         {pronosticos.map((pr) => {
           const st = estadoAcierto(pr);
@@ -534,7 +525,12 @@ function Pronosticos({
                   )}
                 </div>
                 <div className="flex-1 flex justify-center">
-                  {empate && <EmpateIcon />}
+                  {empate && (
+                    <div className="flex items-center gap-1">
+                      <Flag code={partido.pais_local} size={20} nombre={partido.equipo_local} />
+                      <Flag code={partido.pais_visita} size={20} nombre={partido.equipo_visita} />
+                    </div>
+                  )}
                 </div>
                 <div className="w-6 flex justify-end">
                   {pickVisita && (
@@ -571,16 +567,6 @@ function Pronosticos({
   );
 }
 
-/* Simbolo de empate: signo igual (=) en blanco. */
-function EmpateIcon() {
-  return (
-    <span className="flex flex-col gap-[3px]" title="Empate" aria-label="Empate">
-      <span className="block w-4 h-[3px] rounded-full bg-white" />
-      <span className="block w-4 h-[3px] rounded-full bg-white" />
-    </span>
-  );
-}
-
 /* Barra horizontal con la distribucion local / empate / visita de los
    pronosticos (estilo casa de apuestas). Solo se muestra cuando ya estan
    revelados (partido iniciado). */
@@ -614,30 +600,24 @@ function PrediccionesBarra({
         </span>
       </div>
 
-      <div className="flex h-8 gap-1 text-[11px] font-bold">
+      <div className="flex h-3 gap-1">
         {local > 0 && (
           <div
-            className="flex items-center justify-center overflow-hidden rounded-md border border-sky-500 text-sky-300"
+            className="rounded-full border border-sky-500"
             style={{ width: `${w(local)}%` }}
-          >
-            {p(local) >= 12 ? `${p(local)}%` : ""}
-          </div>
+          />
         )}
         {empate > 0 && (
           <div
-            className="flex items-center justify-center overflow-hidden rounded-md border border-neutral-400 text-neutral-200"
+            className="rounded-full border border-neutral-400"
             style={{ width: `${w(empate)}%` }}
-          >
-            {p(empate) >= 12 ? `${p(empate)}%` : ""}
-          </div>
+          />
         )}
         {visita > 0 && (
           <div
-            className="flex items-center justify-center overflow-hidden rounded-md border border-rose-500 text-rose-300"
+            className="rounded-full border border-rose-500"
             style={{ width: `${w(visita)}%` }}
-          >
-            {p(visita) >= 12 ? `${p(visita)}%` : ""}
-          </div>
+          />
         )}
       </div>
 

@@ -132,8 +132,22 @@ function makeSupa(env) {
 // ------------------------------------------------------------------ helpers
 function derivarEstado(m) {
   if (comoBool(m.finished)) return "final";
-  if (String(m.time_elapsed || "").trim().toLowerCase() === "live") return "en_vivo";
-  return "programado";
+  // Estado a partir de time_elapsed de worldcup26 (mismo esquema que el feed
+  // del autor para 2022): notstarted | h1 | hf | h2 | finished.
+  // h1/h2 -> en_vivo | hf -> entretiempo | finished -> final.
+  const t = String(m.time_elapsed || "").trim().toLowerCase();
+  switch (t) {
+    case "h1":
+    case "h2":
+    case "live": // compat por si el feed manda 'live' en algun momento
+      return "en_vivo";
+    case "hf":
+      return "entretiempo";
+    case "finished":
+      return "final";
+    default: // notstarted y cualquier otro -> programado
+      return "programado";
+  }
 }
 
 // "J. Quiñones 9'" | "R. Jiménez 67'+2" | "J. Doe 90+3'"
@@ -151,9 +165,13 @@ function parsearScorers(crudo) {
   for (let c of crudos) {
     c = c.trim().replace(/^"|"$/g, "").trim();
     if (!c) continue;
+    // Autogol: worldcup26 lo marca con "(OG)" junto al nombre.
+    // Ej: "D. Bobadilla (OG) 9'". Lo detectamos y lo quitamos del nombre.
+    const esAutogol = /\(og\)/i.test(c);
+    c = c.replace(/\(og\)/i, "").replace(/\s{2,}/g, " ").trim();
     const mm = c.match(RE_GOLEADOR);
     if (!mm) continue;
-    salida.push([mm[1].trim(), Number(mm[2])]);
+    salida.push([mm[1].trim(), Number(mm[2]), esAutogol]);
   }
   return salida;
 }
@@ -285,14 +303,26 @@ async function actualizarPartido(supa, p, m, log) {
     if (!p.finalizado_at) body.finalizado_at = new Date().toISOString();
   }
 
+  // Cronometro: worldcup26 no da el minuto numerico, asi que lo ANCLAMOS al
+  // detectar el tramo (h1 -> arranca en 1', h2 -> reancla en 46') y RelojVivo
+  // (front) lo anima localmente. No es exacto (parte del primer poll, ~1 min de
+  // delay) pero es mejor que no tener reloj; los goles se anotan igual de bien.
+  // El minuto_at lo pone solo el trigger trg_anclar_minuto al cambiar 'minuto'.
+  const tramo = String(m.time_elapsed || "").trim().toLowerCase();
+  if (tramo === "h1" && p.minuto == null) {
+    body.minuto = 1; // 1er tiempo (tope del reloj = 45')
+  } else if (tramo === "h2" && (p.minuto == null || p.minuto < 46)) {
+    body.minuto = 46; // 2do tiempo (tope del reloj sube a 90')
+  }
+
   await supa.patch("partidos", { id: `eq.${p.id}` }, body);
   return nuevoEstado;
 }
 
 async function sincronizarGoles(supa, p, m, log) {
   const parsed = [];
-  for (const [j, min] of parsearScorers(m.home_scorers)) parsed.push([j, min, "local"]);
-  for (const [j, min] of parsearScorers(m.away_scorers)) parsed.push([j, min, "visita"]);
+  for (const [j, min, og] of parsearScorers(m.home_scorers)) parsed.push([j, min, "local", og]);
+  for (const [j, min, og] of parsearScorers(m.away_scorers)) parsed.push([j, min, "visita", og]);
 
   if (!parsed.length) return; // la API no asegura goles -> no tocamos nada
 
@@ -309,11 +339,13 @@ async function sincronizarGoles(supa, p, m, log) {
 
   const filas = [];
   const vistos = new Set();
-  for (const [jugador, minuto, equipo] of parsed) {
+  for (const [jugador, minuto, equipo, esAutogol] of parsed) {
     const k = `${jugador}|${minuto}|${equipo}`;
     if (vistos.has(k)) continue; // la API a veces repite
     vistos.add(k);
     const prev = manual.get(`${equipo}|${minuto}`) || {};
+    // Si la API marca autogol (OG), gana; si no, preservamos el detalle del admin.
+    const detalle = esAutogol ? "autogol" : (prev.detalle ?? "normal");
     filas.push({
       partido_id: p.id,
       tipo: "gol",
@@ -321,7 +353,7 @@ async function sincronizarGoles(supa, p, m, log) {
       minuto,
       jugador, // nombre correcto de la API
       asistencia: prev.asistencia ?? null, // preservado del admin
-      detalle: prev.detalle ?? "normal", // preservado del admin
+      detalle, // autogol detectado o lo preservado del admin
     });
   }
 

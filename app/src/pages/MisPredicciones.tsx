@@ -140,9 +140,17 @@ function Equipo({ code, nombre }: { code: string; nombre: string }) {
 function Marcadores({ p, jugado }: { p: MiPrediccion; jugado: boolean }) {
   return (
     <div className="flex flex-col items-center gap-1 min-w-[5.5rem]">
+      <div className="text-center">
+        <div className="text-2xl font-black tabular-nums leading-none">
+          {p.pred_local} - {p.pred_visita}
+        </div>
+        <div className="text-[10px] uppercase tracking-wide text-neutral-500">
+          pronostico
+        </div>
+      </div>
       {jugado && (
         <div className="text-center">
-          <div className="text-2xl font-black tabular-nums leading-none">
+          <div className="text-sm font-bold tabular-nums text-neutral-200 leading-none">
             {p.goles_local ?? 0} - {p.goles_visita ?? 0}
           </div>
           <div className="text-[10px] uppercase tracking-wide text-neutral-500">
@@ -150,14 +158,6 @@ function Marcadores({ p, jugado }: { p: MiPrediccion; jugado: boolean }) {
           </div>
         </div>
       )}
-      <div className="text-center">
-        <div className="text-sm font-bold tabular-nums text-neutral-200 leading-none">
-          {p.pred_local} - {p.pred_visita}
-        </div>
-        <div className="text-[10px] uppercase tracking-wide text-neutral-500">
-          tu pronostico
-        </div>
-      </div>
     </div>
   );
 }

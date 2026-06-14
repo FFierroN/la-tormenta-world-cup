@@ -15,6 +15,22 @@ const RESULTADO: Record<ResultadoPrediccion, { texto: string; clase: string }> =
   falla: { texto: "Falla", clase: "bg-rose-500/15 text-rose-400" },
 };
 
+// Borde de la tarjeta: SOLO 2 colores -> rojo si falla, verde en todo lo demas.
+const BORDE: Record<ResultadoPrediccion, string> = {
+  exacto: "border-green-500",
+  diferencia: "border-green-500",
+  acierto: "border-green-500",
+  falla: "border-red-500",
+};
+
+// Color del numero de puntos segun la categoria (verde = exacto, etc.).
+const PUNTOS: Record<ResultadoPrediccion, string> = {
+  exacto: "text-green-400",
+  diferencia: "text-amber-400",
+  acierto: "text-orange-400",
+  falla: "text-red-400",
+};
+
 export default function MisPredicciones() {
   const navigate = useNavigate();
   const { jugador } = useAuth();
@@ -90,12 +106,14 @@ function PrediccionCard({ p }: { p: MiPrediccion }) {
   const navigate = useNavigate();
   const jugado = p.estado === "final";
   const cat = jugado && p.resultado ? RESULTADO[p.resultado] : null;
+  // Borde por resultado (rojo falla / verde el resto); si no hay resultado, neutro.
+  const borde = jugado && p.resultado ? BORDE[p.resultado] : "border-borde";
 
   return (
     <li>
       <button
         onClick={() => navigate(`/partido/${p.partido_id}`)}
-        className="w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
+        className={`w-full text-left bg-carbon-card border ${borde} rounded-2xl p-4 active:scale-[0.99] transition-transform`}
       >
         <div className="flex items-center justify-between gap-2 text-[11px] text-neutral-400 mb-3">
           <span className="font-semibold text-neutral-300">
@@ -118,7 +136,7 @@ function PrediccionCard({ p }: { p: MiPrediccion }) {
             <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${cat.clase}`}>
               {cat.texto}
             </span>
-            <span className="text-xs font-bold text-oro tabular-nums">
+            <span className={`text-xs font-bold tabular-nums ${p.resultado ? PUNTOS[p.resultado] : "text-oro"}`}>
               +{p.puntos ?? 0} pts
             </span>
           </div>

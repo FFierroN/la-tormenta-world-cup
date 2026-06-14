@@ -489,12 +489,22 @@ function Pronosticos({
     return signoReal === signoPred ? "acierto" : "falla";
   };
 
-  // Marco sutil de la tarjeta segun el acierto (reemplaza la etiqueta).
+  // Marco de la tarjeta: borde grueso de SOLO 2 colores -> rojo si falla,
+  // verde en todo lo demas (exacto/diferencia/acierto).
   const MARCO: Record<string, string> = {
-    exacto: "border-emerald-400",
-    diferencia: "border-amber-400",
-    acierto: "border-orange-500",
-    falla: "border-rose-500",
+    exacto: "border-green-500",
+    diferencia: "border-green-500",
+    acierto: "border-green-500",
+    falla: "border-red-500",
+  };
+
+  // Pill de puntos: mismo estilo que las etiquetas "Pronosticado/Pendiente"
+  // (bg-color/20 + texto color). Un color por categoria, verde = exacto.
+  const PILL: Record<string, string> = {
+    exacto: "bg-green-500/20 text-green-400",
+    diferencia: "bg-amber-500/20 text-amber-400",
+    acierto: "bg-orange-500/20 text-orange-400",
+    falla: "bg-red-500/20 text-red-400",
   };
 
   return (
@@ -519,7 +529,7 @@ function Pronosticos({
           return (
             <li
               key={pr.jugador_id}
-              className={`bg-carbon-card border rounded-xl px-4 py-3 ${
+              className={`bg-carbon-card border-2 rounded-xl px-4 py-3 ${
                 st ? MARCO[st] : "border-borde"
               }`}
             >
@@ -556,9 +566,11 @@ function Pronosticos({
                 <div className="flex-1 text-center leading-tight min-w-0">
                   <div className="font-semibold truncate">{pr.nombre}</div>
                   {st && (
-                    <div className="text-xs font-bold tabular-nums text-oro">
+                    <span
+                      className={`inline-block mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold ${PILL[st]}`}
+                    >
                       +{pr.puntos ?? 0} pts
-                    </div>
+                    </span>
                   )}
                 </div>
 

@@ -230,7 +230,10 @@ async function actualizarPartido(supa, p, m, log) {
   } else if (nuevoEstado === "en_vivo" && !mantenerET && !p.tramo) {
     // Primer ciclo en vivo => arranca el 1er tiempo. Los pasos a 'ET' y '2T'
     // los marca Highlightly en detectarTramos (worldcup26 no los distingue).
+    // tramo_at ancla las ventanas de deteccion al momento REAL (no a la hora
+    // programada), asi un kickoff tardio no rompe la deteccion del 2do tiempo.
     body.tramo = "1T";
+    body.tramo_at = new Date().toISOString();
   }
 
   await supa.patch("partidos", { id: `eq.${p.id}` }, body);

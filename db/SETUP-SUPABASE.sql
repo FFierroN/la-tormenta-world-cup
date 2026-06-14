@@ -71,6 +71,10 @@ alter table partidos add column if not exists minuto_at timestamptz;
 alter table partidos add column if not exists puntaje_anulado boolean not null default false;
 -- Tramo del partido en vivo: '1T' | 'ET' (entretiempo) | '2T' | null.
 alter table partidos add column if not exists tramo text;
+-- Momento real en que se fijo el tramo actual (ancla de las ventanas de deteccion).
+alter table partidos add column if not exists tramo_at timestamptz;
+-- Flag: enriquecido (HL) al arrancar el 2do tiempo (asist/tarjetas del 1er tiempo).
+alter table partidos add column if not exists enriquecido_2t_at timestamptz;
 
 create table if not exists partido_eventos (
   id          serial primary key,

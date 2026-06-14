@@ -245,8 +245,10 @@ async function enriquecerPartido(env, supa, p, cacheFecha, log) {
   return hizoAlgo;
 }
 
-// Partidos a enriquecer: FT (final + gracia, sin enriquecido_at) y
-// HT (entretiempo, sin enriquecido_ht_at).
+// Partidos a enriquecer: FT (final + gracia, sin enriquecido_at),
+// HT (entretiempo, sin enriquecido_ht_at) y
+// 2T (arranco el 2do tiempo, sin enriquecido_2t_at) -> trae asist/tarjetas del
+// 1er tiempo a Detalles, que HL suele tener vacias durante el entretiempo.
 async function candidatos(supa) {
   const out = [];
   const corteFt = new Date(Date.now() - MIN_GRACIA_FT * 60e3).toISOString();
@@ -267,42 +269,74 @@ async function candidatos(supa) {
   });
   for (const p of ht) out.push({ p, fase: "ht" });
 
+  // 2T: 3 min de gracia tras arrancar el 2do tiempo (HL ya publico el 1er tiempo).
+  const corte2t = new Date(Date.now() - 3 * 60e3).toISOString();
+  const t2 = await supa.get("partidos", {
+    estado: "eq.en_vivo",
+    tramo: "eq.2T",
+    enriquecido_2t_at: "is.null",
+    tramo_at: `lte.${corte2t}`,
+    select: "*",
+    order: "fecha.asc",
+  });
+  for (const p of t2) out.push({ p, fase: "2t" });
+
   return out;
 }
 
 // ------------------------------------------------- deteccion de tramo (HT/2T)
 // worldcup26 NO distingue entretiempo (manda 'live' en 1T, ET y 2T). Highlightly
-// SI: state.description = "Half time" / "In Progress". Y la LISTA de HL ya trae
-// ese state por partido => 1 sola llamada por fecha nos da el estado de todos.
-// Para ahorrar cuota solo llamamos dentro de la ventana de descanso (~35-80 min
-// desde el pitazo) y en minutos pares (cada 2 min). Apenas confirmamos el 2do
-// tiempo dejamos de llamar para ese partido.
-const HT_DESDE_MIN = 35;
-const HT_HASTA_MIN = 80;
+// SI: state.description = "Half time" / "In Progress". La LISTA de HL ya trae ese
+// state por partido => 1 llamada por fecha da el estado de todos.
+//
+// ROBUSTEZ (bug 2026: partido pegado en entretiempo):
+//  - Las ventanas se anclan a 'tramo_at' (momento REAL en que se fijo el tramo),
+//    NO a la hora programada -> inmune a kickoffs tardios / descuentos largos.
+//  - Fallback DURO sin HL: si lleva >=18 min en entretiempo, se fuerza el 2do
+//    tiempo aunque Highlightly nunca diga "In Progress". Imposible quedar pegado.
+//  - HL solo afina/acelera: ventana [35,80] min (1T->ET) y [8,18] min (ET->2T)
+//    desde tramo_at, en minutos pares.
+const ET_MAX_MIN = 18; // descanso maximo asumido antes de forzar el 2do tiempo
 
-function enVentanaHt(p) {
-  const ko = p.fecha ? new Date(p.fecha).getTime() : NaN;
-  if (Number.isNaN(ko)) return false;
-  const min = (Date.now() - ko) / 60000;
-  return min >= HT_DESDE_MIN && min <= HT_HASTA_MIN;
-}
-
-// Cruza los partidos en vivo de la DB con la lista de HL para marcar el tramo:
-//   "Half time"   -> estado='entretiempo', tramo='ET'
-//   "In Progress" (viniendo de ET) -> estado='en_vivo', tramo='2T'
-// El 1er tiempo lo marca el robot (index.js) y el final lo da worldcup26.
 export async function detectarTramos(supa, env, log) {
-  if (!env.HL_KEY) return;
-
   const vivos = await supa.get("partidos", {
     estado: "in.(en_vivo,entretiempo)",
-    select: "id,equipo_local,equipo_visita,fecha,estado,tramo,highlightly_id",
+    select: "id,equipo_local,equipo_visita,fecha,estado,tramo,tramo_at,highlightly_id",
   });
-  // Solo los que estan en la ventana de descanso y aun no confirmaron 2do tiempo.
-  const pend = vivos.filter((p) => p.tramo !== "2T" && enVentanaHt(p));
-  if (!pend.length) return; // fuera de ventana o ya en 2T -> 0 requests a HL
+  if (!vivos.length) return;
 
-  // Throttle: solo en minutos pares (cada 2 min) -> ~la mitad de llamadas.
+  const ahora = Date.now();
+  const minsDesdeTramo = (p) => {
+    const t = p.tramo_at ? new Date(p.tramo_at).getTime() : NaN;
+    return Number.isNaN(t) ? null : (ahora - t) / 60000;
+  };
+
+  // --- Fallback DURO (sin HL, sin throttle): entretiempo >=18 min -> 2do tiempo.
+  for (const p of vivos) {
+    if (p.tramo !== "ET") continue;
+    const m = minsDesdeTramo(p);
+    if (m !== null && m >= ET_MAX_MIN) {
+      await supa.patch("partidos", { id: `eq.${p.id}` }, {
+        estado: "en_vivo", tramo: "2T", tramo_at: new Date().toISOString(),
+      });
+      log.push(`  TRAMO: ${p.equipo_local} vs ${p.equipo_visita} -> 2do TIEMPO (fallback ${Math.round(m)}min)`);
+      p.tramo = "2T"; // evita re-evaluarlo abajo
+    }
+  }
+
+  if (!env.HL_KEY) return;
+
+  // --- Deteccion via Highlightly (mas rapida/precisa que el fallback).
+  const pend = vivos.filter((p) => {
+    const m = minsDesdeTramo(p);
+    if (m === null) return false;
+    if (p.tramo === "1T") return m >= 35 && m <= 80; // ventana de descanso (1T->ET)
+    if (p.tramo === "ET") return m >= 8 && m <= ET_MAX_MIN; // arranque 2do tiempo
+    return false; // 2T (o sin tramo) no necesita HL
+  });
+  if (!pend.length) return; // fuera de ventana -> 0 requests a HL
+
+  // Throttle: solo minutos pares (cada 2 min) -> ~la mitad de llamadas.
   if (new Date().getMinutes() % 2 !== 0) return;
 
   const cacheFecha = {};
@@ -329,12 +363,17 @@ export async function detectarTramos(supa, env, log) {
     });
     if (!item) continue;
     const desc = String((item.state || {}).description || "").trim().toLowerCase();
+    const stamp = new Date().toISOString();
 
-    if (desc === "half time" && p.estado !== "entretiempo") {
-      await supa.patch("partidos", { id: `eq.${p.id}` }, { estado: "entretiempo", tramo: "ET" });
+    if (p.tramo === "1T" && desc === "half time") {
+      await supa.patch("partidos", { id: `eq.${p.id}` }, {
+        estado: "entretiempo", tramo: "ET", tramo_at: stamp,
+      });
       log.push(`  TRAMO: ${p.equipo_local} vs ${p.equipo_visita} -> ENTRETIEMPO (HL)`);
-    } else if (desc === "in progress" && p.tramo === "ET") {
-      await supa.patch("partidos", { id: `eq.${p.id}` }, { estado: "en_vivo", tramo: "2T" });
+    } else if (p.tramo === "ET" && desc === "in progress") {
+      await supa.patch("partidos", { id: `eq.${p.id}` }, {
+        estado: "en_vivo", tramo: "2T", tramo_at: stamp,
+      });
       log.push(`  TRAMO: ${p.equipo_local} vs ${p.equipo_visita} -> 2do TIEMPO (HL)`);
     }
   }
@@ -356,7 +395,10 @@ export async function enriquecerPendientes(supa, env, log) {
   for (const { p, fase } of lista) {
     try {
       if (await enriquecerPartido(env, supa, p, cacheFecha, log)) {
-        const campo = fase === "ht" ? "enriquecido_ht_at" : "enriquecido_at";
+        const campo =
+          fase === "ht" ? "enriquecido_ht_at"
+          : fase === "2t" ? "enriquecido_2t_at"
+          : "enriquecido_at";
         await supa.patch("partidos", { id: `eq.${p.id}` }, { [campo]: new Date().toISOString() });
         hechos += 1;
       }

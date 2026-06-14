@@ -16,6 +16,9 @@
 
 alter table partidos add column if not exists tramo_at timestamptz;
 
+-- Por si no se corrio el FIX-tramo.sql anterior (inofensivo si ya existe).
+alter table partidos add column if not exists tramo text;
+
 -- Flag: ya enriquecimos (HL) al arrancar el 2do tiempo. Permite traer
 -- asistencias/tarjetas/cambios del 1er tiempo a la pestana Detalles sin esperar
 -- al final (HL suele tener events[] vacio durante el entretiempo).

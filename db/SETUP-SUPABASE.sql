@@ -57,7 +57,7 @@ create table if not exists partidos (
   ganador_penales text,   -- 'local' | 'visita' (solo si hubo penales)
   rojas_local     int not null default 0,
   rojas_visita    int not null default 0,
-  -- estado: programado | en_vivo | entretiempo | alargue | penales | final | suspendido
+  -- estado: programado | en_vivo | entretiempo | alargue | penales | final | suspendido | anulado
   estado          text not null default 'programado',
   finalizado_at   timestamptz
 );
@@ -705,7 +705,7 @@ begin
   ('Grupos', 'B', '2026-06-13 15:00:00-04', 'Catar', 'Suiza', 'QA', 'CH', 'Levi''s Stadium', 'San Francisco (Santa Clara)'),
   ('Grupos', 'C', '2026-06-13 18:00:00-04', 'Brasil', 'Marruecos', 'BR', 'MA', 'MetLife Stadium', 'Nueva York (East Rutherford)'),
   ('Grupos', 'C', '2026-06-13 21:00:00-04', 'Haití', 'Escocia', 'HT', 'GB-SCT', 'Gillette Stadium', 'Boston (Foxborough)'),
-  ('Grupos', 'D', '2026-06-14 12:00:00-04', 'Australia', 'Turquía', 'AU', 'TR', 'BC Place', 'Vancouver'),
+  ('Grupos', 'D', '2026-06-14 00:00:00-04', 'Australia', 'Turquía', 'AU', 'TR', 'BC Place', 'Vancouver'),
   ('Grupos', 'E', '2026-06-14 13:00:00-04', 'Alemania', 'Curazao', 'DE', 'CW', 'NRG Stadium', 'Houston'),
   ('Grupos', 'F', '2026-06-14 16:00:00-04', 'Países Bajos', 'Japón', 'NL', 'JP', 'AT&T Stadium', 'Dallas (Arlington)'),
   ('Grupos', 'E', '2026-06-14 19:00:00-04', 'Costa de Marfil', 'Ecuador', 'CI', 'EC', 'Lincoln Financial Field', 'Filadelfia'),

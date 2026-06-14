@@ -7,7 +7,8 @@ export type EstadoPartido =
   | "alargue"
   | "penales"
   | "final"
-  | "suspendido";
+  | "suspendido"
+  | "anulado";
 
 export interface Jugador {
   id: string;

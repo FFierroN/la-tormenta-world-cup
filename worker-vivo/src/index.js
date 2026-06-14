@@ -32,6 +32,7 @@ const PRIORIDAD_ESTADO = {
   en_vivo: 1, entretiempo: 1,
   alargue: 2, penales: 3,
   final: 4,
+  anulado: 99, // terminal: el admin lo anulo a mano. La API NUNCA lo sobreescribe.
 };
 
 // EQUIPOS, nuestroNombre, comoInt, comoBool y makeSupa viven en comun.js
@@ -187,7 +188,12 @@ async function actualizarPartido(supa, p, m, log) {
   // antes del pitazo). Damos 2 min de gracia por desfases de reloj.
   const kickoff = p.fecha ? new Date(p.fecha).getTime() : NaN;
   if (!Number.isNaN(kickoff) && Date.now() < kickoff - 2 * 60e3 && nuevoEstado !== "programado") {
-    log.push(`  IGNORADO (API=${nuevoEstado} pero aun no empieza, kickoff=${p.fecha}): ${p.equipo_local} vs ${p.equipo_visita}`);
+    // La API dice que el partido esta vivo/terminado pero su 'fecha' en la DB
+    // todavia esta en el futuro -> casi seguro la HORA CARGADA ESTA MAL (ej.
+    // AM/PM). Lo gritamos fuerte: si no, el partido nunca arranca y se queda
+    // pronosticable. Bug real 2026-06-14 (Australia vs Turquia cargado 12:00
+    // en vez de 00:00). REVISAR la fecha de ese partido en la DB.
+    log.push(`  !!! HORA SOSPECHOSA: API dice '${nuevoEstado}' pero la DB cree que aun no empieza (kickoff=${p.fecha}). REVISAR/CORREGIR la fecha de: ${p.equipo_local} vs ${p.equipo_visita}`);
     return null;
   }
 

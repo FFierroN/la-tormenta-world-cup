@@ -92,7 +92,7 @@ create table if not exists partidos (
   ganador_penales text,   -- 'local' | 'visita' (solo si hubo penales)
   rojas_local     int not null default 0,
   rojas_visita    int not null default 0,
-  -- estado: programado | en_vivo | entretiempo | alargue | penales | final | suspendido
+  -- estado: programado | en_vivo | entretiempo | alargue | penales | final | suspendido | anulado
   estado          text not null default 'programado',
   finalizado_at   timestamptz
 );

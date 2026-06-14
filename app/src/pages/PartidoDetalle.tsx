@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Flag from "../components/Flag";
-import RelojVivo from "../components/RelojVivo";
+import TramoVivo from "../components/TramoVivo";
 import EstadoBadge from "../components/EstadoBadge";
 import PanelStats from "../components/PanelStats";
 import PanelTormenta from "../components/PanelTormenta";
 import { BallIcon, EventoIcono, ShoeIcon } from "../components/Iconos";
 import type { EventoPartido, Partido, PronosticoVista } from "../lib/types";
-import { ESTADOS_EN_CURSO } from "../lib/estados";
+
 import { fmtMinuto } from "../lib/eventos";
 import { useAsync } from "../lib/useAsync";
 import { useAuth } from "../lib/auth";
@@ -122,8 +122,8 @@ export default function PartidoDetalle() {
                   <div className="text-4xl font-black tabular-nums mt-1">
                     {partido.goles_local ?? 0} - {partido.goles_visita ?? 0}
                   </div>
-                  {ESTADOS_EN_CURSO.includes(partido.estado) && (
-                    <RelojVivo partido={partido} />
+                  {(partido.estado === "en_vivo" || partido.estado === "entretiempo") && (
+                    <TramoVivo partido={partido} className="mt-1.5" />
                   )}
                   {partido.ganador_penales && (
                     <div className="text-xs text-neutral-300 mt-1">

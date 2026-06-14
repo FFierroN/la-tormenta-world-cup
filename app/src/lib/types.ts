@@ -33,6 +33,7 @@ export interface Partido {
   goles_local: number | null;
   goles_visita: number | null;
   puntaje_anulado: boolean; // partido valido (se juega y rellena), pero NO suma puntos
+  tramo: "1T" | "ET" | "2T" | null; // tramo en vivo: 1er tiempo / entretiempo / 2do tiempo
   minuto: number | null; // minuto en vivo (ancla)
   minuto_at: string | null; // ISO: cuando se midio 'minuto' (para el reloj local)
   penales_local: number | null; // tanda de penales (llaves)

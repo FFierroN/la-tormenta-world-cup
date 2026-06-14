@@ -270,6 +270,76 @@ async function candidatos(supa) {
   return out;
 }
 
+// ------------------------------------------------- deteccion de tramo (HT/2T)
+// worldcup26 NO distingue entretiempo (manda 'live' en 1T, ET y 2T). Highlightly
+// SI: state.description = "Half time" / "In Progress". Y la LISTA de HL ya trae
+// ese state por partido => 1 sola llamada por fecha nos da el estado de todos.
+// Para ahorrar cuota solo llamamos dentro de la ventana de descanso (~35-80 min
+// desde el pitazo) y en minutos pares (cada 2 min). Apenas confirmamos el 2do
+// tiempo dejamos de llamar para ese partido.
+const HT_DESDE_MIN = 35;
+const HT_HASTA_MIN = 80;
+
+function enVentanaHt(p) {
+  const ko = p.fecha ? new Date(p.fecha).getTime() : NaN;
+  if (Number.isNaN(ko)) return false;
+  const min = (Date.now() - ko) / 60000;
+  return min >= HT_DESDE_MIN && min <= HT_HASTA_MIN;
+}
+
+// Cruza los partidos en vivo de la DB con la lista de HL para marcar el tramo:
+//   "Half time"   -> estado='entretiempo', tramo='ET'
+//   "In Progress" (viniendo de ET) -> estado='en_vivo', tramo='2T'
+// El 1er tiempo lo marca el robot (index.js) y el final lo da worldcup26.
+export async function detectarTramos(supa, env, log) {
+  if (!env.HL_KEY) return;
+
+  const vivos = await supa.get("partidos", {
+    estado: "in.(en_vivo,entretiempo)",
+    select: "id,equipo_local,equipo_visita,fecha,estado,tramo,highlightly_id",
+  });
+  // Solo los que estan en la ventana de descanso y aun no confirmaron 2do tiempo.
+  const pend = vivos.filter((p) => p.tramo !== "2T" && enVentanaHt(p));
+  if (!pend.length) return; // fuera de ventana o ya en 2T -> 0 requests a HL
+
+  // Throttle: solo en minutos pares (cada 2 min) -> ~la mitad de llamadas.
+  if (new Date().getMinutes() % 2 !== 0) return;
+
+  const cacheFecha = {};
+  for (const p of pend) {
+    const f = fechaUtc(p);
+    if (f === null) continue;
+    if (!(f in cacheFecha)) {
+      try {
+        cacheFecha[f] = await hlListarPorFecha(env, f);
+      } catch (e) {
+        if (e instanceof LimiteDiario) {
+          log.push("  tramos: limite diario HL (100/dia), omito.");
+          return;
+        }
+        log.push(`  tramos: fallo lista HL (${f}): ${e.message}`);
+        cacheFecha[f] = [];
+      }
+    }
+    const item = (cacheFecha[f] || []).find((m) => {
+      if (p.highlightly_id && comoInt(m.id) === comoInt(p.highlightly_id)) return true;
+      const home = nuestroNombre((m.homeTeam || {}).name);
+      const away = nuestroNombre((m.awayTeam || {}).name);
+      return home === p.equipo_local && away === p.equipo_visita;
+    });
+    if (!item) continue;
+    const desc = String((item.state || {}).description || "").trim().toLowerCase();
+
+    if (desc === "half time" && p.estado !== "entretiempo") {
+      await supa.patch("partidos", { id: `eq.${p.id}` }, { estado: "entretiempo", tramo: "ET" });
+      log.push(`  TRAMO: ${p.equipo_local} vs ${p.equipo_visita} -> ENTRETIEMPO (HL)`);
+    } else if (desc === "in progress" && p.tramo === "ET") {
+      await supa.patch("partidos", { id: `eq.${p.id}` }, { estado: "en_vivo", tramo: "2T" });
+      log.push(`  TRAMO: ${p.equipo_local} vs ${p.equipo_visita} -> 2do TIEMPO (HL)`);
+    }
+  }
+}
+
 // Punto de entrada: lo llama el cron del Worker (index.js) tras el ciclo vivo.
 export async function enriquecerPendientes(supa, env, log) {
   if (!env.HL_KEY) {

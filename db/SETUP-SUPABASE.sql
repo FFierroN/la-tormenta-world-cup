@@ -69,6 +69,8 @@ create index if not exists idx_partidos_estado on partidos(estado);
 -- Idempotente para bases ya creadas: ancla del cronometro en vivo.
 alter table partidos add column if not exists minuto_at timestamptz;
 alter table partidos add column if not exists puntaje_anulado boolean not null default false;
+-- Tramo del partido en vivo: '1T' | 'ET' (entretiempo) | '2T' | null.
+alter table partidos add column if not exists tramo text;
 
 create table if not exists partido_eventos (
   id          serial primary key,

@@ -48,6 +48,7 @@ function aPartido(r: any): Partido {
     goles_local: r.goles_local,
     goles_visita: r.goles_visita,
     puntaje_anulado: r.puntaje_anulado ?? false,
+    tramo: r.tramo ?? null,
     minuto: r.minuto ?? null,
     minuto_at: r.minuto_at ?? null,
     penales_local: r.penales_local ?? null,

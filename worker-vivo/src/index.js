@@ -19,7 +19,7 @@
  */
 
 import { comoBool, comoInt, makeSupa, nuestroNombre } from "./comun.js";
-import { enriquecerPendientes } from "./enriquecer.js";
+import { enriquecerPendientes, detectarTramos } from "./enriquecer.js";
 
 const API_URL = "https://worldcup26.ir/get/games";
 
@@ -207,53 +207,34 @@ async function actualizarPartido(supa, p, m, log) {
   const home = comoInt(m.home_score);
   const away = comoInt(m.away_score);
 
-  const body = { estado: nuevoEstado };
+  // worldcup26 manda 'live' tanto en 1er tiempo, entretiempo COMO 2do tiempo
+  // (no los distingue). El DUENO de la transicion en_vivo<->entretiempo<->2T es
+  // Highlightly (ver detectarTramos en enriquecer.js, que usa state.description
+  // = "Half time" / "In Progress"). Por eso: si la DB ya esta en 'entretiempo'
+  // y worldcup26 dice 'en_vivo', NO pisamos el estado (esperamos que HL confirme
+  // el 2do tiempo). Asi el cartel de Entretiempo no parpadea de vuelta a vivo.
+  const mantenerET = p.estado === "entretiempo" && nuevoEstado === "en_vivo";
+
+  const body = {};
+  if (!mantenerET) body.estado = nuevoEstado;
   // Salvaguarda 2: no escribir null encima de un valor real.
   if (home !== null) body.goles_local = home;
   if (away !== null) body.goles_visita = away;
-  if (nuevoEstado === "final") {
-    body.minuto = null;
-    // Sellar finalizado_at SOLO la primera vez (transicion a final). Si lo
-    // re-escribieramos cada minuto, la "gracia" de 20 min del enriquecedor
-    // (enriquecer.py) nunca se cumpliria y Highlightly jamas correria.
-    // Bug encontrado 2026-06-12 al pasar el robot vivo a cron de 1 min.
-    if (!p.finalizado_at) body.finalizado_at = new Date().toISOString();
-  }
 
-  // Cronometro (worldcup26 no da el minuto numerico):
-  //  a) Si el feed manda el tramo (h1/h2) -> anclamos 1'/46' una sola vez. Si
-  //     ademas manda 'hf' en el descanso, derivarEstado lo pasa a entretiempo
-  //     y el reloj se detiene solo (RelojVivo solo tickea en vivo/alargue).
-  //  b) Si solo dice "live" (caso real 2026, sin h1/h2/hf) -> Opcion B:
-  //     - 1er ciclo en vivo = PITAZO REAL: anclamos en 1' (minuto_at = ahora),
-  //       asi el reloj parte del pitazo y no de la hora programada (que solia
-  //       ir varios min adelantada).
-  //     - Tras 60' de reloj de pared (45' de juego + 15' de descanso asumido)
-  //       reanclamos en 46' para arrancar el 2do tiempo (~exacto sin gastar API).
-  //     RelojVivo (front) anima los segundos entre ciclos y se topa en 45'/90'.
-  // El minuto_at lo pone solo el trigger trg_anclar_minuto al cambiar 'minuto'.
-  const tramo = String(m.time_elapsed || "").trim().toLowerCase();
-  const DESCANSO_MS = 60 * 60000; // 45' jugados + 15' de entretiempo asumido
-  if (tramo === "h1" && p.minuto == null) {
-    body.minuto = 1; // 1er tiempo (tope del reloj = 45')
-  } else if (tramo === "h2" && (p.minuto == null || p.minuto < 46)) {
-    body.minuto = 46; // 2do tiempo (tope del reloj sube a 90')
-  } else if (nuevoEstado === "en_vivo" && tramo !== "h1" && tramo !== "h2") {
-    const minutoAt = p.minuto_at ? new Date(p.minuto_at).getTime() : NaN;
-    if (p.minuto == null) {
-      body.minuto = 1; // primera vez en vivo = pitazo real
-    } else if (
-      p.minuto < 46 &&
-      !Number.isNaN(minutoAt) &&
-      Date.now() - minutoAt >= DESCANSO_MS
-    ) {
-      body.minuto = 46; // arranca el 2do tiempo (descanso de 15' asumido)
-    }
-    // si no, no tocamos minuto: RelojVivo lo anima solo desde el ancla.
+  if (nuevoEstado === "final") {
+    body.tramo = null; // se acabo: sin etiqueta de tramo
+    // Sellar finalizado_at SOLO la primera vez (transicion a final). Si lo
+    // re-escribieramos cada minuto, la "gracia" de 15 min del enriquecedor
+    // nunca se cumpliria y Highlightly jamas correria.
+    if (!p.finalizado_at) body.finalizado_at = new Date().toISOString();
+  } else if (nuevoEstado === "en_vivo" && !mantenerET && !p.tramo) {
+    // Primer ciclo en vivo => arranca el 1er tiempo. Los pasos a 'ET' y '2T'
+    // los marca Highlightly en detectarTramos (worldcup26 no los distingue).
+    body.tramo = "1T";
   }
 
   await supa.patch("partidos", { id: `eq.${p.id}` }, body);
-  return nuevoEstado;
+  return mantenerET ? "entretiempo" : nuevoEstado;
 }
 
 async function sincronizarGoles(supa, p, m, log) {
@@ -344,6 +325,15 @@ async function correr(env, log) {
     } catch (e) {
       log.push(`  fallo ${p.equipo_local} vs ${p.equipo_visita}: ${e.message}`);
     }
+  }
+
+  // Deteccion de tramo (entretiempo / 2do tiempo) via Highlightly. Se auto-regula:
+  // solo pega a HL si hay un partido en la ventana de descanso (~35-80 min) que
+  // aun no confirmo el 2do tiempo, y solo en minutos pares.
+  try {
+    await detectarTramos(supa, env, log);
+  } catch (e) {
+    log.push(`tramos FATAL: ${e.message}`);
   }
 
   // Enriquecimiento Highlightly (HT/FT) en el mismo cron. Se auto-regula:

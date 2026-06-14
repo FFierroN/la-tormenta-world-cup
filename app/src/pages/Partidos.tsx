@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
-import RelojVivo from "../components/RelojVivo";
+import TramoVivo from "../components/TramoVivo";
 import BotonEspeciales from "../components/BotonEspeciales";
 import { listarPartidos, misPronosticos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
@@ -342,7 +342,7 @@ function PartidoCard({
   const navigate = useNavigate();
   const puedePronosticar = esPronosticable(p);
   const jugado = p.estado === "final";
-  const enVivo = p.estado === "en_vivo" || p.estado === "alargue";
+  const enJuego = p.estado === "en_vivo" || p.estado === "entretiempo";
   return (
     <li>
       <button
@@ -350,9 +350,10 @@ function PartidoCard({
         className="w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
       >
         {/* Cronometro en vivo, arriba al centro de la tarjeta */}
-        {enVivo && (
+        {/* Tramo en vivo (1er/Entretiempo/2do), arriba al centro de la tarjeta */}
+        {enJuego && (
           <div className="flex justify-center mb-2">
-            <RelojVivo partido={p} />
+            <TramoVivo partido={p} />
           </div>
         )}
         <div className="flex items-center justify-between gap-2 text-xs text-neutral-400 mb-3">

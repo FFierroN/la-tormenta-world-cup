@@ -10,7 +10,6 @@ export const ESTADO_LABEL: Record<EstadoPartido, string> = {
   penales: "Penales",
   final: "Final",
   suspendido: "Suspendido",
-  anulado: "Anulado",
 };
 
 // Estados en los que el partido esta "rodando" (para el punto rojo / minuto).
@@ -43,8 +42,6 @@ export function estiloEstado(estado: EstadoPartido): EstiloEstado {
       return { mostrar: true, punto: "text-yellow-400", glow: true };
     case "final":
       return { mostrar: false, punto: null, glow: false };
-    case "anulado":
-      return { mostrar: true, punto: null, glow: false };
     default: // suspendido
       return { mostrar: true, punto: null, glow: false };
   }

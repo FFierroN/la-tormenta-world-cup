@@ -137,6 +137,12 @@ export default function PartidoDetalle() {
             <TeamHead code={partido.pais_visita} nombre={partido.equipo_visita} />
           </div>
 
+          {partido.puntaje_anulado && (
+            <div className="mt-3 text-center text-xs font-bold text-amber-400">
+              Puntaje anulado · este partido no suma puntos
+            </div>
+          )}
+
           {(partido.estadio || partido.fase) && (
             <div className="mt-3 text-center text-[11px] text-neutral-300">
               {partido.grupo ? `Grupo ${partido.grupo}` : partido.fase}

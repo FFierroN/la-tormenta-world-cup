@@ -7,8 +7,7 @@ export type EstadoPartido =
   | "alargue"
   | "penales"
   | "final"
-  | "suspendido"
-  | "anulado";
+  | "suspendido";
 
 export interface Jugador {
   id: string;
@@ -33,6 +32,7 @@ export interface Partido {
   pais_visita: string;
   goles_local: number | null;
   goles_visita: number | null;
+  puntaje_anulado: boolean; // partido valido (se juega y rellena), pero NO suma puntos
   minuto: number | null; // minuto en vivo (ancla)
   minuto_at: string | null; // ISO: cuando se midio 'minuto' (para el reloj local)
   penales_local: number | null; // tanda de penales (llaves)

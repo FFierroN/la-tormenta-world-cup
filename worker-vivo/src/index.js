@@ -32,7 +32,6 @@ const PRIORIDAD_ESTADO = {
   en_vivo: 1, entretiempo: 1,
   alargue: 2, penales: 3,
   final: 4,
-  anulado: 99, // terminal: el admin lo anulo a mano. La API NUNCA lo sobreescribe.
 };
 
 // EQUIPOS, nuestroNombre, comoInt, comoBool y makeSupa viven en comun.js

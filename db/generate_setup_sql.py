@@ -92,14 +92,18 @@ create table if not exists partidos (
   ganador_penales text,   -- 'local' | 'visita' (solo si hubo penales)
   rojas_local     int not null default 0,
   rojas_visita    int not null default 0,
-  -- estado: programado | en_vivo | entretiempo | alargue | penales | final | suspendido | anulado
+  -- estado: programado | en_vivo | entretiempo | alargue | penales | final | suspendido
   estado          text not null default 'programado',
+  -- puntaje_anulado: el partido se juega y rellena normal, pero NO suma puntos
+  -- (caso: se cargo mal y se decidio que ese partido no cuente para nadie).
+  puntaje_anulado boolean not null default false,
   finalizado_at   timestamptz
 );
 create index if not exists idx_partidos_fecha  on partidos(fecha);
 create index if not exists idx_partidos_estado on partidos(estado);
 -- Idempotente para bases ya creadas: ancla del cronometro en vivo.
 alter table partidos add column if not exists minuto_at timestamptz;
+alter table partidos add column if not exists puntaje_anulado boolean not null default false;
 
 create table if not exists partido_eventos (
   id          serial primary key,
@@ -590,6 +594,7 @@ with base as (
   left join pronosticos pr on pr.jugador_id = j.id
   left join partidos p on p.id = pr.partido_id
                       and p.estado='final' and p.goles_local is not null
+                      and not p.puntaje_anulado   -- partidos anulados no suman para nadie
   where j.activo                                -- los dados de baja salen de la tabla
   group by j.id
 )

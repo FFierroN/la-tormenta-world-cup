@@ -342,7 +342,6 @@ function PartidoCard({
   const navigate = useNavigate();
   const puedePronosticar = esPronosticable(p);
   const jugado = p.estado === "final";
-  const anulado = p.estado === "anulado";
   const enVivo = p.estado === "en_vivo" || p.estado === "alargue";
   return (
     <li>
@@ -385,9 +384,9 @@ function PartidoCard({
             Partido Finalizado
           </div>
         )}
-        {anulado && (
-          <div className="text-center text-sm font-bold text-neutral-400 mb-2">
-            Partido Anulado · no suma puntos
+        {p.puntaje_anulado && (
+          <div className="text-center text-xs font-bold text-amber-400 mb-2">
+            Puntaje anulado · no suma puntos
           </div>
         )}
         <div className="flex items-center justify-between gap-2">
@@ -412,9 +411,6 @@ function Equipo({ code, nombre }: { code: string; nombre: string }) {
 function Marcador({ p }: { p: Partido }) {
   if (p.estado === "programado") {
     return <div className="text-sm font-semibold text-neutral-500">VS</div>;
-  }
-  if (p.estado === "anulado") {
-    return <div className="text-sm font-semibold text-neutral-500">Anulado</div>;
   }
   return (
     <div className="text-2xl font-black tabular-nums">

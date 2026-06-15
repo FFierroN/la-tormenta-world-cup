@@ -100,3 +100,81 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ===================================================================
+   Rediseno piloto estilo WC26 (solo lo usa la ruta /partidos-wc).
+   Marco neon multicolor, glow pulsante y astillas de color.
+   =================================================================== */
+
+/* Degradado de marca WC26: menta -> azul -> purpura -> naranja. */
+:root {
+  --wc-grad: linear-gradient(
+    135deg,
+    #3df5c0 0%,
+    #2e6bff 35%,
+    #a24bff 65%,
+    #ff5a2c 100%
+  );
+}
+
+/* Marco neon: borde degradado via mascara (no pinta el interior). El interior
+   queda negro para que la tarjeta respire. Usar en elementos destacados. */
+.marco-wc {
+  position: relative;
+  border-radius: 1rem;
+  background: var(--wc-grad);
+  padding: 2px; /* grosor del marco */
+}
+.marco-wc > * {
+  border-radius: calc(1rem - 2px);
+  background: #010d26; /* mismo carbon-card */
+}
+
+/* Variante sutil del marco (programado): casi monocromo, sin gritar. */
+.marco-sutil {
+  border: 1px solid #0c1d38; /* borde */
+  border-radius: 1rem;
+}
+
+/* Variante apagada (final): atenuada, fuera de foco. */
+.marco-apagado {
+  border: 1px solid #0c1d38;
+  border-radius: 1rem;
+  opacity: 0.72;
+}
+
+/* Glow neon pulsante para el partido EN VIVO. Respeta reduced-motion. */
+@keyframes pulso-neon {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 107, 255, 0);
+  }
+  50% {
+    box-shadow: 0 0 22px 4px rgba(162, 75, 255, 0.45);
+  }
+}
+.glow-neon {
+  animation: pulso-neon 1.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .glow-neon {
+    animation: none;
+    box-shadow: 0 0 16px 2px rgba(162, 75, 255, 0.4);
+  }
+}
+
+/* Astillas de color al pie de la tarjeta (detalle decorativo de la maqueta). */
+.astillas-wc {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--wc-grad);
+  opacity: 0.85;
+}
+
+/* Titulo display gigante estilo WC26. */
+.titulo-wc {
+  font-family: "Anton", "Saira Condensed", Impact, sans-serif;
+  letter-spacing: 0.01em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}

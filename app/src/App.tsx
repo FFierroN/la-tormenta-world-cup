@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import BottomTabs from "./components/BottomTabs";
 import Login from "./pages/Login";
 import Partidos from "./pages/Partidos";
+import PartidosWC from "./pages/PartidosWC";
 import PartidoDetalle from "./pages/PartidoDetalle";
 import Tabla from "./pages/Tabla";
 import Copa from "./pages/Copa";
@@ -55,6 +56,8 @@ export default function App() {
             element={jugador ? <Navigate to="/partidos" replace /> : <Login />}
           />
           <Route path="/partidos" element={<Privada><Partidos /></Privada>} />
+          {/* PILOTO rediseno WC26 (preview, no reemplaza /partidos aun). */}
+          <Route path="/partidos-wc" element={<Privada><PartidosWC /></Privada>} />
           <Route path="/partido/:id" element={<Privada><PartidoDetalle /></Privada>} />
           <Route path="/tabla" element={<Privada><Tabla /></Privada>} />
           <Route path="/copa" element={<Privada><Copa /></Privada>} />

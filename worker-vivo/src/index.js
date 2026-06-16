@@ -19,7 +19,7 @@
  */
 
 import { comoBool, comoInt, makeSupa, nuestroNombre } from "./comun.js";
-import { enriquecerPendientes, detectarTramos } from "./enriquecer.js";
+import { enriquecerPendientes, detectarTramos, hlConfirmaArranque } from "./enriquecer.js";
 
 const API_URL = "https://worldcup26.ir/get/games";
 
@@ -177,23 +177,49 @@ async function buscarPartido(supa, m, log) {
 }
 
 // ------------------------------------------------------------- actualizaciones
-async function actualizarPartido(supa, p, m, log) {
-  const nuevoEstado = derivarEstado(m);
+async function actualizarPartido(supa, p, m, env, cacheFecha, log) {
+  let nuevoEstado = derivarEstado(m);
+
+  // Caso LAG de worldcup26: ya paso la hora de inicio pero la API sigue diciendo
+  // 'notstarted' (feed lento). Sin esto el partido se queda 'programado' sin en
+  // vivo ni goles aunque ya se este jugando. Bug real 2026-06-15. DESEMPATE con
+  // Highlightly: si HL confirma que ya esta en curso, forzamos en_vivo. Damos 2
+  // min de gracia tras la hora programada para no adelantarnos a un kickoff justo.
+  if (nuevoEstado === "programado" && p.estado === "programado") {
+    const kickoffMs = p.fecha ? new Date(p.fecha).getTime() : NaN;
+    if (!Number.isNaN(kickoffMs) && Date.now() > kickoffMs + 2 * 60e3) {
+      const fechaApiIso = localDateIso(m.local_date);
+      const confirmado = await hlConfirmaArranque(env, supa, p, fechaApiIso, cacheFecha, log);
+      if (confirmado === "en_curso") {
+        nuevoEstado = "en_vivo";
+        log.push(`  LAG worldcup26: HL confirma en curso pese a 'notstarted'. Arranco ${p.equipo_local} vs ${p.equipo_visita}`);
+      }
+    }
+  }
 
   // Salvaguarda 0: un partido NO puede ponerse en vivo/final ANTES de su hora
   // de inicio. worldcup26 a veces manda finished=true (o live) para partidos
   // que aun no empiezan -> los dariamos por terminados y se sumarian puntos
   // falsos. Bug encontrado 2026-06-12 (Paraguay vs USA dado por final 0-0
   // antes del pitazo). Damos 2 min de gracia por desfases de reloj.
+  let fechaCorregida = null;
   const kickoff = p.fecha ? new Date(p.fecha).getTime() : NaN;
   if (!Number.isNaN(kickoff) && Date.now() < kickoff - 2 * 60e3 && nuevoEstado !== "programado") {
-    // La API dice que el partido esta vivo/terminado pero su 'fecha' en la DB
-    // todavia esta en el futuro -> casi seguro la HORA CARGADA ESTA MAL (ej.
-    // AM/PM). Lo gritamos fuerte: si no, el partido nunca arranca y se queda
-    // pronosticable. Bug real 2026-06-14 (Australia vs Turquia cargado 12:00
-    // en vez de 00:00). REVISAR la fecha de ese partido en la DB.
-    log.push(`  !!! HORA SOSPECHOSA: API dice '${nuevoEstado}' pero la DB cree que aun no empieza (kickoff=${p.fecha}). REVISAR/CORREGIR la fecha de: ${p.equipo_local} vs ${p.equipo_visita}`);
-    return null;
+    // La API dice vivo/terminado pero la 'fecha' de la DB esta en el futuro:
+    // o la HORA CARGADA ESTA MAL (ej. AM/PM, bug Australia-Turquia 2026-06-14)
+    // o worldcup26 manda un falso 'finished' antes del pitazo (Paraguay-USA).
+    // DESEMPATE con Highlightly (segunda fuente): si HL CONFIRMA que ya esta
+    // en curso, la fecha esta mal -> autocorregimos a 'ahora' y arrancamos.
+    // Si HL dice que no arranco (o no hay certeza), respetamos la guarda.
+    const fechaApiIso = localDateIso(m.local_date);
+    const confirmado = await hlConfirmaArranque(env, supa, p, fechaApiIso, cacheFecha, log);
+    if (confirmado === "en_curso") {
+      fechaCorregida = new Date().toISOString();
+      log.push(`  FECHA CORREGIDA: HL confirma en curso, ${p.equipo_local} vs ${p.equipo_visita}. fecha ${p.fecha} -> ahora`);
+    } else {
+      log.push(`  !!! HORA SOSPECHOSA: API dice '${nuevoEstado}' pero la DB cree que aun no empieza (kickoff=${p.fecha}) y HL no confirma (${confirmado ?? "sin certeza"}). REVISAR/CORREGIR la fecha de: ${p.equipo_local} vs ${p.equipo_visita}`);
+      return null;
+    }
   }
 
   // Salvaguarda 1: no degradar el estado.
@@ -216,6 +242,7 @@ async function actualizarPartido(supa, p, m, log) {
   const mantenerET = p.estado === "entretiempo" && nuevoEstado === "en_vivo";
 
   const body = {};
+  if (fechaCorregida) body.fecha = fechaCorregida; // hora mal cargada, confirmada por HL
   if (!mantenerET) body.estado = nuevoEstado;
   // Salvaguarda 2: no escribir null encima de un valor real.
   if (home !== null) body.goles_local = home;
@@ -305,6 +332,11 @@ async function correr(env, log) {
   const relevantes = todos.filter(relevanteParaHoy);
   log.push(`Partidos totales: ${todos.length} | relevantes hoy +/-1d: ${relevantes.length}`);
 
+  // Cache de listas de HL por fecha, COMPARTIDO en todo el ciclo: el desempate
+  // de arranque, detectarTramos y enriquecer reusan la misma respuesta -> una
+  // sola llamada a HL por fecha aunque varias funciones la necesiten.
+  const cacheFecha = {};
+
   for (const m of relevantes) {
     let p;
     try {
@@ -315,7 +347,7 @@ async function correr(env, log) {
     }
     if (!p) continue;
     try {
-      const estado = await actualizarPartido(supa, p, m, log);
+      const estado = await actualizarPartido(supa, p, m, env, cacheFecha, log);
       if (estado === null) continue;
       if (ESTADOS_VIVOS.has(estado) || estado === "final") {
         try {
@@ -334,7 +366,7 @@ async function correr(env, log) {
   // solo pega a HL si hay un partido en la ventana de descanso (~35-80 min) que
   // aun no confirmo el 2do tiempo, y solo en minutos pares.
   try {
-    await detectarTramos(supa, env, log);
+    await detectarTramos(supa, env, log, cacheFecha);
   } catch (e) {
     log.push(`tramos FATAL: ${e.message}`);
   }
@@ -342,7 +374,7 @@ async function correr(env, log) {
   // Enriquecimiento Highlightly (HT/FT) en el mismo cron. Se auto-regula:
   // si no hay candidatos en entretiempo/final, no le pega a Highlightly.
   try {
-    await enriquecerPendientes(supa, env, log);
+    await enriquecerPendientes(supa, env, log, cacheFecha);
   } catch (e) {
     log.push(`enriquecer FATAL: ${e.message}`);
   }

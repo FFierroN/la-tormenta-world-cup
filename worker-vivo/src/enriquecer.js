@@ -284,21 +284,80 @@ async function candidatos(supa) {
   return out;
 }
 
+// ------------------------------------- confirmacion de arranque (desempate)
+// Segunda fuente para la guarda "HORA SOSPECHOSA" de index.js: cuando worldcup26
+// dice que un partido esta en vivo/final pero su 'fecha' en la DB todavia esta en
+// el futuro (hora mal cargada), le preguntamos a Highlightly. Si HL CONFIRMA que
+// ya esta en curso, sabemos que la fecha esta mal (no es un falso 'finished' de
+// worldcup26) y se puede arrancar el partido con confianza.
+//
+// Costo: 1 llamada a la LISTA de HL por fecha, y reusa cacheFecha -> casi siempre
+// 0 llamadas extra. Solo se invoca en el caso atascado (raro), no en cada arranque.
+//
+// Devuelve: "en_curso" | "no_arranco" | null (sin certeza: sin key, 429, no esta).
+const DESC_EN_CURSO = new Set([
+  "in progress", "half time", "added time", "break time", "extra time",
+  "penalties", "finished", "after extra time", "after penalties",
+]);
+const DESC_NO_ARRANCO = new Set([
+  "not started", "scheduled", "to be defined", "postponed", "cancelled",
+]);
+
+export async function hlConfirmaArranque(env, supa, p, fechaIso, cacheFecha, log) {
+  if (!env.HL_KEY) return null;
+  const f = fechaIso || fechaUtc(p);
+  if (!f) return null;
+  if (!(f in cacheFecha)) {
+    try {
+      cacheFecha[f] = await hlListarPorFecha(env, f);
+    } catch (e) {
+      if (e instanceof LimiteDiario) {
+        log.push("  arranque: limite diario HL (100/dia), no puedo confirmar.");
+        return null;
+      }
+      log.push(`  arranque: fallo lista HL (${f}): ${e.message}`);
+      cacheFecha[f] = [];
+      return null;
+    }
+  }
+  const item = (cacheFecha[f] || []).find((m) => {
+    if (p.highlightly_id && comoInt(m.id) === comoInt(p.highlightly_id)) return true;
+    const home = nuestroNombre((m.homeTeam || {}).name);
+    const away = nuestroNombre((m.awayTeam || {}).name);
+    return home === p.equipo_local && away === p.equipo_visita;
+  });
+  if (!item) return null; // HL no lo tiene -> sin certeza, respeta la guarda
+  // De paso, cacheamos el highlightly_id si lo encontramos por nombres.
+  const mid = comoInt(item.id);
+  if (mid !== null && !p.highlightly_id) {
+    await supa.patch("partidos", { id: `eq.${p.id}` }, { highlightly_id: mid });
+    p.highlightly_id = mid;
+  }
+  const desc = String((item.state || {}).description || "").trim().toLowerCase();
+  if (DESC_EN_CURSO.has(desc)) return "en_curso";
+  if (DESC_NO_ARRANCO.has(desc)) return "no_arranco";
+  return null; // descripcion desconocida -> sin certeza
+}
+
 // ------------------------------------------------- deteccion de tramo (HT/2T)
 // worldcup26 NO distingue entretiempo (manda 'live' en 1T, ET y 2T). Highlightly
 // SI: state.description = "Half time" / "In Progress". La LISTA de HL ya trae ese
 // state por partido => 1 llamada por fecha da el estado de todos.
 //
-// ROBUSTEZ (bug 2026: partido pegado en entretiempo):
+// ROBUSTEZ (bug 2026: partido pegado en entretiempo o en 1er tiempo):
 //  - Las ventanas se anclan a 'tramo_at' (momento REAL en que se fijo el tramo),
 //    NO a la hora programada -> inmune a kickoffs tardios / descuentos largos.
-//  - Fallback DURO sin HL: si lleva >=18 min en entretiempo, se fuerza el 2do
-//    tiempo aunque Highlightly nunca diga "In Progress". Imposible quedar pegado.
+//  - Fallback DURO sin HL en AMBAS transiciones, aunque Highlightly nunca diga
+//    "Half time"/"In Progress" (ej. se quedo sin cuota 100/dia). Imposible quedar
+//    pegado:
+//      * 1T -> ET: si lleva >=55 min en 1er tiempo (45' + descuento holgado).
+//      * ET -> 2T: si lleva >=18 min en entretiempo.
 //  - HL solo afina/acelera: ventana [35,80] min (1T->ET) y [8,18] min (ET->2T)
 //    desde tramo_at, en minutos pares.
+const T1_MAX_MIN = 55; // 1er tiempo maximo asumido antes de forzar el entretiempo
 const ET_MAX_MIN = 18; // descanso maximo asumido antes de forzar el 2do tiempo
 
-export async function detectarTramos(supa, env, log) {
+export async function detectarTramos(supa, env, log, cacheFecha = {}) {
   const vivos = await supa.get("partidos", {
     estado: "in.(en_vivo,entretiempo)",
     select: "id,equipo_local,equipo_visita,fecha,estado,tramo,tramo_at,highlightly_id",
@@ -311,7 +370,24 @@ export async function detectarTramos(supa, env, log) {
     return Number.isNaN(t) ? null : (ahora - t) / 60000;
   };
 
-  // --- Fallback DURO (sin HL, sin throttle): entretiempo >=18 min -> 2do tiempo.
+  // --- Fallback DURO 1T->ET (sin HL, sin throttle): 1er tiempo >=55 min -> ET.
+  // Cubre el caso de HL sin cuota: sin esto, un partido podia quedar clavado en
+  // 1er tiempo para siempre (no llegaba a ET ni a 2T). Bug real 2026-06-15.
+  for (const p of vivos) {
+    if (p.tramo !== "1T") continue;
+    const m = minsDesdeTramo(p);
+    if (m !== null && m >= T1_MAX_MIN) {
+      await supa.patch("partidos", { id: `eq.${p.id}` }, {
+        estado: "entretiempo", tramo: "ET", tramo_at: new Date().toISOString(),
+      });
+      log.push(`  TRAMO: ${p.equipo_local} vs ${p.equipo_visita} -> ENTRETIEMPO (fallback ${Math.round(m)}min)`);
+      p.tramo = "ET"; // permite que el fallback ET->2T lo siga evaluando luego
+      p.tramo_at = new Date().toISOString();
+      p.estado = "entretiempo";
+    }
+  }
+
+  // --- Fallback DURO ET->2T (sin HL, sin throttle): entretiempo >=18 min -> 2do tiempo.
   for (const p of vivos) {
     if (p.tramo !== "ET") continue;
     const m = minsDesdeTramo(p);
@@ -339,7 +415,6 @@ export async function detectarTramos(supa, env, log) {
   // Throttle: solo minutos pares (cada 2 min) -> ~la mitad de llamadas.
   if (new Date().getMinutes() % 2 !== 0) return;
 
-  const cacheFecha = {};
   for (const p of pend) {
     const f = fechaUtc(p);
     if (f === null) continue;
@@ -380,7 +455,7 @@ export async function detectarTramos(supa, env, log) {
 }
 
 // Punto de entrada: lo llama el cron del Worker (index.js) tras el ciclo vivo.
-export async function enriquecerPendientes(supa, env, log) {
+export async function enriquecerPendientes(supa, env, log, cacheFecha = {}) {
   if (!env.HL_KEY) {
     log.push("  enriquecer: sin HL_KEY configurado, omitido.");
     return;
@@ -390,7 +465,6 @@ export async function enriquecerPendientes(supa, env, log) {
   if (!lista.length) return; // nada pendiente -> cero requests a Highlightly
 
   log.push(`Enriquecer: ${lista.length} candidato(s) (HT/FT).`);
-  const cacheFecha = {};
   let hechos = 0;
   for (const { p, fase } of lista) {
     try {

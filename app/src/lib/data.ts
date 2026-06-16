@@ -6,6 +6,7 @@ import { supabase } from "./supabase";
 import type {
   EstadoPartido,
   Especiales,
+  EspecialesConJugador,
   EventoPartido,
   FilaGoleo,
   FilaGrupo,
@@ -472,6 +473,33 @@ export async function misEspeciales(
     .maybeSingle();
   lanzarSi(error);
   return (data as Especiales) ?? null;
+}
+
+// Trae las especiales de TODOS los jugadores (para la pestana piloto que las
+// expone en orden de tabla). Devuelve una fila por jugador que tenga guardado.
+// El cruce con posicion/avatar se hace en el front contra obtenerTabla().
+export async function todasEspeciales(): Promise<EspecialesConJugador[]> {
+  const { data, error } = await supabase
+    .from("predicciones_especiales")
+    .select(
+      "jugador_id, campeon, finalista_1, finalista_2, semifinalista_1, semifinalista_2, semifinalista_3, semifinalista_4, goleador, asistidor, mejor_jugador, mejor_arquero, mejor_joven"
+    );
+  lanzarSi(error);
+  return (data ?? []).map((r: any): EspecialesConJugador => ({
+    jugador_id: String(r.jugador_id),
+    campeon: r.campeon ?? null,
+    finalista_1: r.finalista_1 ?? null,
+    finalista_2: r.finalista_2 ?? null,
+    semifinalista_1: r.semifinalista_1 ?? null,
+    semifinalista_2: r.semifinalista_2 ?? null,
+    semifinalista_3: r.semifinalista_3 ?? null,
+    semifinalista_4: r.semifinalista_4 ?? null,
+    goleador: r.goleador ?? null,
+    asistidor: r.asistidor ?? null,
+    mejor_jugador: r.mejor_jugador ?? null,
+    mejor_arquero: r.mejor_arquero ?? null,
+    mejor_joven: r.mejor_joven ?? null,
+  }));
 }
 
 // Guarda especiales (RPC valida la ventana). Devuelve 'ok' | 'cerrado'.

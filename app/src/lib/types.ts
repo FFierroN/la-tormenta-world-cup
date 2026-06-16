@@ -124,6 +124,12 @@ export interface Especiales {
   mejor_joven: string | null;
 }
 
+// Especiales de un jugador, con su id (para cruzar con la tabla de posiciones).
+// Usado por la pestana piloto que expone las predicciones de todos.
+export interface EspecialesConJugador extends Especiales {
+  jugador_id: string;
+}
+
 // Fila de la tabla de posiciones de un grupo del Mundial.
 export interface FilaGrupo {
   grupo: string; // A..L

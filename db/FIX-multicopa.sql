@@ -242,9 +242,14 @@ $$;
 
 -- crear_jugador: alta de un jugador en una copa (PIN de 4 digitos, hasheado).
 -- Para que el organizador sume gente sin entrar al panel de Supabase.
+-- Acepta las 3 URLs de avatar (pos1/medio/pos8 desde Supabase Storage); son
+-- opcionales: si quedan en null, la app muestra la inicial como fallback.
 create or replace function crear_jugador(
   p_copa_id int, p_nombre text, p_alias text, p_pin text,
-  p_es_admin boolean default false)
+  p_es_admin boolean default false,
+  p_avatar_pos1 text default null,
+  p_avatar_medio text default null,
+  p_avatar_pos8 text default null)
 returns int language plpgsql security definer set search_path = public, extensions as $$
 declare v_id int;
 begin
@@ -254,17 +259,40 @@ begin
   if coalesce(trim(p_nombre),'') = '' then
     raise exception 'El nombre es obligatorio';
   end if;
-  insert into jugadores (copa_id, nombre, alias, pin_hash, es_admin)
+  insert into jugadores (copa_id, nombre, alias, pin_hash, es_admin,
+                         avatar_pos1, avatar_medio, avatar_pos8)
   values (p_copa_id, trim(p_nombre), nullif(trim(p_alias), ''),
-          crypt(p_pin, gen_salt('bf')), coalesce(p_es_admin, false))
+          crypt(p_pin, gen_salt('bf')), coalesce(p_es_admin, false),
+          nullif(trim(p_avatar_pos1), ''),
+          nullif(trim(p_avatar_medio), ''),
+          nullif(trim(p_avatar_pos8), ''))
   returning id into v_id;
   return v_id;
 end;
 $$;
 
+-- set_avatares: editar las 3 URLs de avatar de un jugador ya creado (por si
+-- las fotos llegan despues del alta). Las deja en null si se mandan vacias.
+create or replace function set_avatares(
+  p_jugador_id int, p_pos1 text, p_medio text, p_pos8 text)
+returns void language sql security definer set search_path = public, extensions as $$
+  update jugadores set
+    avatar_pos1  = nullif(trim(p_pos1), ''),
+    avatar_medio = nullif(trim(p_medio), ''),
+    avatar_pos8  = nullif(trim(p_pos8), '')
+  where id = p_jugador_id;
+$$;
+
 -- ---------------------------------------------------------------------
 -- 7. PENDIENTES (otras etapas / vistas en archivos FIX aparte)
 -- ---------------------------------------------------------------------
+-- AVATARES de copas nuevas (decision con Felipe): 3 fotos por jugador
+--   (pos1/medio/pos8) subidas a SUPABASE STORAGE, bucket publico 'avatares',
+--   una CARPETA POR COPA para evitar choques de nombre (ej. copa2/victor-pos1.jpg).
+--   La URL publica se guarda en jugadores.avatar_* via crear_jugador (alta) o
+--   set_avatares (edicion posterior). NO van en app/public (eso es solo copa 1
+--   y requiere redeploy). Trabajo manual de Felipe: juntar y subir las fotos.
+--
 -- * desglose_tormenta (FIX-desglose-tormenta.sql): agregarle copa_id y filtrar
 --   por copa (la pestana "La Tormenta" del detalle de partido). Se hara junto
 --   con la etapa de front para no romper esa pantalla.

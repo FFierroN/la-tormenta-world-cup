@@ -33,10 +33,38 @@ export const EQUIPOS = {
   "Panama": "Panamá", "Uzbekistan": "Uzbekistán", "Colombia": "Colombia",
 };
 
-// Lookup exacto y, si falla, normaliza "&" -> "and" (consistente con comun.py).
+// Normaliza un nombre para tolerar las variantes del feed: minusculas, sin
+// acentos, sin "the", sin puntos/guiones, espacios colapsados. Asi
+// "Democratic Republic of the Congo", "D.R. Congo" y "DR Congo" caen todas en
+// la misma clave -> dejamos de jugar al topo agregando strings uno por uno.
+const normalizar = (s) =>
+  (s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .toLowerCase()
+    .replace(/\bthe\b/g, " ")
+    .replace(/[.']/g, "")  // puntos/apostrofes fuera: "D.R." -> "DR"
+    .replace(/-/g, " ")    // guiones a espacio: "Bosnia-Herzegovina"
+    .replace(/\s+/g, " ")
+    .trim();
+
+// Indice normalizado construido UNA vez desde EQUIPOS (incluye las variantes
+// con "&" -> "and"). Se usa como ultimo fallback del lookup.
+const INDICE_NORM = {};
+for (const [en, es] of Object.entries(EQUIPOS)) {
+  INDICE_NORM[normalizar(en)] = es;
+  INDICE_NORM[normalizar(en.replace(" & ", " and "))] = es;
+}
+
+// Lookup: exacto -> "&"->"and" -> normalizado (tolerante a variantes del feed).
 export const nuestroNombre = (n) => {
   const s = (n || "").trim();
-  return EQUIPOS[s] ?? EQUIPOS[s.replace(" & ", " and ")] ?? null;
+  return (
+    EQUIPOS[s] ??
+    EQUIPOS[s.replace(" & ", " and ")] ??
+    INDICE_NORM[normalizar(s)] ??
+    null
+  );
 };
 
 // ----------------------------------------------------------------- casteos

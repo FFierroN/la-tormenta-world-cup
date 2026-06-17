@@ -13,7 +13,9 @@ Variables de entorno requeridas (las mismas para ambos robots):
 from __future__ import annotations
 
 import os
+import re
 import sys
+import unicodedata
 
 import requests
 
@@ -131,8 +133,32 @@ EQUIPOS = {
 }
 
 
+def _normalizar(s: str) -> str:
+    # Tolera variantes del feed: minusculas, sin acentos, sin "the", sin
+    # puntos/guiones, espacios colapsados. Asi "Democratic Republic of the
+    # Congo", "D.R. Congo" y "DR Congo" caen en la misma clave.
+    s = unicodedata.normalize("NFD", s or "")
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")  # sin acentos
+    s = s.lower()
+    s = re.sub(r"\bthe\b", " ", s)
+    s = re.sub(r"[.']", "", s)   # puntos/apostrofes fuera: "D.R." -> "DR"
+    s = re.sub(r"-", " ", s)     # guiones a espacio: "Bosnia-Herzegovina"
+    return re.sub(r"\s+", " ", s).strip()
+
+
+# Indice normalizado construido UNA vez desde EQUIPOS (con variantes "&"->"and").
+_INDICE_NORM = {}
+for _en, _es in EQUIPOS.items():
+    _INDICE_NORM[_normalizar(_en)] = _es
+    _INDICE_NORM[_normalizar(_en.replace(" & ", " and "))] = _es
+
+
 def nuestro_nombre(api_nombre: str) -> str | None:
-    # Lookup exacto y, si falla, normaliza "&" -> "and" (Highlightly manda
-    # "Bosnia & Herzegovina" donde el mapa usa "Bosnia and Herzegovina").
+    # Lookup: exacto -> "&"->"and" -> normalizado (tolerante a variantes del
+    # feed, p.ej. "Democratic Republic of the Congo" con "the").
     s = (api_nombre or "").strip()
-    return EQUIPOS.get(s) or EQUIPOS.get(s.replace(" & ", " and "))
+    return (
+        EQUIPOS.get(s)
+        or EQUIPOS.get(s.replace(" & ", " and "))
+        or _INDICE_NORM.get(_normalizar(s))
+    )

@@ -256,6 +256,17 @@ export async function obtenerTabla(): Promise<FilaTabla[]> {
   return (data ?? []).map(aFilaTabla);
 }
 
+// Tabla de posiciones PROVISIONAL (en vivo): incluye los partidos en curso.
+// Misma forma que obtenerTabla(); lee la vista espejo tabla_posiciones_live.
+export async function obtenerTablaLive(): Promise<FilaTabla[]> {
+  const { data, error } = await supabase
+    .from("tabla_posiciones_live")
+    .select("*")
+    .order("posicion");
+  lanzarSi(error);
+  return (data ?? []).map(aFilaTabla);
+}
+
 // Desglose de pronosticos por miembro (pestana LaTormenta del detalle).
 // Es global (todos los partidos finalizados), igual en cualquier partido.
 export async function obtenerDesgloseTormenta(): Promise<FilaTormenta[]> {
@@ -282,6 +293,18 @@ export async function obtenerDesgloseTormenta(): Promise<FilaTormenta[]> {
 export async function obtenerTablaGrupos(): Promise<FilaGrupo[]> {
   const { data, error } = await supabase
     .from("tabla_grupos")
+    .select("*")
+    .order("grupo")
+    .order("pos");
+  lanzarSi(error);
+  return (data ?? []).map(aFilaGrupo);
+}
+
+// Tabla de grupos PROVISIONAL (en vivo): incluye los partidos en curso.
+// Misma forma que obtenerTablaGrupos(); lee la vista espejo tabla_grupos_live.
+export async function obtenerTablaGruposLive(): Promise<FilaGrupo[]> {
+  const { data, error } = await supabase
+    .from("tabla_grupos_live")
     .select("*")
     .order("grupo")
     .order("pos");

@@ -8,6 +8,7 @@
 //
 // Acordeon: una sola tarjeta abierta a la vez (mas prolijo en celular).
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import EspecialesJugador from "../components/EspecialesJugador";
 import { useAuth } from "../lib/auth";
 import { useAsync } from "../lib/useAsync";
@@ -21,6 +22,7 @@ import { mapaEquipoPais } from "../lib/banderas";
 import type { Especiales } from "../lib/types";
 
 export default function EspecialesWC() {
+  const navigate = useNavigate();
   const { jugador } = useAuth();
   const { data: filas, cargando: cargF, error: errF } = useAsync(obtenerTabla, []);
   const { data: especiales } = useAsync(todasEspeciales, []);
@@ -57,11 +59,18 @@ export default function EspecialesWC() {
 
   return (
     <div className="max-w-md mx-auto">
-      <header className="px-4 pt-5 pb-3">
-        <h1 className="text-xl font-bold">Predicciones especiales</h1>
-        <p className="text-xs text-neutral-400">
-          De todos los participantes, en orden de tabla.
-        </p>
+      <header className="px-4 pt-5 pb-3 flex items-center gap-3">
+        <button onClick={() => navigate("/cuenta")} aria-label="Volver" className="text-oro">
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <div>
+          <h1 className="text-xl font-bold">Predicciones especiales</h1>
+          <p className="text-xs text-neutral-400">
+            De todos los participantes, en orden de tabla.
+          </p>
+        </div>
       </header>
 
       {cargF && (

@@ -3,8 +3,9 @@
 import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import Flag from "./Flag";
+import IndicadorMovimiento from "./IndicadorMovimiento";
 import { BallIcon, ShoeIcon } from "./Iconos";
-import { obtenerTablaGrupos, obtenerGoleo } from "../lib/data";
+import { obtenerTablaGrupos, obtenerTablaGruposLive, obtenerGoleo } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import type { FilaGoleo, FilaGrupo } from "../lib/types";
 
@@ -18,8 +19,13 @@ function colorPos(pos: number): string {
 
 export default function TablaGrupos() {
   const { data, cargando, error } = useAsync(obtenerTablaGrupos, []);
+  const { data: live } = useAsync(obtenerTablaGruposLive, []);
   const filas = data ?? [];
   const grupos = [...new Set(filas.map((f) => f.grupo))].sort();
+
+  // Posicion EN VIVO por equipo (clave grupo|equipo) para el indicador.
+  const posLive = new Map<string, number>();
+  for (const f of live ?? []) posLive.set(`${f.grupo}|${f.equipo}`, f.pos);
 
   return (
     <div className="flex flex-col gap-6 px-4 py-4 pb-2">
@@ -37,7 +43,12 @@ export default function TablaGrupos() {
         </p>
       )}
       {grupos.map((g) => (
-        <TablaGrupo key={g} grupo={g} filas={filas.filter((f) => f.grupo === g)} />
+        <TablaGrupo
+          key={g}
+          grupo={g}
+          filas={filas.filter((f) => f.grupo === g)}
+          posLive={posLive}
+        />
       ))}
 
       {!cargando && !error && grupos.length > 0 && <TablaGoleo />}
@@ -45,7 +56,15 @@ export default function TablaGrupos() {
   );
 }
 
-function TablaGrupo({ grupo, filas }: { grupo: string; filas: FilaGrupo[] }) {
+function TablaGrupo({
+  grupo,
+  filas,
+  posLive,
+}: {
+  grupo: string;
+  filas: FilaGrupo[];
+  posLive: Map<string, number>;
+}) {
   const navigate = useNavigate();
   const irAlGrupo = () => navigate(`/partidos?grupo=${grupo}`);
   return (
@@ -64,6 +83,7 @@ function TablaGrupo({ grupo, filas }: { grupo: string; filas: FilaGrupo[] }) {
           <thead>
             <tr className="text-[11px] text-neutral-400 border-b border-borde">
               <th className="text-left font-medium py-2 pl-3 pr-1 w-6">#</th>
+              <th className="font-medium py-2 px-1 w-5" aria-label="Movimiento" />
               <th className="text-left font-medium py-2">Equipo</th>
               <th className="font-medium py-2 px-1 w-7">PJ</th>
               <th className="font-medium py-2 px-1 w-8">DG</th>
@@ -79,6 +99,12 @@ function TablaGrupo({ grupo, filas }: { grupo: string; filas: FilaGrupo[] }) {
               >
                 <td className="py-2 pl-3 pr-1">
                   <span className={`font-bold ${colorPos(f.pos)}`}>{f.pos}</span>
+                </td>
+                <td className="py-2 px-1 text-center">
+                  <IndicadorMovimiento
+                    actual={posLive.get(`${f.grupo}|${f.equipo}`)}
+                    anterior={f.pos}
+                  />
                 </td>
                 <td className="py-2">
                   <div className="flex items-center gap-2">

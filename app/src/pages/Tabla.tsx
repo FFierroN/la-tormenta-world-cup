@@ -1,7 +1,8 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar";
+import IndicadorMovimiento from "../components/IndicadorMovimiento";
 import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
-import { obtenerTabla, fotoUltimoHabilitada } from "../lib/data";
+import { obtenerTabla, obtenerTablaLive, fotoUltimoHabilitada } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { useSwipe } from "../lib/useSwipe";
 import type { FilaTabla } from "../lib/types";
@@ -11,10 +12,16 @@ type Pestana = "galeria" | "clasica";
 export default function Tabla() {
   const [pestana, setPestana] = useState<Pestana>("galeria");
   const { data, cargando, error } = useAsync(obtenerTabla, []);
+  const { data: live } = useAsync(obtenerTablaLive, []);
   const { data: fotoCfg } = useAsync(fotoUltimoHabilitada, []);
   const filas = data ?? [];
   const total = filas.length;
   const fotoUltimoOn = fotoCfg ?? false;
+
+  // Posicion EN VIVO por jugador (para el indicador de movimiento). actual=live,
+  // anterior=oficial -> muestra el movimiento que provocan los partidos en curso.
+  const posLive = new Map<string, number>();
+  for (const f of live ?? []) posLive.set(f.jugador_id, f.posicion);
 
   // Swipe: desliza a los lados para cambiar entre Tabla y Clasica.
   const swipe = useSwipe(
@@ -51,11 +58,11 @@ export default function Tabla() {
 
       {pestana === "galeria" ? (
         <div {...swipe}>
-          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} />
+          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} posLive={posLive} />
         </div>
       ) : (
         <div {...swipe}>
-          <Clasica filas={filas} />
+          <Clasica filas={filas} posLive={posLive} />
         </div>
       )}
     </div>
@@ -88,10 +95,12 @@ function Galeria({
   filas,
   total,
   fotoUltimoOn,
+  posLive,
 }: {
   filas: FilaTabla[];
   total: number;
   fotoUltimoOn: boolean;
+  posLive: Map<string, number>;
 }) {
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -117,7 +126,13 @@ function Galeria({
                 width={150}
                 variante={bordePorPosicion(f.posicion, total)}
               />
-              <div className="mt-3 text-2xl font-extrabold text-oro">#{f.posicion}</div>
+              <div className="mt-3 flex items-center gap-1.5">
+                <div className="text-2xl font-extrabold text-oro">#{f.posicion}</div>
+                <IndicadorMovimiento
+                  actual={posLive.get(f.jugador_id)}
+                  anterior={f.posicion}
+                />
+              </div>
               <div className="text-lg font-bold">{f.alias ?? f.nombre}</div>
               <div className="mt-1 text-3xl font-black tabular-nums">{f.puntos}</div>
               <div className="text-xs uppercase tracking-wide text-neutral-400">puntos</div>
@@ -145,7 +160,7 @@ function Stat({ label, valor }: { label: string; valor: number }) {
 }
 
 /* ---------- Pestana 2: tabla clasica ---------- */
-function Clasica({ filas }: { filas: FilaTabla[] }) {
+function Clasica({ filas, posLive }: { filas: FilaTabla[]; posLive: Map<string, number> }) {
   const total = filas.length;
   return (
     <div className="px-4 py-4">
@@ -154,6 +169,7 @@ function Clasica({ filas }: { filas: FilaTabla[] }) {
           <thead className="bg-carbon-soft text-neutral-400 text-xs uppercase">
             <tr>
               <th className="py-2.5 px-2 text-left">#</th>
+              <th className="py-2.5 px-1 w-5" aria-label="Movimiento" />
               <th className="py-2.5 px-2 text-left">Jugador</th>
               <th className="py-2.5 px-1 text-center">Pts</th>
               <th className="py-2.5 px-1 text-center" title="Exactos">Ex</th>
@@ -174,6 +190,12 @@ function Clasica({ filas }: { filas: FilaTabla[] }) {
               return (
                 <tr key={f.jugador_id} className={`border-t border-borde ${realce}`}>
                   <td className="py-2.5 px-2 font-bold text-oro">{f.posicion}</td>
+                  <td className="py-2.5 px-1 text-center">
+                    <IndicadorMovimiento
+                      actual={posLive.get(f.jugador_id)}
+                      anterior={f.posicion}
+                    />
+                  </td>
                   <td className="py-2.5 px-2">{f.alias ?? f.nombre}</td>
                   <td className="py-2.5 px-1 text-center font-bold tabular-nums">{f.puntos}</td>
                   <td className="py-2.5 px-1 text-center tabular-nums">{f.exactos}</td>

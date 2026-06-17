@@ -5,6 +5,7 @@ import TramoVivo from "../components/TramoVivo";
 import EstadoBadge from "../components/EstadoBadge";
 import PanelStats from "../components/PanelStats";
 import PanelTormenta from "../components/PanelTormenta";
+import TablaTormentaLive from "../components/TablaTormentaLive";
 import { BallIcon, EventoIcono, ShoeIcon } from "../components/Iconos";
 import type { EventoPartido, Partido, PronosticoVista } from "../lib/types";
 
@@ -194,7 +195,12 @@ export default function PartidoDetalle() {
         {pestana === "pronosticos" && (
           <Pronosticos partido={partido} pronosticos={pronosticos} />
         )}
-        {pestana === "tormenta" && <PanelTormenta />}
+        {pestana === "tormenta" && (
+          <div className="flex flex-col gap-4">
+            <TablaTormentaLive />
+            <PanelTormenta />
+          </div>
+        )}
       </div>
     </div>
   );

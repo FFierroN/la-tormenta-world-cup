@@ -43,6 +43,7 @@ export default function App() {
     location.pathname.startsWith("/partido/") ||
     location.pathname.startsWith("/admin/") ||
     location.pathname === "/especiales" ||
+    location.pathname === "/especiales-todos" ||
     location.pathname === "/cambiar-pin" ||
     location.pathname === "/mis-predicciones" ||
     location.pathname === "/reglas";
@@ -59,8 +60,10 @@ export default function App() {
           <Route path="/partidos" element={<Privada><Partidos /></Privada>} />
           {/* PILOTO rediseno WC26 (preview, no reemplaza /partidos aun). */}
           <Route path="/partidos-wc" element={<Privada><PartidosWC /></Privada>} />
-          {/* PILOTO: especiales de todos los participantes (preview). */}
-          <Route path="/especiales-wc" element={<Privada><EspecialesWC /></Privada>} />
+          {/* Predicciones especiales de TODOS (oficial). La ruta vieja del
+              piloto /especiales-wc redirige aca para no romper enlaces. */}
+          <Route path="/especiales-todos" element={<Privada><EspecialesWC /></Privada>} />
+          <Route path="/especiales-wc" element={<Navigate to="/especiales-todos" replace />} />
           <Route path="/partido/:id" element={<Privada><PartidoDetalle /></Privada>} />
           <Route path="/tabla" element={<Privada><Tabla /></Privada>} />
           <Route path="/copa" element={<Privada><Copa /></Privada>} />

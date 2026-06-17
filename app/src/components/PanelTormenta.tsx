@@ -27,9 +27,10 @@ function nombreFijo(f: FilaTormenta): string {
   return NOMBRES_FIJOS[normalizar(f.nombre)] ?? f.alias ?? f.nombre;
 }
 
-// Segmentos de la barra, de mejor a peor. Degradado verde -> rojo.
+// Segmentos de la barra, de mejor a peor. Degradado verde -> rojo, y al final
+// los no pronosticados en gris (de izquierda a derecha: lo mejor -> lo ausente).
 const SEGMENTOS: {
-  key: "exactos" | "diferencias" | "aciertos" | "fallas";
+  key: "exactos" | "diferencias" | "aciertos" | "fallas" | "no_pronosticados";
   label: string;
   clase: string; // color de fondo
 }[] = [
@@ -37,6 +38,7 @@ const SEGMENTOS: {
   { key: "diferencias", label: "Diferencias", clase: "bg-amber-400" },
   { key: "aciertos", label: "Aciertos", clase: "bg-orange-500" },
   { key: "fallas", label: "Fallas", clase: "bg-rose-500" },
+  { key: "no_pronosticados", label: "No pronosticados", clase: "bg-neutral-500" },
 ];
 
 export default function PanelTormenta() {

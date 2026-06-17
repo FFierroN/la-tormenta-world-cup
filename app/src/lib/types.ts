@@ -175,6 +175,7 @@ export interface FilaTormenta {
   diferencias: number;
   aciertos: number;
   fallas: number;
+  no_pronosticados: number;
   total: number;
 }
 

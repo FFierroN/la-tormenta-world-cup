@@ -4,10 +4,14 @@
 -- Por cada jugador ACTIVO, cuenta sus pronosticos de partidos FINALIZADOS
 -- separados en 4 categorias mutuamente excluyentes (suman 'total'):
 --
---   exacto     -> clavo el marcador identico.
---   diferencia -> no exacto, NO empate, misma diferencia de goles.
---   acierto    -> no exacto, no diferencia, pero acerto ganador/empate (signo).
---   falla      -> erro el resultado (signo distinto).
+--   exacto          -> clavo el marcador identico.
+--   diferencia      -> no exacto, NO empate, misma diferencia de goles.
+--   acierto         -> no exacto, no diferencia, pero acerto ganador/empate.
+--   falla           -> erro el resultado (signo distinto).
+--   no_pronosticado -> partido final que el jugador NO pronostico (gris).
+--
+-- 'total' = TODOS los partidos finalizados (mismo para todos): asi los 5
+-- buckets suman exactamente 'total' y la barra llena el 100%.
 --
 -- Misma logica que el sistema de puntaje (calcular_puntos_pronostico):
 --   la 'diferencia' no existe en empates (ahi cae en 'acierto').
@@ -19,7 +23,14 @@
 -- =====================================================================
 
 create or replace view desglose_tormenta as
-with clasif as (
+with universo as (
+  -- Cantidad GLOBAL de partidos ya finalizados (con resultado). Misma condicion
+  -- que el left join de abajo => garantiza que los buckets sumen 'total'.
+  select count(*) as n_finales
+  from partidos
+  where estado = 'final' and goles_local is not null
+),
+clasif as (
   select
     j.id as jugador_id,
     count(*) filter (
@@ -46,7 +57,7 @@ with clasif as (
       where p.id is not null
         and sign(pr.pred_local - pr.pred_visita) <> sign(p.goles_local - p.goles_visita)
     ) as fallas,
-    count(*) filter (where p.id is not null) as total
+    count(*) filter (where p.id is not null) as predichos
   from jugadores j
   left join pronosticos pr on pr.jugador_id = j.id
   left join partidos p on p.id = pr.partido_id
@@ -63,16 +74,20 @@ select
   c.diferencias,
   c.aciertos,
   c.fallas,
-  c.total
+  -- Partidos finalizados que este jugador NO pronostico (gris, al final).
+  greatest(u.n_finales - c.predichos, 0) as no_pronosticados,
+  u.n_finales as total
 from clasif c
 join jugadores j on j.id = c.jugador_id
 join tabla_posiciones tp on tp.jugador_id = c.jugador_id
+cross join universo u
 order by tp.posicion;
 
 grant select on desglose_tormenta to anon, authenticated;
 
 notify pgrst, 'reload schema';
 
--- Verificacion: deberia listar a los jugadores con sus 4 buckets.
-select posicion, nombre, exactos, diferencias, aciertos, fallas, total
+-- Verificacion: los 5 buckets deben sumar 'total' en cada fila.
+select posicion, nombre, exactos, diferencias, aciertos, fallas,
+       no_pronosticados, total
 from desglose_tormenta order by posicion;

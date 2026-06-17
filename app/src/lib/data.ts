@@ -285,6 +285,7 @@ export async function obtenerDesgloseTormenta(): Promise<FilaTormenta[]> {
       diferencias: r.diferencias ?? 0,
       aciertos: r.aciertos ?? 0,
       fallas: r.fallas ?? 0,
+      no_pronosticados: r.no_pronosticados ?? 0,
       total: r.total ?? 0,
     })
   );

@@ -41,6 +41,7 @@ export interface Partido {
   ganador_penales: "local" | "visita" | null;
   estado: EstadoPartido;
   estadisticas: EstadisticasPartido | null; // panel de stats (Highlightly)
+  alineaciones: Alineaciones | null; // formacion + 11 + banca (Highlightly)
 }
 
 // Stats del partido tal como las guarda el robot (Highlightly). Las llaves son
@@ -50,6 +51,27 @@ export interface EstadisticasPartido {
   local: Record<string, number | null>;
   visita: Record<string, number | null>;
   top_players?: unknown; // crudo, para una fase futura
+}
+
+// Alineaciones (Highlightly GET /lineups/{id}), normalizadas por el robot.
+// La API NO trae foto de jugador -> el front usa avatar de iniciales + numero.
+export interface JugadorAlineacion {
+  nombre: string;
+  numero: number | null;
+  posicion: string | null; // Goalkeeper / Defender / Midfielder / Attacker
+  id: number | null; // id de Highlightly (por si algun dia hay foto)
+}
+
+export interface AlineacionEquipo {
+  formacion: string | null; // ej "4-4-2"
+  // titulares agrupados POR LINEAS (como los da la API): [[GK],[DEF..],[MID..],[FWD..]]
+  titulares: JugadorAlineacion[][];
+  suplentes: JugadorAlineacion[];
+}
+
+export interface Alineaciones {
+  local: AlineacionEquipo | null;
+  visita: AlineacionEquipo | null;
 }
 
 export type TipoEvento = "gol" | "amarilla" | "roja" | "cambio";

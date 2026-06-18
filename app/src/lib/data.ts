@@ -57,6 +57,7 @@ function aPartido(r: any): Partido {
     ganador_penales: r.ganador_penales ?? null,
     estado: r.estado,
     estadisticas: r.estadisticas ?? null,
+    alineaciones: r.alineaciones ?? null,
   };
 }
 

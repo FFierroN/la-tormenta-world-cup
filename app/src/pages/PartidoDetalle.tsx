@@ -8,6 +8,7 @@ import PanelTormenta from "../components/PanelTormenta";
 import TablaTormentaLive from "../components/TablaTormentaLive";
 import { BallIcon } from "../components/Iconos";
 import TimelinePartido from "../components/TimelinePartido";
+import CanchaAlineaciones from "../components/CanchaAlineaciones";
 import type { Partido, PronosticoVista } from "../lib/types";
 
 import { fmtMinuto } from "../lib/eventos";
@@ -20,7 +21,7 @@ import {
   pronosticosPartido,
 } from "../lib/data";
 
-type Pestana = "detalles" | "estadisticas" | "pronosticos" | "tormenta";
+type Pestana = "detalles" | "alineaciones" | "estadisticas" | "pronosticos" | "tormenta";
 
 // Un partido esta abierto para pronosticar si sigue programado y no empezo.
 function puedePronosticar(p: Partido): boolean {
@@ -177,6 +178,9 @@ export default function PartidoDetalle() {
         <TabBtn activo={pestana === "detalles"} onClick={() => setPestana("detalles")}>
           Detalles
         </TabBtn>
+        <TabBtn activo={pestana === "alineaciones"} onClick={() => setPestana("alineaciones")}>
+          Alineaciones
+        </TabBtn>
         <TabBtn activo={pestana === "estadisticas"} onClick={() => setPestana("estadisticas")}>
           Estadisticas
         </TabBtn>
@@ -191,6 +195,19 @@ export default function PartidoDetalle() {
       <div className="px-4 py-4 pb-10">
         {pestana === "detalles" && (
           <TimelinePartido partido={partido} eventos={eventos} />
+        )}
+        {pestana === "alineaciones" && (
+          partido.alineaciones ? (
+            <CanchaAlineaciones
+              alineaciones={partido.alineaciones}
+              equipoLocal={partido.equipo_local}
+              equipoVisita={partido.equipo_visita}
+            />
+          ) : (
+            <div className="text-center text-neutral-400 py-10">
+              Las alineaciones aparecen ~1 hora antes del partido.
+            </div>
+          )
         )}
         {pestana === "estadisticas" && <PanelStats partido={partido} />}
         {pestana === "pronosticos" && (

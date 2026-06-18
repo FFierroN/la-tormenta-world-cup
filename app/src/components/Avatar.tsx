@@ -6,6 +6,9 @@ type Props = {
   nombre: string;
   width?: number; // ancho en px (el alto se calcula con la proporcion 3:4)
   variante?: VarianteBorde;
+  // Si es true, el avatar llena el ancho de su contenedor (responsivo) y el alto
+  // sale de la proporcion via aspect-ratio. Util cuando el padre define el ancho.
+  fill?: boolean;
 };
 
 // Proporcion real de las fotos (894x1200 ~ 3:4).
@@ -27,6 +30,7 @@ export default function Avatar({
   nombre,
   width = 112,
   variante = "gris",
+  fill = false,
 }: Props) {
   const height = Math.round(width / RATIO_W_H);
   const borderColor = BORDES[variante];
@@ -34,12 +38,10 @@ export default function Avatar({
   // inicial en vez de mostrar el icono de "imagen rota".
   const [falloFoto, setFalloFoto] = useState(false);
   useEffect(() => setFalloFoto(false), [src]);
-  const box = {
-    width,
-    height,
-    borderColor,
-    borderWidth: 3,
-  } as const;
+  // En modo fill: ancho 100% del padre + alto por aspect-ratio. Si no, px fijos.
+  const box = fill
+    ? ({ width: "100%", aspectRatio: `${894} / ${1200}`, borderColor, borderWidth: 3 } as const)
+    : ({ width, height, borderColor, borderWidth: 3 } as const);
   const base =
     "rounded-lg overflow-hidden bg-carbon-card border-solid";
 

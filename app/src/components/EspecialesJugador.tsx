@@ -98,17 +98,18 @@ export default function EspecialesJugador({
             </p>
           ) : (
             <>
-              {/* Avatar grande a la izquierda + banderas organizadas al lado */}
-              <div className="flex gap-3">
-                <div className="shrink-0">
+              {/* Avatar lo MAS grande posible: crece y ocupa todo lo que sobra.
+                  Las banderas a la derecha toman solo su ancho natural. */}
+              <div className="flex items-start gap-3">
+                <div className="flex-1 min-w-0">
                   <Avatar
                     src={avatarPorPosicion(fila, total)}
                     nombre={fila.nombre}
-                    width={96}
                     variante={bordePorPosicion(fila.posicion, total)}
+                    fill
                   />
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col gap-3">
+                <div className="shrink-0 flex flex-col gap-3">
                   <BloqueEquipos titulo="Campeón" equipos={[e.campeon]} mapa={mapa} campeon />
                   <BloqueEquipos titulo="Finalistas" equipos={finalistas} mapa={mapa} />
                   {/* Semis: una sola fila con banderas mas chicas (como el ejemplo) */}

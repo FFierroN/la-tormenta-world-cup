@@ -6,8 +6,9 @@ import EstadoBadge from "../components/EstadoBadge";
 import PanelStats from "../components/PanelStats";
 import PanelTormenta from "../components/PanelTormenta";
 import TablaTormentaLive from "../components/TablaTormentaLive";
-import { BallIcon, EventoIcono, ShoeIcon } from "../components/Iconos";
-import type { EventoPartido, Partido, PronosticoVista } from "../lib/types";
+import { BallIcon } from "../components/Iconos";
+import TimelinePartido from "../components/TimelinePartido";
+import type { Partido, PronosticoVista } from "../lib/types";
 
 import { fmtMinuto } from "../lib/eventos";
 import { useAsync } from "../lib/useAsync";
@@ -189,7 +190,7 @@ export default function PartidoDetalle() {
 
       <div className="px-4 py-4 pb-10">
         {pestana === "detalles" && (
-          <Detalles partido={partido} eventos={eventos} />
+          <TimelinePartido partido={partido} eventos={eventos} />
         )}
         {pestana === "estadisticas" && <PanelStats partido={partido} />}
         {pestana === "pronosticos" && (
@@ -378,89 +379,6 @@ function BotonRedondo({
   );
 }
 
-/* ---------- Tab 1: timeline de goles + rojas ---------- */
-function Detalles({
-  partido,
-  eventos,
-}: {
-  partido: Partido;
-  eventos: EventoPartido[];
-}) {
-  if (eventos.length === 0) {
-    return (
-      <div className="text-center text-neutral-400 py-10">
-        Sin acontecimientos todavia.
-      </div>
-    );
-  }
-  // ordenamos por minuto descendente (lo mas reciente arriba)
-  const orden = [...eventos].sort((a, b) => b.minuto - a.minuto);
-
-  return (
-    <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden">
-      <div className="text-center text-sm font-semibold py-3 border-b border-borde">
-        Acontecimientos clave
-      </div>
-      <ul>
-        {orden.map((e) => {
-          const esGol = e.tipo === "gol";
-          return (
-          <li
-            key={e.id}
-            className={`flex items-center gap-2.5 px-4 border-b border-borde last:border-0 ${
-              esGol ? "py-3.5 bg-oro/10" : "py-2.5"
-            } ${e.equipo === "local" ? "" : "flex-row-reverse text-right"}`}
-          >
-            {esGol ? (
-              <BallIcon
-                className={`w-6 h-6 shrink-0 ${
-                  e.detalle === "autogol" ? "text-red-500" : "text-white"
-                }`}
-              />
-            ) : (
-              <EventoIcono tipo={e.tipo} />
-            )}
-            <div className="leading-tight">
-              <div>
-                {e.tipo === "cambio" && (
-                  <span className="text-xs text-emerald-400">Entra </span>
-                )}
-                {e.jugador && (
-                  <span className={esGol ? "text-base font-bold text-white" : "text-sm"}>
-                    {e.jugador}{" "}
-                  </span>
-                )}
-                <span
-                  className={`text-sm font-semibold tabular-nums ${
-                    esGol ? "text-oro" : "text-neutral-300"
-                  }`}
-                >
-                  {fmtMinuto(e)}
-                </span>
-                {esGol && e.detalle && e.detalle !== "normal" && (
-                  <span className="text-xs text-neutral-400"> ({e.detalle})</span>
-                )}
-              </div>
-              {e.asistencia && e.tipo === "cambio" && (
-                <div className="mt-0.5 text-xs text-rose-400">Sale {e.asistencia}</div>
-              )}
-              {e.asistencia && e.tipo !== "cambio" && (
-                <div className="mt-0.5 text-xs text-neutral-400">
-                  <ShoeIcon className="inline w-3.5 h-3.5 text-emerald-400 align-text-bottom mr-1" />
-                  {e.asistencia}
-                </div>
-              )}
-            </div>
-          </li>
-          );
-        })}
-      </ul>
-      <div className="text-center text-xs text-neutral-500 py-3">
-        {partido.equipo_local} vs {partido.equipo_visita}
-      </div>
-    </div>
-  );
-}
 
 /* ---------- Tab 2: pronosticos (oculta ajenos hasta el inicio) ---------- */
 function Pronosticos({

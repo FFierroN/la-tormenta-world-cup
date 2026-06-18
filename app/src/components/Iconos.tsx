@@ -40,6 +40,49 @@ export function SubIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+// Cambio APILADO (vertical): flecha verde arriba (entra) + roja abajo (sale).
+// Usado en el timeline rediseñado del detalle (estilo OneFootball).
+export function FlechasCambio({ className = "w-4" }: { className?: string }) {
+  return (
+    <span className={`inline-flex flex-col items-center leading-none ${className}`} aria-label="Cambio">
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 19V5m0 0l-5 5m5-5l5 5" />
+      </svg>
+      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 5v14m0 0l5-5m-5 5l-5-5" />
+      </svg>
+    </span>
+  );
+}
+
+// Penal convertido: badge "P" amarillo con check verde (esquina).
+export function PenalIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <span
+      className={`relative inline-flex items-center justify-center rounded-full bg-yellow-400 text-black text-[11px] font-black ${className}`}
+      aria-label="Gol de penal"
+    >
+      P
+      <span className="absolute -bottom-1 -right-1 inline-flex items-center justify-center w-3 h-3 rounded-full bg-emerald-500">
+        <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    </span>
+  );
+}
+
+// Porteria con balon: usado para el AUTOGOL (gol en contra) en el timeline.
+export function PorteriaIcon({ className = "w-5 h-5 text-rose-400" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-label="Autogol">
+      <rect x="3" y="5" width="18" height="11" rx="1" strokeWidth="1.6" />
+      <path d="M8 5v11M13 5v11M18 5v11M3 9h18M3 13h18" strokeWidth="0.7" />
+      <circle cx="12" cy="20" r="2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 // Icono segun el tipo de evento (gol / amarilla / roja / cambio).
 export function EventoIcono({ tipo }: { tipo: TipoEvento }) {
   if (tipo === "gol") return <BallIcon />;

@@ -105,6 +105,6 @@ Aplica a la pantalla `app/src/pages/PartidoDetalle.tsx` (pestana de eventos).
 
 - [ ] Visualizar `/partidos-wc` y decidir ajustes de la tarjeta.
 - [ ] Decidir si se propaga el estilo al detalle de partido y al resto.
-- [ ] Definir/implementar la nueva distribucion del timeline en Detalle de partido (item 3).
+- [x] Definir/implementar la nueva distribucion del timeline en Detalle de partido (item 3). HECHO: componente `app/src/components/TimelinePartido.tsx` (espina central, eventos local/visita, chips de fase con marcador parcial, sub-pestanas Destacado/Todos).
 - [ ] Entregar el logo PNG para reemplazar el placeholder de cabecera.
 - [ ] (Feature aparte) Probar Highlightly para alineaciones/jugadores.

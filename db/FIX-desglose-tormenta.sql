@@ -74,9 +74,12 @@ select
   c.diferencias,
   c.aciertos,
   c.fallas,
+  u.n_finales as total,
   -- Partidos finalizados que este jugador NO pronostico (gris, al final).
-  greatest(u.n_finales - c.predichos, 0) as no_pronosticados,
-  u.n_finales as total
+  -- OJO: va al FINAL del select porque 'create or replace view' solo permite
+  -- AGREGAR columnas al final (no insertarlas en medio). El orden no afecta a
+  -- la app (mapea por nombre) ni a la barra (la ordena el array SEGMENTOS).
+  greatest(u.n_finales - c.predichos, 0) as no_pronosticados
 from clasif c
 join jugadores j on j.id = c.jugador_id
 join tabla_posiciones tp on tp.jugador_id = c.jugador_id

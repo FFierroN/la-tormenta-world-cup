@@ -39,3 +39,6 @@ logs/
 # Backups locales
 *.bak
 *.backup
+
+# Volcados de sondeo de la API (ruido local, no van al repo)
+lineup_ejemplo.json

@@ -14,21 +14,30 @@ function apellido(nombre: string): string {
   return partes.length > 1 ? partes.slice(1).join(" ") : n;
 }
 
-// Estilo inline de una ficha segun el color de la seleccion (colores arbitrarios).
-function estiloFicha(color: ColorSeleccion) {
+// Estilo base de una ficha segun el color de la seleccion (colores arbitrarios).
+// Le sumamos un brillo radial arriba para dar volumen (efecto "boton").
+function baseFicha(color: ColorSeleccion) {
   return {
     backgroundColor: color.bg,
+    backgroundImage:
+      "radial-gradient(circle at 50% 30%, rgba(255,255,255,.38), rgba(255,255,255,0) 62%)",
     color: color.text,
     borderColor: color.ring ?? color.bg,
   };
 }
 
+// Profundidad: sombra exterior (despega del fondo) + brillo y sombra internos.
+const SOMBRA_FICHA =
+  "0 3px 7px rgba(0,0,0,.55), inset 0 1px 1px rgba(255,255,255,.35), inset 0 -3px 4px rgba(0,0,0,.22)";
+const SOMBRA_MINI =
+  "0 1px 3px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.3)";
+
 function Ficha({ j, color }: { j: JugadorAlineacion; color: ColorSeleccion }) {
   return (
     <div className="flex flex-col items-center gap-1 w-14">
       <div
-        className="w-9 h-9 rounded-full grid place-items-center text-sm font-bold tabular-nums border-2 shadow"
-        style={estiloFicha(color)}
+        className="w-9 h-9 rounded-full grid place-items-center text-sm font-bold tabular-nums border-2"
+        style={{ ...baseFicha(color), boxShadow: SOMBRA_FICHA }}
       >
         {j.numero ?? "?"}
       </div>
@@ -93,7 +102,7 @@ function ColumnaBanca({
         >
           <span
             className="inline-grid place-items-center w-5 h-5 rounded-full text-[10px] font-bold tabular-nums border"
-            style={estiloFicha(color)}
+            style={{ ...baseFicha(color), boxShadow: SOMBRA_MINI }}
           >
             {j.numero ?? "-"}
           </span>
@@ -142,14 +151,14 @@ export default function CanchaAlineaciones({
         </span>
       </div>
 
-      {/* Cancha */}
-      <div className="relative rounded-2xl overflow-hidden border border-borde bg-gradient-to-b from-emerald-800 via-emerald-900 to-emerald-800 min-h-[460px] flex flex-col">
-        {/* Lineas de cancha (decorativas) */}
+      {/* Cancha (mismo tono que el fondo de la app, con un leve degradado) */}
+      <div className="relative rounded-2xl overflow-hidden border border-borde bg-gradient-to-b from-carbon-card via-carbon to-carbon-card min-h-[460px] flex flex-col">
+        {/* Lineas de cancha (blancas) */}
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <div className="absolute left-0 right-0 top-1/2 h-px bg-white/20" />
-          <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/20" />
-          <div className="absolute left-1/2 top-0 w-40 h-14 -translate-x-1/2 border-x border-b border-white/20" />
-          <div className="absolute left-1/2 bottom-0 w-40 h-14 -translate-x-1/2 border-x border-t border-white/20" />
+          <div className="absolute left-0 right-0 top-1/2 h-px bg-white/45" />
+          <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/45" />
+          <div className="absolute left-1/2 top-0 w-40 h-14 -translate-x-1/2 border-x border-b border-white/45" />
+          <div className="absolute left-1/2 bottom-0 w-40 h-14 -translate-x-1/2 border-x border-t border-white/45" />
         </div>
 
         {/* Visita arriba (arco arriba) */}

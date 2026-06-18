@@ -24,10 +24,10 @@ export default function Tabla() {
   //   anterior = posicion al CIERRE DE LA JORNADA ANTERIOR (vista _base).
   // Asi suben/bajan haya o no partido en curso. Sin base -> usa la oficial
   // (queda gris), p.ej. durante la Fecha 1 que no tiene jornada previa.
+  // Ambos mapas se pasan a Galeria/Clasica (ver helper movProps).
   const posLive = new Map<string, number>();
   for (const f of live ?? []) posLive.set(f.jugador_id, f.posicion);
-  const movActual = (f: FilaTabla) => posLive.get(f.jugador_id) ?? f.posicion;
-  const movAnterior = (f: FilaTabla) => posBase?.get(f.jugador_id) ?? f.posicion;
+  const posBaseMap = posBase ?? new Map<string, number>();
 
   // Swipe: desliza a los lados para cambiar entre Tabla y Clasica.
   const swipe = useSwipe(
@@ -64,11 +64,11 @@ export default function Tabla() {
 
       {pestana === "galeria" ? (
         <div {...swipe}>
-          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} posLive={posLive} />
+          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} posLive={posLive} posBase={posBaseMap} />
         </div>
       ) : (
         <div {...swipe}>
-          <Clasica filas={filas} posLive={posLive} />
+          <Clasica filas={filas} posLive={posLive} posBase={posBaseMap} />
         </div>
       )}
     </div>
@@ -97,16 +97,31 @@ function TabBtn({
 }
 
 /* ---------- Pestana 1: galeria de avatares ---------- */
+// Props del indicador de movimiento para una fila (DRY: lo usan galeria y
+// clasica). actual = en vivo si hay, si no la oficial; anterior = base.
+function movProps(
+  f: FilaTabla,
+  posLive: Map<string, number>,
+  posBase: Map<string, number>
+): { actual: number; anterior: number } {
+  return {
+    actual: posLive.get(f.jugador_id) ?? f.posicion,
+    anterior: posBase.get(f.jugador_id) ?? f.posicion,
+  };
+}
+
 function Galeria({
   filas,
   total,
   fotoUltimoOn,
   posLive,
+  posBase,
 }: {
   filas: FilaTabla[];
   total: number;
   fotoUltimoOn: boolean;
   posLive: Map<string, number>;
+  posBase: Map<string, number>;
 }) {
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -134,10 +149,7 @@ function Galeria({
               />
               <div className="mt-3 flex items-center gap-1.5">
                 <div className="text-2xl font-extrabold text-oro">#{f.posicion}</div>
-                <IndicadorMovimiento
-                  actual={movActual(f)}
-                  anterior={movAnterior(f)}
-                />
+                <IndicadorMovimiento {...movProps(f, posLive, posBase)} />
               </div>
               <div className="text-lg font-bold">{f.alias ?? f.nombre}</div>
               <div className="mt-1 text-3xl font-black tabular-nums">{f.puntos}</div>
@@ -166,7 +178,7 @@ function Stat({ label, valor }: { label: string; valor: number }) {
 }
 
 /* ---------- Pestana 2: tabla clasica ---------- */
-function Clasica({ filas, posLive }: { filas: FilaTabla[]; posLive: Map<string, number> }) {
+function Clasica({ filas, posLive, posBase }: { filas: FilaTabla[]; posLive: Map<string, number>; posBase: Map<string, number> }) {
   const total = filas.length;
   return (
     <div className="px-4 py-4">
@@ -197,10 +209,7 @@ function Clasica({ filas, posLive }: { filas: FilaTabla[]; posLive: Map<string, 
                 <tr key={f.jugador_id} className={`border-t border-borde ${realce}`}>
                   <td className="py-2.5 px-2 font-bold text-oro">{f.posicion}</td>
                   <td className="py-2.5 px-1 text-center">
-                    <IndicadorMovimiento
-                      actual={movActual(f)}
-                      anterior={movAnterior(f)}
-                    />
+                    <IndicadorMovimiento {...movProps(f, posLive, posBase)} />
                   </td>
                   <td className="py-2.5 px-2">{f.alias ?? f.nombre}</td>
                   <td className="py-2.5 px-1 text-center font-bold tabular-nums">{f.puntos}</td>

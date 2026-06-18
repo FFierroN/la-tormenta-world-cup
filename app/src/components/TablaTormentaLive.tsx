@@ -4,14 +4,14 @@
 // Tabla), asi que esta vista converge sola.
 //
 // Cada fila lleva el indicador de movimiento (verde sube / rojo baja / gris
-// igual) comparando la posicion EN VIVO contra la posicion OFICIAL actual.
+// igual) comparando la posicion EN VIVO contra el CIERRE DE LA JORNADA ANTERIOR.
 import IndicadorMovimiento from "./IndicadorMovimiento";
-import { obtenerTabla, obtenerTablaLive } from "../lib/data";
+import { obtenerTablaLive, obtenerPosicionesBase } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 
 export default function TablaTormentaLive() {
   const { data: live, cargando, error } = useAsync(obtenerTablaLive, []);
-  const { data: oficial } = useAsync(obtenerTabla, []);
+  const { data: posBase } = useAsync(obtenerPosicionesBase, []);
 
   if (cargando) {
     return <div className="text-center text-neutral-400 py-10">Cargando...</div>;
@@ -24,9 +24,8 @@ export default function TablaTormentaLive() {
     );
   }
 
-  // Posicion oficial por jugador (para el indicador de movimiento).
-  const posOficial = new Map<string, number>();
-  for (const f of oficial ?? []) posOficial.set(f.jugador_id, f.posicion);
+  // Posicion BASE por jugador (cierre de la jornada anterior) para el indicador.
+  const posBaseMap = posBase ?? new Map<string, number>();
 
   return (
     <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden">
@@ -59,7 +58,7 @@ export default function TablaTormentaLive() {
               <td className="py-2.5 px-1 text-center">
                 <IndicadorMovimiento
                   actual={f.posicion}
-                  anterior={posOficial.get(f.jugador_id)}
+                  anterior={posBaseMap.get(f.jugador_id) ?? f.posicion}
                 />
               </td>
               <td className="py-2.5 px-2">{f.alias ?? f.nombre}</td>

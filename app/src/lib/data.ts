@@ -267,6 +267,31 @@ export async function obtenerTablaLive(): Promise<FilaTabla[]> {
   return (data ?? []).map(aFilaTabla);
 }
 
+// Posiciones BASE de jugadores: foto al cierre de la jornada anterior, para
+// el indicador de movimiento (flechas que PERSISTEN, no solo en vivo).
+// Devuelve un mapa jugador_id -> posicion. Lee la vista tabla_posiciones_base.
+export async function obtenerPosicionesBase(): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("tabla_posiciones_base")
+    .select("jugador_id, posicion");
+  lanzarSi(error);
+  const m = new Map<string, number>();
+  for (const r of data ?? []) m.set(String(r.jugador_id), r.posicion);
+  return m;
+}
+
+// Posiciones BASE por grupo: foto al cierre de la jornada anterior.
+// Devuelve un mapa "grupo|equipo" -> pos. Lee la vista tabla_grupos_base.
+export async function obtenerPosicionesGruposBase(): Promise<Map<string, number>> {
+  const { data, error } = await supabase
+    .from("tabla_grupos_base")
+    .select("grupo, equipo, pos");
+  lanzarSi(error);
+  const m = new Map<string, number>();
+  for (const r of data ?? []) m.set(`${r.grupo}|${r.equipo}`, r.pos);
+  return m;
+}
+
 // Desglose de pronosticos por miembro (pestana LaTormenta del detalle).
 // Es global (todos los partidos finalizados), igual en cualquier partido.
 export async function obtenerDesgloseTormenta(): Promise<FilaTormenta[]> {

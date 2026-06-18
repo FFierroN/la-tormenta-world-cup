@@ -2,7 +2,7 @@ import { useState } from "react";
 import Avatar from "../components/Avatar";
 import IndicadorMovimiento from "../components/IndicadorMovimiento";
 import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
-import { obtenerTabla, obtenerTablaLive, fotoUltimoHabilitada } from "../lib/data";
+import { obtenerTabla, obtenerTablaLive, obtenerPosicionesBase, fotoUltimoHabilitada } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { useSwipe } from "../lib/useSwipe";
 import type { FilaTabla } from "../lib/types";
@@ -13,15 +13,21 @@ export default function Tabla() {
   const [pestana, setPestana] = useState<Pestana>("galeria");
   const { data, cargando, error } = useAsync(obtenerTabla, []);
   const { data: live } = useAsync(obtenerTablaLive, []);
+  const { data: posBase } = useAsync(obtenerPosicionesBase, []);
   const { data: fotoCfg } = useAsync(fotoUltimoHabilitada, []);
   const filas = data ?? [];
   const total = filas.length;
   const fotoUltimoOn = fotoCfg ?? false;
 
-  // Posicion EN VIVO por jugador (para el indicador de movimiento). actual=live,
-  // anterior=oficial -> muestra el movimiento que provocan los partidos en curso.
+  // Movimiento de posicion (flechas que PERSISTEN):
+  //   actual   = posicion AHORA (en vivo si hay; si no, la oficial).
+  //   anterior = posicion al CIERRE DE LA JORNADA ANTERIOR (vista _base).
+  // Asi suben/bajan haya o no partido en curso. Sin base -> usa la oficial
+  // (queda gris), p.ej. durante la Fecha 1 que no tiene jornada previa.
   const posLive = new Map<string, number>();
   for (const f of live ?? []) posLive.set(f.jugador_id, f.posicion);
+  const movActual = (f: FilaTabla) => posLive.get(f.jugador_id) ?? f.posicion;
+  const movAnterior = (f: FilaTabla) => posBase?.get(f.jugador_id) ?? f.posicion;
 
   // Swipe: desliza a los lados para cambiar entre Tabla y Clasica.
   const swipe = useSwipe(
@@ -129,8 +135,8 @@ function Galeria({
               <div className="mt-3 flex items-center gap-1.5">
                 <div className="text-2xl font-extrabold text-oro">#{f.posicion}</div>
                 <IndicadorMovimiento
-                  actual={posLive.get(f.jugador_id)}
-                  anterior={f.posicion}
+                  actual={movActual(f)}
+                  anterior={movAnterior(f)}
                 />
               </div>
               <div className="text-lg font-bold">{f.alias ?? f.nombre}</div>
@@ -192,8 +198,8 @@ function Clasica({ filas, posLive }: { filas: FilaTabla[]; posLive: Map<string, 
                   <td className="py-2.5 px-2 font-bold text-oro">{f.posicion}</td>
                   <td className="py-2.5 px-1 text-center">
                     <IndicadorMovimiento
-                      actual={posLive.get(f.jugador_id)}
-                      anterior={f.posicion}
+                      actual={movActual(f)}
+                      anterior={movAnterior(f)}
                     />
                   </td>
                   <td className="py-2.5 px-2">{f.alias ?? f.nombre}</td>

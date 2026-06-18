@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import Flag from "./Flag";
 import IndicadorMovimiento from "./IndicadorMovimiento";
 import { BallIcon, ShoeIcon } from "./Iconos";
-import { obtenerTablaGrupos, obtenerTablaGruposLive, obtenerGoleo } from "../lib/data";
+import { obtenerTablaGrupos, obtenerTablaGruposLive, obtenerPosicionesGruposBase, obtenerGoleo } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import type { FilaGoleo, FilaGrupo } from "../lib/types";
 
@@ -20,12 +20,17 @@ function colorPos(pos: number): string {
 export default function TablaGrupos() {
   const { data, cargando, error } = useAsync(obtenerTablaGrupos, []);
   const { data: live } = useAsync(obtenerTablaGruposLive, []);
+  const { data: posBase } = useAsync(obtenerPosicionesGruposBase, []);
   const filas = data ?? [];
   const grupos = [...new Set(filas.map((f) => f.grupo))].sort();
 
-  // Posicion EN VIVO por equipo (clave grupo|equipo) para el indicador.
+  // Movimiento (flechas que PERSISTEN):
+  //   actual   = posicion AHORA (en vivo si hay; si no, la oficial f.pos).
+  //   anterior = posicion al CIERRE DE LA JORNADA ANTERIOR (vista _base).
+  // Clave "grupo|equipo". Sin base -> usa la actual (queda gris).
   const posLive = new Map<string, number>();
   for (const f of live ?? []) posLive.set(`${f.grupo}|${f.equipo}`, f.pos);
+  const posBaseMap = posBase ?? new Map<string, number>();
 
   return (
     <div className="flex flex-col gap-6 px-4 py-4 pb-2">
@@ -48,6 +53,7 @@ export default function TablaGrupos() {
           grupo={g}
           filas={filas.filter((f) => f.grupo === g)}
           posLive={posLive}
+          posBase={posBaseMap}
         />
       ))}
 
@@ -60,10 +66,12 @@ function TablaGrupo({
   grupo,
   filas,
   posLive,
+  posBase,
 }: {
   grupo: string;
   filas: FilaGrupo[];
   posLive: Map<string, number>;
+  posBase: Map<string, number>;
 }) {
   const navigate = useNavigate();
   const irAlGrupo = () => navigate(`/partidos?grupo=${grupo}`);
@@ -102,8 +110,8 @@ function TablaGrupo({
                 </td>
                 <td className="py-2 px-1 text-center">
                   <IndicadorMovimiento
-                    actual={posLive.get(`${f.grupo}|${f.equipo}`)}
-                    anterior={f.pos}
+                    actual={posLive.get(`${f.grupo}|${f.equipo}`) ?? f.pos}
+                    anterior={posBase.get(`${f.grupo}|${f.equipo}`) ?? f.pos}
                   />
                 </td>
                 <td className="py-2">

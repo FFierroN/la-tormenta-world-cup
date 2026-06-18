@@ -83,7 +83,7 @@ function Ficha({
   return (
     <div className="flex flex-col items-center gap-1 w-14">
       <div
-        className="w-9 h-9 rounded-full grid place-items-center text-sm font-bold tabular-nums border-2"
+        className="w-9 h-9 rounded-full grid place-items-center text-sm font-bold tabular-nums border-[3px]"
         style={{ ...baseFicha(color), boxShadow: SOMBRA_FICHA }}
       >
         {j.numero ?? "?"}
@@ -220,13 +220,13 @@ export default function CanchaAlineaciones({
       </div>
 
       {/* Cancha (mismo tono que el fondo de la app, con un leve degradado) */}
-      <div className="relative rounded-2xl overflow-hidden border border-borde bg-gradient-to-b from-carbon-card via-carbon to-carbon-card min-h-[460px] flex flex-col">
+      <div className="relative rounded-2xl overflow-hidden border-2 border-borde bg-gradient-to-b from-carbon-card via-carbon to-carbon-card min-h-[460px] flex flex-col">
         {/* Lineas de cancha (blancas) */}
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-          <div className="absolute left-0 right-0 top-1/2 h-px bg-white/45" />
-          <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/45" />
-          <div className="absolute left-1/2 top-0 w-40 h-14 -translate-x-1/2 border-x border-b border-white/45" />
-          <div className="absolute left-1/2 bottom-0 w-40 h-14 -translate-x-1/2 border-x border-t border-white/45" />
+          <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-white/45" />
+          <div className="absolute left-1/2 top-1/2 w-24 h-24 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white/45" />
+          <div className="absolute left-1/2 top-0 w-40 h-14 -translate-x-1/2 border-x-2 border-b-2 border-white/45" />
+          <div className="absolute left-1/2 bottom-0 w-40 h-14 -translate-x-1/2 border-x-2 border-t-2 border-white/45" />
         </div>
 
         {/* Visita arriba (arco arriba) */}

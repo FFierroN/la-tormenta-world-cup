@@ -28,7 +28,11 @@ export const EQUIPOS = {
   "Iraq": "Irak", "Norway": "Noruega", "Argentina": "Argentina",
   "Algeria": "Argelia", "Austria": "Austria", "Jordan": "Jordania",
   "Portugal": "Portugal", "DR Congo": "RD Congo",
+  // RD Congo: cada API lo escribe distinto (verbatim, confirmado 2026-06-17).
+  //   worldcup26.ir name_en -> "Democratic Republic of the Congo" (con "the")
+  //   Highlightly    name   -> "Congo DR"
   "Congo DR": "RD Congo", "Democratic Republic of Congo": "RD Congo",
+  "Democratic Republic of the Congo": "RD Congo",
   "England": "Inglaterra", "Croatia": "Croacia", "Ghana": "Ghana",
   "Panama": "Panamá", "Uzbekistan": "Uzbekistán", "Colombia": "Colombia",
 };

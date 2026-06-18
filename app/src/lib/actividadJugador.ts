@@ -19,28 +19,40 @@ const VACIA: ActividadJugador = {
   amarilla: false, roja: false, entro: false, salio: false,
 };
 
-// Tokens significativos del nombre (sin acentos, sin iniciales sueltas).
-function tokens(nombre: string | null): string[] {
+// Partes del nombre (sin acentos), conservando las iniciales sueltas ("a.").
+function partes(nombre: string | null): string[] {
   return (nombre || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // acentos
     .replace(/[.\-']/g, " ")
     .split(/\s+/)
-    .filter((t) => t.length > 1); // descarta "a." y vacios
+    .filter(Boolean);
 }
 
-// True si los dos nombres son (muy probablemente) el mismo jugador: comparamos
-// los ultimos N tokens (N = el del nombre mas corto). Ej: ["al","amri"] vs
-// ["abdulelah","al","amri"] -> compara amri==amri y al==al.
+// True si los dos nombres son (muy probablemente) el mismo jugador.
+// 1) Apellido: comparamos los ultimos tokens "largos" (descarta iniciales).
+// 2) Desempate por INICIAL del primer nombre: si un lado viene como
+//    "N. Apellido", la inicial debe coincidir con la del otro lado. Esto evita
+//    confundir hermanos/apellidos repetidos (ej. los muchos "Al-..." de Arabia).
 export function mismoJugador(a: string | null, b: string | null): boolean {
-  const ta = tokens(a);
-  const tb = tokens(b);
-  if (!ta.length || !tb.length) return false;
-  const n = Math.min(ta.length, tb.length);
+  const pa = partes(a);
+  const pb = partes(b);
+  if (!pa.length || !pb.length) return false;
+
+  const sa = pa.filter((t) => t.length > 1);
+  const sb = pb.filter((t) => t.length > 1);
+  if (!sa.length || !sb.length) return false;
+  const n = Math.min(sa.length, sb.length);
   for (let i = 1; i <= n; i++) {
-    if (ta[ta.length - i] !== tb[tb.length - i]) return false;
+    if (sa[sa.length - i] !== sb[sb.length - i]) return false;
   }
+
+  // Inicial del primer nombre (solo cuando un lado la trae como "X.").
+  const inicA = pa[0].length === 1 ? pa[0] : null;
+  const inicB = pb[0].length === 1 ? pb[0] : null;
+  if (inicA && pb[0][0] !== inicA) return false;
+  if (inicB && pa[0][0] !== inicB) return false;
   return true;
 }
 
@@ -64,8 +76,12 @@ export function actividadDe(
     } else if (e.tipo === "roja") {
       if (esEl) a.roja = true;
     } else if (e.tipo === "cambio") {
-      if (esEl) a.entro = true; // este jugador es quien entro
-      if (mismoJugador(nombre, e.asistencia)) a.salio = true; // este salio
+      // OJO: en los datos guardados de Highlightly, 'jugador' = quien SALE y
+      // 'asistencia' = quien ENTRA (al reves de lo intuitivo). Por eso van
+      // cruzados aca: el que matchea 'jugador' salio; el que matchea
+      // 'asistencia' entro.
+      if (esEl) a.salio = true; // jugador del evento = quien salio
+      if (mismoJugador(nombre, e.asistencia)) a.entro = true; // asistencia = quien entro
     }
   }
   return a;

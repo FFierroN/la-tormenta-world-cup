@@ -202,6 +202,8 @@ export default function PartidoDetalle() {
               alineaciones={partido.alineaciones}
               equipoLocal={partido.equipo_local}
               equipoVisita={partido.equipo_visita}
+              paisLocal={partido.pais_local}
+              paisVisita={partido.pais_visita}
             />
           ) : (
             <div className="text-center text-neutral-400 py-10">

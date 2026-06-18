@@ -10,8 +10,9 @@ Todo con UNA sola llamada GET /matches/{id} (trae events + statistics).
 Decision de diseno (confirmada con Felipe):
   - Highlightly es la FUENTE DE VERDAD de los eventos en partidos FINALIZADOS.
     Reemplaza (borra+reinserta) los eventos de ese partido.
-  - El campo 'detalle' (penal/autogol) que Highlightly NO provee se PRESERVA
-    por (equipo, minuto): si lo marcaste a mano, no se pierde por gusto.
+  - El campo 'detalle' (penal/autogol) se toma de Highlightly cuando viene
+    ("Penalty"/"Own Goal") y, si no, se PRESERVA lo marcado a mano por
+    (equipo, minuto): asi no se pierde por gusto.
   - worldcup26.ir (actualizar.py) sigue intacto para el marcador en vivo.
 
 Presupuesto de requests: 1 GET /matches/{id} por partido finalizado, UNA vez.
@@ -33,6 +34,7 @@ Variables de entorno:
 from __future__ import annotations
 
 import os
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 
@@ -64,6 +66,30 @@ TIPO_HL = {
     "Red Card": "roja",
     "Substitution": "cambio",
 }
+
+
+def tipo_evento(ev: dict) -> tuple[str, str | None] | None:
+    """(tipo, detalle) de un evento de HL, o None si no se soporta.
+
+    detalle in {"autogol", "penal", None}. Highlightly SI distingue penales y
+    autogoles: a veces como type aparte ("Penalty", "Own Goal") y a veces como
+    "Goal" con un flag/marca "(OG)" en el nombre. Espejo de tipoEvento() del
+    worker (worker-vivo/src/enriquecer.js) para no perder esos goles.
+    """
+    raw = str(ev.get("type") or "")
+    if re.search(r"own\s*goal", raw, re.I):
+        return ("gol", "autogol")
+    if re.search(r"penalty", raw, re.I):
+        return ("gol", "penal")
+    t = TIPO_HL.get(ev.get("type"))
+    if not t:
+        return None
+    og = (
+        ev.get("ownGoal") is True
+        or ev.get("own_goal") is True
+        or re.search(r"\(og\)", str(ev.get("player") or ""), re.I) is not None
+    )
+    return (t, "autogol" if (t == "gol" and og) else None)
 
 
 class LimiteDiario(Exception):
@@ -220,15 +246,17 @@ def eventos_desde_hl(detalle: dict, p: dict) -> list[dict]:
 
     filas = []
     for ev in detalle.get("events", []):
-        tipo = TIPO_HL.get(ev.get("type"))
-        if not tipo:
+        res = tipo_evento(ev)
+        if not res:
             continue  # otros tipos no soportados
+        tipo, det_api = res
         minuto = como_int(str(ev.get("time", "")).split("+")[0]) or 0
         equipo = lado(ev)
         jugador = (ev.get("player") or "").strip() or None
         if tipo == "gol":
             asistencia = (ev.get("assist") or "").strip() or None
-            det = detalle_manual.get((equipo, minuto), "normal")
+            # Prioridad: penal/autogol de HL > lo marcado a mano > normal.
+            det = det_api or detalle_manual.get((equipo, minuto), "normal")
         elif tipo == "cambio":
             # En sustituciones: player=entra (ya en 'jugador'),
             # substituted=quien sale (lo guardamos en 'asistencia').

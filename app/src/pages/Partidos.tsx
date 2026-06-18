@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
 import TramoVivo from "../components/TramoVivo";
-import BotonEspeciales from "../components/BotonEspeciales";
 import { listarPartidos, misPronosticos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { useAuth } from "../lib/auth";
@@ -207,7 +206,6 @@ export default function Partidos() {
   return (
     <div className="max-w-md mx-auto">
       <header className="px-4 pt-5 pb-3">
-        <BotonEspeciales className="mb-3" />
         <h1 className="text-xl font-bold">Partidos</h1>
       </header>
 

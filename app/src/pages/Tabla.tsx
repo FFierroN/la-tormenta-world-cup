@@ -1,13 +1,14 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar";
 import IndicadorMovimiento from "../components/IndicadorMovimiento";
+import PrediccionesTodos from "../components/PrediccionesTodos";
 import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
 import { obtenerTabla, obtenerTablaLive, obtenerPosicionesBase, fotoUltimoHabilitada } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { useSwipe } from "../lib/useSwipe";
 import type { FilaTabla } from "../lib/types";
 
-type Pestana = "galeria" | "clasica";
+type Pestana = "galeria" | "clasica" | "predicciones";
 
 export default function Tabla() {
   const [pestana, setPestana] = useState<Pestana>("galeria");
@@ -59,18 +60,23 @@ export default function Tabla() {
           <TabBtn activo={pestana === "clasica"} onClick={() => setPestana("clasica")}>
             Clásica
           </TabBtn>
+          <TabBtn activo={pestana === "predicciones"} onClick={() => setPestana("predicciones")}>
+            Predicciones
+          </TabBtn>
         </div>
       </div>
 
-      {pestana === "galeria" ? (
+      {pestana === "galeria" && (
         <div {...swipe}>
           <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} posLive={posLive} posBase={posBaseMap} />
         </div>
-      ) : (
+      )}
+      {pestana === "clasica" && (
         <div {...swipe}>
           <Clasica filas={filas} posLive={posLive} posBase={posBaseMap} />
         </div>
       )}
+      {pestana === "predicciones" && <PrediccionesTodos />}
     </div>
   );
 }

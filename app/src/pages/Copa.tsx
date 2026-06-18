@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Llave from "../components/Llave";
 import TablaGrupos from "../components/TablaGrupos";
-import BotonEspeciales from "../components/BotonEspeciales";
 import { listarPartidos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { useSwipe } from "../lib/useSwipe";
@@ -34,7 +33,6 @@ export default function Copa() {
     <div className="max-w-md mx-auto">
       <header className="px-4 pt-5 pb-3">
         <CuentaRegresiva objetivo={INICIO_MUNDIAL} />
-        <BotonEspeciales className="mb-3" />
         <h1 className="text-xl font-bold">Copa</h1>
       </header>
 

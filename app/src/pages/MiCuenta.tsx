@@ -11,7 +11,6 @@ import {
   AdminIcon,
   AliasIcon,
   ChevronIcon,
-  GrupoIcon,
   PinIcon,
   PrediccionesIcon,
   ReglasIcon,
@@ -112,15 +111,6 @@ export default function MiCuenta() {
 
       {/* 6) Realizar predicciones especiales (con pulso + cuenta regresiva) */}
       <BotonEspeciales className="mt-4" />
-
-      {/* 6b) Ver las predicciones especiales de TODOS (en orden de tabla) */}
-      <BotonCuenta
-        icon={<GrupoIcon />}
-        onClick={() => navigate("/especiales-todos")}
-        className="mt-4"
-      >
-        Predicciones especiales de todos
-      </BotonCuenta>
 
       {/* 7) Panel de admin (si corresponde) */}
       {jugador.es_admin && (

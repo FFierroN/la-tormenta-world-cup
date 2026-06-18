@@ -3,8 +3,8 @@
 // Colapsada: posicion + mini avatar + alias + vistazo (campeon y finalistas).
 // Expandida: nombre/alias arriba (en la cabecera); debajo, avatar GRANDE a la
 // izquierda y al lado las banderas organizadas (campeon, finalistas y
-// semifinalistas en grilla 2x2 para que caigan prolijos en celular); al pie,
-// los premios individuales (texto). Estilo de la app actual (carbon-card / oro).
+// semifinalistas en una sola fila con banderas mas chicas); al pie, los premios
+// individuales (texto). Estilo de la app actual (carbon-card / oro).
 // Reusa Avatar y Flag (DRY). Controlada desde afuera (un solo acordeon abierto).
 //
 // Sin emojis a proposito (el proyecto no los permite en archivos): el campeon
@@ -104,19 +104,19 @@ export default function EspecialesJugador({
                   <Avatar
                     src={avatarPorPosicion(fila, total)}
                     nombre={fila.nombre}
-                    width={84}
+                    width={96}
                     variante={bordePorPosicion(fila.posicion, total)}
                   />
                 </div>
                 <div className="flex-1 min-w-0 flex flex-col gap-3">
                   <BloqueEquipos titulo="Campeón" equipos={[e.campeon]} mapa={mapa} campeon />
                   <BloqueEquipos titulo="Finalistas" equipos={finalistas} mapa={mapa} />
-                  {/* Semis en grilla 2x2: siempre caen prolijos en celular */}
-                  <BloqueEquipos titulo="Semifinalistas" equipos={semis} mapa={mapa} grid />
+                  {/* Semis: una sola fila con banderas mas chicas (como el ejemplo) */}
+                  <BloqueEquipos titulo="Semifinalistas" equipos={semis} mapa={mapa} size={30} />
                 </div>
               </div>
 
-              <div className="border-t border-borde pt-3 grid grid-cols-1 gap-2">
+              <div className="border-t border-oro/40 pt-3 grid grid-cols-1 gap-2">
                 <Premio label="Goleador" valor={e.goleador} />
                 <Premio label="Asistidor" valor={e.asistidor} />
                 <Premio label="Mejor jugador" valor={e.mejor_jugador} />
@@ -139,26 +139,27 @@ function BloqueEquipos({
   equipos,
   mapa,
   campeon,
-  grid,
+  size = 44,
 }: {
   titulo: string;
   equipos: (string | null | undefined)[];
   mapa: MapaEquipoPais;
   campeon?: boolean;
-  grid?: boolean;
+  size?: number;
 }) {
   return (
     <div>
       <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
         {titulo}
       </h3>
-      <div className={grid ? "grid grid-cols-2 gap-2 justify-items-center" : "flex flex-wrap gap-3"}>
+      <div className="flex flex-wrap gap-2">
         {equipos.map((t, i) => (
           <BanderaEtiqueta
             key={i}
             mapa={mapa}
             equipo={t ?? null}
             campeon={campeon}
+            size={size}
           />
         ))}
       </div>
@@ -168,27 +169,35 @@ function BloqueEquipos({
 
 // Bandera (rectangular) + nombre del equipo debajo. Placeholder si esta vacio.
 // El campeon lleva un anillo dorado para destacarlo (en vez de un icono).
+// 'size' es el ancho de la bandera en px (la etiqueta escala con el).
 function BanderaEtiqueta({
   mapa,
   equipo,
   campeon,
+  size = 44,
 }: {
   mapa: MapaEquipoPais;
   equipo: string | null;
   campeon?: boolean;
+  size?: number;
 }) {
+  const ancho = size + 16; // un poco mas que la bandera para el nombre
+  const altoPlaceholder = Math.round((size * 31) / 44); // misma proporcion
   if (!equipo) {
     return (
-      <div className="flex flex-col items-center gap-1 w-16">
-        <div className="w-[44px] h-[31px] rounded-lg border border-dashed border-borde bg-carbon-soft" />
+      <div className="flex flex-col items-center gap-1" style={{ width: ancho }}>
+        <div
+          className="rounded-lg border border-dashed border-borde bg-carbon-soft"
+          style={{ width: size, height: altoPlaceholder }}
+        />
         <span className="text-[10px] text-neutral-500">Sin elegir</span>
       </div>
     );
   }
   return (
-    <div className="flex flex-col items-center gap-1 w-16">
+    <div className="flex flex-col items-center gap-1" style={{ width: ancho }}>
       <div className={campeon ? "rounded-lg ring-2 ring-oro p-0.5" : ""}>
-        <Flag code={codigoPais(mapa, equipo)} nombre={equipo} size={44} rect />
+        <Flag code={codigoPais(mapa, equipo)} nombre={equipo} size={size} rect />
       </div>
       <span className="text-[10px] text-center leading-tight text-neutral-200 line-clamp-2">
         {equipo}

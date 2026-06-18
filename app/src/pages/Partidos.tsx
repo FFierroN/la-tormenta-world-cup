@@ -28,6 +28,13 @@ const FECHAS = [
   { id: "fecha3", label: "Fecha 3", desde: "2026-06-24", hasta: "2026-06-27" },
 ];
 
+// Liberacion MANUAL de una jornada antes de que llegue su dia (override).
+// null = automatico por calendario. Si se pone un id (ej. "fecha2"), esa
+// jornada se muestra en "Proximos" aunque su 'desde' aun no llegue. OJO: solo
+// ADELANTA, nunca hace retroceder el auto-avance (cuando llegue el dia de una
+// jornada posterior, igual avanza sola). Para volver al automatico: null.
+const FECHA_LIBERADA: string | null = "fecha2";
+
 type Tab = {
   id: string; // "fecha1".. | "g-A".."g-L" | "f-Octavos"...
   label: string; // texto del chip
@@ -65,14 +72,39 @@ function ddmm(clave: string): string {
   return `${d}/${m}`;
 }
 
-// Jornada ACTIVA: la ultima fecha cuyo dia de inicio (desde, a las 00:00) ya
-// llego. Asi Fecha 2 y Fecha 3 "aparecen" recien cuando arranca su dia.
-// Antes del Mundial (hoy < Fecha 1) muestra Fecha 1.
-function fechaActiva(): (typeof FECHAS)[number] {
+// Jornada del CALENDARIO: la ultima fecha cuyo dia de inicio (desde) ya llego.
+// Antes del Mundial (hoy < Fecha 1) devuelve Fecha 1 (indice 0).
+function idxCalendario(): number {
   const hoy = claveHoy();
-  let activa = FECHAS[0];
-  for (const f of FECHAS) if (hoy >= f.desde) activa = f;
-  return activa;
+  let idx = 0;
+  FECHAS.forEach((f, i) => {
+    if (hoy >= f.desde) idx = i;
+  });
+  return idx;
+}
+
+// Indice de la jornada MOSTRADA: la del calendario, salvo que se haya liberado
+// manualmente una mas adelantada (FECHA_LIBERADA). Nunca retrocede.
+function idxMostrado(): number {
+  let idx = idxCalendario();
+  if (FECHA_LIBERADA) {
+    const libIdx = FECHAS.findIndex((f) => f.id === FECHA_LIBERADA);
+    if (libIdx > idx) idx = libIdx;
+  }
+  return idx;
+}
+
+// Ventana de "Proximos": va DESDE el inicio de la jornada del calendario HASTA
+// el fin de la jornada mostrada. Asi, al liberar una jornada futura, esta se
+// suma SIN esconder los partidos aun pendientes de la jornada en curso.
+function ventanaProximos(): { desde: string; hasta: string; label: string } {
+  const cal = FECHAS[idxCalendario()];
+  const disp = FECHAS[idxMostrado()];
+  const label =
+    cal.id === disp.id
+      ? `${disp.label} \u00b7 ${ddmm(cal.desde)} al ${ddmm(disp.hasta)}`
+      : `${cal.label} y ${disp.label} \u00b7 ${ddmm(cal.desde)} al ${ddmm(disp.hasta)}`;
+  return { desde: cal.desde, hasta: disp.hasta, label };
 }
 
 function construirTabs(partidos: Partido[]): Tab[] {
@@ -91,20 +123,20 @@ function construirTabs(partidos: Partido[]): Tab[] {
     partidos: jugados,
   });
 
-  // 1) Pestana "Proximos": SOLO la jornada activa (rola sola en el 'desde').
+  // 1) Pestana "Proximos": jornada en curso + liberadas (rola sola en el 'desde').
   //    Ademas escondemos los que ya terminaron: esos viven en su grupo/fase.
-  const f = fechaActiva();
+  const v = ventanaProximos();
   const lista = partidos
     .filter((p) => {
       if (p.estado === "final") return false; // finalizado -> fuera de Proximos
       const d = claveDia(p.fecha);
-      return d >= f.desde && d <= f.hasta;
+      return d >= v.desde && d <= v.hasta;
     })
     .sort(porFecha);
   tabs.push({
     id: "proximos",
     label: "Pr\u00f3ximos",
-    subtitulo: `${f.label} \u00b7 ${ddmm(f.desde)} al ${ddmm(f.hasta)}`,
+    subtitulo: v.label,
     mostrarFase: true,
     partidos: lista,
   });

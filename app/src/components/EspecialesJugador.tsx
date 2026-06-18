@@ -1,9 +1,11 @@
 // Tarjeta-acordeon de un participante para la pestana piloto de especiales.
 //
 // Colapsada: posicion + mini avatar + alias + vistazo (campeon y finalistas).
-// Expandida: campeon, finalistas, semifinalistas (banderas) y los premios
-// individuales (texto). Estilo de la app actual (carbon-card / oro). Reusa
-// Avatar y Flag (DRY). Controlada desde afuera (un solo acordeon abierto).
+// Expandida: nombre/alias arriba (en la cabecera); debajo, avatar GRANDE a la
+// izquierda y al lado las banderas organizadas (campeon, finalistas y
+// semifinalistas en grilla 2x2 para que caigan prolijos en celular); al pie,
+// los premios individuales (texto). Estilo de la app actual (carbon-card / oro).
+// Reusa Avatar y Flag (DRY). Controlada desde afuera (un solo acordeon abierto).
 //
 // Sin emojis a proposito (el proyecto no los permite en archivos): el campeon
 // se distingue con un anillo dorado en su bandera; los premios con un punto oro.
@@ -55,12 +57,16 @@ export default function EspecialesJugador({
           {fila.posicion}
         </span>
 
-        <Avatar
-          src={avatarPorPosicion(fila, total)}
-          nombre={fila.nombre}
-          width={40}
-          variante={bordePorPosicion(fila.posicion, total)}
-        />
+        {/* Mini avatar solo cuando esta colapsado: al expandir, el grande del
+            cuerpo toma el relevo (no duplicamos la cara). */}
+        {!abierto && (
+          <Avatar
+            src={avatarPorPosicion(fila, total)}
+            nombre={fila.nombre}
+            width={40}
+            variante={bordePorPosicion(fila.posicion, total)}
+          />
+        )}
 
         <span className="flex-1 min-w-0">
           <span className="block font-bold leading-tight truncate">
@@ -92,22 +98,23 @@ export default function EspecialesJugador({
             </p>
           ) : (
             <>
-              <BloqueEquipos
-                titulo="Campeón"
-                equipos={[e.campeon]}
-                mapa={mapa}
-                campeon
-              />
-              <BloqueEquipos
-                titulo="Finalistas"
-                equipos={finalistas}
-                mapa={mapa}
-              />
-              <BloqueEquipos
-                titulo="Semifinalistas"
-                equipos={semis}
-                mapa={mapa}
-              />
+              {/* Avatar grande a la izquierda + banderas organizadas al lado */}
+              <div className="flex gap-3">
+                <div className="shrink-0">
+                  <Avatar
+                    src={avatarPorPosicion(fila, total)}
+                    nombre={fila.nombre}
+                    width={84}
+                    variante={bordePorPosicion(fila.posicion, total)}
+                  />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col gap-3">
+                  <BloqueEquipos titulo="Campeón" equipos={[e.campeon]} mapa={mapa} campeon />
+                  <BloqueEquipos titulo="Finalistas" equipos={finalistas} mapa={mapa} />
+                  {/* Semis en grilla 2x2: siempre caen prolijos en celular */}
+                  <BloqueEquipos titulo="Semifinalistas" equipos={semis} mapa={mapa} grid />
+                </div>
+              </div>
 
               <div className="border-t border-borde pt-3 grid grid-cols-1 gap-2">
                 <Premio label="Goleador" valor={e.goleador} />
@@ -132,18 +139,20 @@ function BloqueEquipos({
   equipos,
   mapa,
   campeon,
+  grid,
 }: {
   titulo: string;
   equipos: (string | null | undefined)[];
   mapa: MapaEquipoPais;
   campeon?: boolean;
+  grid?: boolean;
 }) {
   return (
     <div>
       <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
         {titulo}
       </h3>
-      <div className="flex flex-wrap gap-3">
+      <div className={grid ? "grid grid-cols-2 gap-2 justify-items-center" : "flex flex-wrap gap-3"}>
         {equipos.map((t, i) => (
           <BanderaEtiqueta
             key={i}

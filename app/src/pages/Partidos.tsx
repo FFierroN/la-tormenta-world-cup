@@ -5,6 +5,7 @@ import EstadoBadge from "../components/EstadoBadge";
 import TramoVivo from "../components/TramoVivo";
 import { listarPartidos, misPronosticos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
+import { useScrollRestore, guardarScroll } from "../lib/useScrollRestore";
 import { useAuth } from "../lib/auth";
 import { useSwipe } from "../lib/useSwipe";
 import { fmtHora, fmtDiaLargo, claveDia, claveHoy } from "../lib/fechas";
@@ -171,6 +172,8 @@ function construirTabs(partidos: Partido[]): Tab[] {
 export default function Partidos() {
   const { jugador } = useAuth();
   const { data: partidos, cargando, error } = useAsync(listarPartidos, []);
+  // Al volver de un detalle, reaparecer en la posicion del partido elegido.
+  useScrollRestore("scroll:partidos", !cargando);
   const tabs = useMemo(() => (partidos ? construirTabs(partidos) : []), [partidos]);
 
   // IDs de partidos que YO ya pronostique (para la etiqueta).
@@ -376,7 +379,10 @@ function PartidoCard({
   return (
     <li>
       <button
-        onClick={() => navigate(`/partido/${p.id}`)}
+        onClick={() => {
+          guardarScroll("scroll:partidos");
+          navigate(`/partido/${p.id}`);
+        }}
         className="w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
       >
         {/* Cronometro en vivo, arriba al centro de la tarjeta */}

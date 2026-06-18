@@ -2,8 +2,18 @@
 // enfrentados (visita arriba, local abajo) + la banca en 2 columnas. Highlightly
 // NO trae foto de jugador -> cada ficha es un dorsal (numero) + apellido, pintado
 // con el COLOR CARACTERISTICO de la seleccion (lib/coloresSeleccion).
-import type { Alineaciones, AlineacionEquipo, JugadorAlineacion } from "../lib/types";
+import type { Alineaciones, AlineacionEquipo, EventoPartido, JugadorAlineacion } from "../lib/types";
 import { colorSeleccion, type ColorSeleccion } from "../lib/coloresSeleccion";
+import { actividadDe, type ActividadJugador } from "../lib/actividadJugador";
+import {
+  BallIcon,
+  ShoeIcon,
+  YellowCard,
+  RedCard,
+  PorteriaIcon,
+  FlechaEntra,
+  FlechaSale,
+} from "./Iconos";
 
 // Apellido "lindo" para la ficha: "A. Al Amri" -> "Al Amri"; "Lionel Messi" -> "Messi".
 function apellido(nombre: string): string {
@@ -32,7 +42,44 @@ const SOMBRA_FICHA =
 const SOMBRA_MINI =
   "0 1px 3px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.3)";
 
-function Ficha({ j, color }: { j: JugadorAlineacion; color: ColorSeleccion }) {
+// Fila compacta de iconos de actividad (goles, asist, tarjetas, entro/salio).
+function IconosActividad({ act }: { act: ActividadJugador }) {
+  const hayAlgo =
+    act.goles || act.autogoles || act.asistencias || act.amarilla || act.roja || act.entro || act.salio;
+  if (!hayAlgo) return null;
+  return (
+    <div className="flex items-center justify-center gap-0.5 flex-wrap">
+      {act.goles > 0 && (
+        <span className="flex items-center text-white">
+          <BallIcon className="w-3 h-3 text-white" />
+          {act.goles > 1 && <span className="text-[9px] font-bold ml-px">x{act.goles}</span>}
+        </span>
+      )}
+      {act.autogoles > 0 && <PorteriaIcon className="w-3 h-3 text-rose-400" />}
+      {act.asistencias > 0 && (
+        <span className="flex items-center text-emerald-400">
+          <ShoeIcon className="w-3 h-3 text-emerald-400" />
+          {act.asistencias > 1 && <span className="text-[9px] font-bold ml-px">x{act.asistencias}</span>}
+        </span>
+      )}
+      {act.amarilla && <YellowCard />}
+      {act.roja && <RedCard />}
+      {act.entro && <FlechaEntra className="w-3 h-3" />}
+      {act.salio && <FlechaSale className="w-3 h-3" />}
+    </div>
+  );
+}
+
+function Ficha({
+  j,
+  color,
+  eventosEquipo,
+}: {
+  j: JugadorAlineacion;
+  color: ColorSeleccion;
+  eventosEquipo: EventoPartido[];
+}) {
+  const act = actividadDe(j.nombre, eventosEquipo);
   return (
     <div className="flex flex-col items-center gap-1 w-14">
       <div
@@ -44,15 +91,24 @@ function Ficha({ j, color }: { j: JugadorAlineacion; color: ColorSeleccion }) {
       <span className="text-[10px] leading-tight text-center text-white/90 drop-shadow">
         {apellido(j.nombre)}
       </span>
+      <IconosActividad act={act} />
     </div>
   );
 }
 
-function Linea({ jugadores, color }: { jugadores: JugadorAlineacion[]; color: ColorSeleccion }) {
+function Linea({
+  jugadores,
+  color,
+  eventosEquipo,
+}: {
+  jugadores: JugadorAlineacion[];
+  color: ColorSeleccion;
+  eventosEquipo: EventoPartido[];
+}) {
   return (
     <div className="flex-1 flex items-center justify-around px-1">
       {jugadores.map((j, i) => (
-        <Ficha key={j.id ?? `${j.nombre}-${i}`} j={j} color={color} />
+        <Ficha key={j.id ?? `${j.nombre}-${i}`} j={j} color={color} eventosEquipo={eventosEquipo} />
       ))}
     </div>
   );
@@ -64,16 +120,18 @@ function MitadEquipo({
   equipo,
   color,
   invertido,
+  eventosEquipo,
 }: {
   equipo: AlineacionEquipo;
   color: ColorSeleccion;
   invertido: boolean;
+  eventosEquipo: EventoPartido[];
 }) {
   const lineas = invertido ? equipo.titulares : [...equipo.titulares].reverse();
   return (
     <div className="flex-1 flex flex-col py-2">
       {lineas.map((linea, i) => (
-        <Linea key={i} jugadores={linea} color={color} />
+        <Linea key={i} jugadores={linea} color={color} eventosEquipo={eventosEquipo} />
       ))}
     </div>
   );
@@ -85,30 +143,36 @@ function ColumnaBanca({
   suplentes,
   color,
   derecha,
+  eventosEquipo,
 }: {
   titulo: string;
   suplentes: JugadorAlineacion[];
   color: ColorSeleccion;
   derecha: boolean;
+  eventosEquipo: EventoPartido[];
 }) {
   if (!suplentes?.length) return <div />;
   return (
     <div className={`flex flex-col gap-1 ${derecha ? "items-end text-right" : "items-start text-left"}`}>
       <div className="text-xs font-semibold text-neutral-400 mb-0.5">{titulo}</div>
-      {suplentes.map((j, i) => (
-        <div
-          key={j.id ?? `${j.nombre}-${i}`}
-          className={`flex items-center gap-1.5 ${derecha ? "flex-row-reverse" : ""}`}
-        >
-          <span
-            className="inline-grid place-items-center w-5 h-5 rounded-full text-[10px] font-bold tabular-nums border"
-            style={{ ...baseFicha(color), boxShadow: SOMBRA_MINI }}
+      {suplentes.map((j, i) => {
+        const act = actividadDe(j.nombre, eventosEquipo);
+        return (
+          <div
+            key={j.id ?? `${j.nombre}-${i}`}
+            className={`flex items-center gap-1.5 ${derecha ? "flex-row-reverse" : ""}`}
           >
-            {j.numero ?? "-"}
-          </span>
-          <span className="text-xs text-neutral-300 leading-tight">{apellido(j.nombre)}</span>
-        </div>
-      ))}
+            <span
+              className="inline-grid place-items-center w-5 h-5 rounded-full text-[10px] font-bold tabular-nums border"
+              style={{ ...baseFicha(color), boxShadow: SOMBRA_MINI }}
+            >
+              {j.numero ?? "-"}
+            </span>
+            <span className="text-xs text-neutral-300 leading-tight">{apellido(j.nombre)}</span>
+            <IconosActividad act={act} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -119,17 +183,21 @@ export default function CanchaAlineaciones({
   equipoVisita,
   paisLocal,
   paisVisita,
+  eventos,
 }: {
   alineaciones: Alineaciones;
   equipoLocal: string;
   equipoVisita: string;
   paisLocal: string;
   paisVisita: string;
+  eventos: EventoPartido[];
 }) {
   const local = alineaciones.local;
   const visita = alineaciones.visita;
   const colorLocal = colorSeleccion(paisLocal, "local");
   const colorVisita = colorSeleccion(paisVisita, "visita");
+  const evLocal = eventos.filter((e) => e.equipo === "local");
+  const evVisita = eventos.filter((e) => e.equipo === "visita");
 
   if (!local && !visita) {
     return (
@@ -163,7 +231,7 @@ export default function CanchaAlineaciones({
 
         {/* Visita arriba (arco arriba) */}
         {visita ? (
-          <MitadEquipo equipo={visita} color={colorVisita} invertido />
+          <MitadEquipo equipo={visita} color={colorVisita} invertido eventosEquipo={evVisita} />
         ) : (
           <div className="flex-1 grid place-items-center text-white/60 text-sm">
             Sin alineacion de {equipoVisita}
@@ -172,7 +240,7 @@ export default function CanchaAlineaciones({
 
         {/* Local abajo (arco abajo) */}
         {local ? (
-          <MitadEquipo equipo={local} color={colorLocal} invertido={false} />
+          <MitadEquipo equipo={local} color={colorLocal} invertido={false} eventosEquipo={evLocal} />
         ) : (
           <div className="flex-1 grid place-items-center text-white/60 text-sm">
             Sin alineacion de {equipoLocal}
@@ -187,12 +255,14 @@ export default function CanchaAlineaciones({
           suplentes={visita?.suplentes ?? []}
           color={colorVisita}
           derecha={false}
+          eventosEquipo={evVisita}
         />
         <ColumnaBanca
           titulo={`Suplentes ${equipoLocal}`}
           suplentes={local?.suplentes ?? []}
           color={colorLocal}
           derecha
+          eventosEquipo={evLocal}
         />
       </div>
     </div>

@@ -204,6 +204,7 @@ export default function PartidoDetalle() {
               equipoVisita={partido.equipo_visita}
               paisLocal={partido.pais_local}
               paisVisita={partido.pais_visita}
+              eventos={eventos}
             />
           ) : (
             <div className="text-center text-neutral-400 py-10">

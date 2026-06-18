@@ -40,6 +40,24 @@ export function SubIcon({ className = "w-4 h-4" }: { className?: string }) {
   );
 }
 
+// Flecha simple ENTRA (verde, hacia arriba). Marca al suplente que entro.
+export function FlechaEntra({ className = "w-3 h-3" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-label="Entro">
+      <path d="M12 19V5m0 0l-6 6m6-6l6 6" />
+    </svg>
+  );
+}
+
+// Flecha simple SALE (roja, hacia abajo). Marca al titular que salio.
+export function FlechaSale({ className = "w-3 h-3" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-label="Salio">
+      <path d="M12 5v14m0 0l6-6m-6 6l-6-6" />
+    </svg>
+  );
+}
+
 // Cambio APILADO (vertical): flecha verde arriba (entra) + roja abajo (sale).
 // Usado en el timeline rediseñado del detalle (estilo OneFootball).
 export function FlechasCambio({ className = "w-4" }: { className?: string }) {

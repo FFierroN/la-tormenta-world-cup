@@ -24,6 +24,11 @@ on:
         options:
           - auto
           - todos
+      solo:
+        description: "QUIRURGICO: texto de un partido (ej. 'jordania'). Re-enriquece SOLO ese (1 llamada a HL). Vacio = usar 'modo'."
+        required: false
+        default: ""
+        type: string
   # schedule: DESACTIVADO -> el enriquecido automatico ahora lo hace el Worker.
 
 concurrency:
@@ -53,4 +58,6 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           MODO: ${{ github.event.inputs.modo || 'auto' }}
+          SOLO: ${{ github.event.inputs.solo || '' }}
+          MAX_HL: "40"   # tope de llamadas a HL por corrida (red de seguridad)
         run: python robot/enriquecer.py

@@ -58,6 +58,17 @@ MODO = os.getenv("MODO", "auto").strip().lower()
 # Minutos de gracia tras el pitazo antes de enriquecer (HL tarda en cerrar).
 MIN_GRACIA = int(os.getenv("MIN_GRACIA", "20"))
 
+# Modo QUIRURGICO: si SOLO trae texto, se re-enriquecen UNICAMENTE los partidos
+# cuyo "local vs visita" contenga ese texto (case-insensitive), ignorando si ya
+# estaban enriquecidos. Pensado para recuperar 1 partido con 1 sola llamada a HL
+# (ej. SOLO="jordania") en vez de gastar 40+ con modo=todos.
+SOLO = os.getenv("SOLO", "").strip().lower()
+
+# Tope de presupuesto de llamadas a Highlightly por corrida (red de seguridad
+# para no agotar las 100/dia de un saque). 0 = sin tope.
+MAX_HL = int(os.getenv("MAX_HL", "40"))
+_hl_llamadas = 0
+
 # type de Highlightly -> nuestro tipo de evento. 'Substitution' = cambio:
 # guardamos jugador=quien entra (player), asistencia=quien sale (substituted).
 TIPO_HL = {
@@ -98,6 +109,12 @@ class LimiteDiario(Exception):
 
 # ------------------------------------------------------------------ Highlightly
 def hl_get(path: str, params: dict | None = None) -> dict:
+    global _hl_llamadas
+    if MAX_HL and _hl_llamadas >= MAX_HL:
+        # Cortamos limpio: ya gastamos el presupuesto de esta corrida.
+        print(f"  [presupuesto] alcanzado MAX_HL={MAX_HL}. Corto para no agotar la cuota.")
+        raise LimiteDiario()
+    _hl_llamadas += 1
     r = requests.get(
         f"{HL_BASE}{path}",
         headers={"x-rapidapi-key": HL_KEY},
@@ -163,6 +180,14 @@ def fecha_utc(partido: dict) -> str:
 
 def candidatos() -> list[dict]:
     """Partidos finalizados que toca enriquecer."""
+    # Modo quirurgico: solo los que matcheen SOLO (por nombre), pasen o no la
+    # gracia y esten o no enriquecidos. 1 partido = 1 llamada a HL.
+    if SOLO:
+        todos = sb_get("partidos", {"select": "*", "order": "fecha"})
+        return [
+            p for p in todos
+            if SOLO in f"{p.get('equipo_local','')} vs {p.get('equipo_visita','')}".lower()
+        ]
     if MODO == "todos":
         return sb_get("partidos", {"estado": "eq.final", "select": "*",
                                     "order": "fecha"})

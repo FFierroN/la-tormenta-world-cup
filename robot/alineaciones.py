@@ -38,6 +38,9 @@ from enriquecer import LimiteDiario, buscar_match_id, hl_get
 
 MODO = os.getenv("MODO", "auto").strip().lower()
 VENTANA_MIN = int(os.getenv("VENTANA_MIN", "90"))
+# Cuantos minutos DESPUES del inicio seguir intentando (piso de la ventana).
+# Cubre el partido completo + margen; luego ya no se reintenta (evita fuga).
+VENTANA_POST = int(os.getenv("VENTANA_POST", "180"))
 
 
 def _jugador(j: dict) -> dict:
@@ -93,29 +96,36 @@ def alineaciones_desde_hl(match_id: int) -> dict | None:
     return {"local": local, "visita": visita}
 
 
-def _en_ventana(p: dict, limite: datetime) -> bool:
-    """True si la hora del partido ya entro en la ventana (o ya paso)."""
+def _en_ventana(p: dict, ahora: datetime) -> bool:
+    """True si AHORA cae dentro de la ventana de carga del partido:
+    desde VENTANA_MIN antes del inicio hasta VENTANA_POST despues.
+
+    Tener PISO (no solo techo) es clave: sin el, el cron reintentaba TODOS los
+    partidos viejos sin alineacion en cada corrida -> fuga de cuota de HL. Con
+    el piso, un partido que termino hace rato ya no se vuelve a consultar.
+    """
     try:
         f = datetime.fromisoformat(str(p.get("fecha")).replace("Z", "+00:00"))
         if f.tzinfo is None:
             f = f.replace(tzinfo=timezone.utc)
     except (ValueError, TypeError):
-        return True  # sin fecha valida: dale, que el robot intente
-    return f <= limite
+        return False  # sin fecha valida: NO lo intentamos (evita fuga)
+    desde = f - timedelta(minutes=VENTANA_MIN)
+    hasta = f + timedelta(minutes=VENTANA_POST)
+    return desde <= ahora <= hasta
 
 
 def candidatos() -> list[dict]:
     """Partidos a los que toca (re)cargar alineaciones."""
     ahora = datetime.now(timezone.utc)
-    limite = ahora + timedelta(minutes=VENTANA_MIN)
     if MODO == "todos":
-        todos = sb_get("partidos", {"select": "*", "order": "fecha"})
-        return [p for p in todos if _en_ventana(p, limite)]
-    # auto: solo los que aun no tienen alineaciones y ya entraron en ventana.
+        # Backfill manual: todos (sin ventana). El tope MAX_HL evita desbordes.
+        return sb_get("partidos", {"select": "*", "order": "fecha"})
+    # auto: solo los sin alineaciones que esten DENTRO de la ventana acotada.
     sin = sb_get("partidos", {
         "alineaciones": "is.null", "select": "*", "order": "fecha",
     })
-    return [p for p in sin if _en_ventana(p, limite)]
+    return [p for p in sin if _en_ventana(p, ahora)]
 
 
 def main() -> None:

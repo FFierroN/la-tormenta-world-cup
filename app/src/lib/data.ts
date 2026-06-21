@@ -511,6 +511,26 @@ export async function setFotoUltimoHabilitada(on: boolean): Promise<void> {
   lanzarSi(error);
 }
 
+// ---------- FOTO DE FONDO DEL PRIMER LUGAR (toggle admin) ----------
+// Lee/escribe la llave 'foto_primero_habilitada' (mismo patron que el ultimo).
+export async function fotoPrimeroHabilitada(): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("configuracion")
+    .select("valor")
+    .eq("clave", "foto_primero_habilitada")
+    .maybeSingle();
+  lanzarSi(error);
+  return data?.valor === "true";
+}
+
+export async function setFotoPrimeroHabilitada(on: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("configuracion")
+    .update({ valor: on ? "true" : "false", updated_at: new Date().toISOString() })
+    .eq("clave", "foto_primero_habilitada");
+  lanzarSi(error);
+}
+
 export async function misEspeciales(
   jugadorId: string
 ): Promise<Especiales | null> {

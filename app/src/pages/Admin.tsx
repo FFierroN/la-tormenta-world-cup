@@ -6,6 +6,8 @@ import {
   setPrediccionesHabilitadas,
   fotoUltimoHabilitada,
   setFotoUltimoHabilitada,
+  fotoPrimeroHabilitada,
+  setFotoPrimeroHabilitada,
 } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { ESTADO_LABEL, enCurso } from "../lib/estados";
@@ -47,6 +49,14 @@ export default function Admin() {
         descripcionOff="Oculta: el cuadro del último se ve normal."
         cargar={fotoUltimoHabilitada}
         guardar={setFotoUltimoHabilitada}
+      />
+
+      <ConfigToggle
+        titulo="Foto del primer lugar"
+        descripcionOn="Visible: el cuadro del primero lleva foto de fondo."
+        descripcionOff="Oculta: el cuadro del primero se ve normal."
+        cargar={fotoPrimeroHabilitada}
+        guardar={setFotoPrimeroHabilitada}
       />
 
       <div className="px-4 mb-3">

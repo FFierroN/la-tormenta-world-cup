@@ -3,7 +3,7 @@ import Avatar from "../components/Avatar";
 import IndicadorMovimiento from "../components/IndicadorMovimiento";
 import PrediccionesTodos from "../components/PrediccionesTodos";
 import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
-import { obtenerTabla, obtenerTablaLive, obtenerPosicionesBase, fotoUltimoHabilitada } from "../lib/data";
+import { obtenerTabla, obtenerTablaLive, obtenerPosicionesBase, fotoUltimoHabilitada, fotoPrimeroHabilitada } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { useSwipe } from "../lib/useSwipe";
 import type { FilaTabla } from "../lib/types";
@@ -16,9 +16,11 @@ export default function Tabla() {
   const { data: live } = useAsync(obtenerTablaLive, []);
   const { data: posBase } = useAsync(obtenerPosicionesBase, []);
   const { data: fotoCfg } = useAsync(fotoUltimoHabilitada, []);
+  const { data: fotoCfgPrimero } = useAsync(fotoPrimeroHabilitada, []);
   const filas = data ?? [];
   const total = filas.length;
   const fotoUltimoOn = fotoCfg ?? false;
+  const fotoPrimeroOn = fotoCfgPrimero ?? false;
 
   // Movimiento de posicion (flechas que PERSISTEN):
   //   actual   = posicion AHORA (en vivo si hay; si no, la oficial).
@@ -68,7 +70,7 @@ export default function Tabla() {
 
       {pestana === "galeria" && (
         <div {...swipe}>
-          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} posLive={posLive} posBase={posBaseMap} />
+          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} fotoPrimeroOn={fotoPrimeroOn} posLive={posLive} posBase={posBaseMap} />
         </div>
       )}
       {pestana === "clasica" && (
@@ -120,24 +122,30 @@ function Galeria({
   filas,
   total,
   fotoUltimoOn,
+  fotoPrimeroOn,
   posLive,
   posBase,
 }: {
   filas: FilaTabla[];
   total: number;
   fotoUltimoOn: boolean;
+  fotoPrimeroOn: boolean;
   posLive: Map<string, number>;
   posBase: Map<string, number>;
 }) {
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
       {filas.map((f) => {
-        // Foto de fondo SOLO para el ultimo lugar y si el admin la activo.
-        const conFoto = fotoUltimoOn && total > 0 && f.posicion === total;
+        // Foto de fondo para el ultimo (pos = total) o el primero (pos = 1),
+        // cada uno con su propio toggle de admin.
+        const conFotoUltimo = fotoUltimoOn && total > 0 && f.posicion === total;
+        const conFotoPrimero = fotoPrimeroOn && f.posicion === 1;
+        const conFoto = conFotoUltimo || conFotoPrimero;
+        const fondo = conFotoPrimero ? "url('/primero.png')" : "url('/ultimo.png')";
         return (
           <article
             key={f.jugador_id}
-            style={conFoto ? { backgroundImage: "url('/ultimo.png')" } : undefined}
+            style={conFoto ? { backgroundImage: fondo } : undefined}
             className={`relative overflow-hidden bg-carbon-card border border-borde rounded-2xl ${
               conFoto ? "bg-cover bg-center" : ""
             }`}

@@ -4,21 +4,23 @@
 > Cup: qué APIs usamos, qué trae cada una, y qué bot hace qué.
 > **Nunca se guardan keys aquí** — solo los *nombres* de los secretos y dónde viven.
 
-Última actualización: 2026-06-12.
+Última actualización: 2026-06-22.
 
 ---
 
 ## Resumen en una frase
 
-Dos APIs gratis + dos bots: **Cloudflare** trae el marcador EN VIVO cada 1 min,
-y **GitHub Actions** rellena asistencias/tarjetas/stats/cambios al FINAL del
-partido. Ambos escriben en Supabase; la app solo lee.
+Dos APIs gratis + un bot principal: el **Cloudflare Worker** hace TODO el trabajo
+automatico en un cron de 1 min (marcador en vivo, tramos HT/2T, enriquecido
+HT/FT y alineaciones). **GitHub Actions** quedo como **respaldo manual** (cron
+apagado) por si algo se desincroniza. Ambos escriben en Supabase; la app solo lee.
 
 ```
- worldcup26.ir ──► Cloudflare Worker (cada 1 min) ──┐
-   (marcador en vivo)                                ├─► Supabase ──► App (PWA)
- Highlightly ─────► GitHub Actions (cada 10 min) ───┘
-   (datos post-partido)
+ worldcup26.ir ──►┐
+   (marcador en vivo)  Cloudflare Worker (cada 1 min) ──► Supabase ──► App (PWA)
+ Highlightly ────►┘   (marcador + tramos + enriquecido + alineaciones)
+
+ GitHub Actions (workflow_dispatch, a mano) ──► Supabase   [RESPALDO]
 ```
 
 ---
@@ -51,36 +53,48 @@ partido. Ambos escriben en Supabase; la app solo lee.
 
 ## Los 2 Bots
 
-### Bot 1 — Cloudflare Worker (EN VIVO)
+### Bot 1 — Cloudflare Worker (PRINCIPAL, hace TODO)
 - **Carpeta:** `worker-vivo/` (ver su propio `README.md` para desplegar).
-- **Qué hace:** lee worldcup26 y actualiza en Supabase el marcador, el estado
-  (`en_vivo` / `final`) y los goleadores.
+- **Qué hace, todo en el mismo cron de 1 min:**
+  - **Marcador en vivo** (worldcup26.ir): estado (`en_vivo` / `final`),
+    marcador y goleadores. `src/index.js`.
+  - **Tramos HT/2T** (Highlightly): detecta entretiempo y segundo tiempo.
+    `src/enriquecer.js` → `detectarTramos`.
+  - **Enriquecido HT/FT** (Highlightly): asistencias, tarjetas, sustituciones y
+    stats, a medio tiempo y al final. `src/enriquecer.js` → `enriquecerPendientes`.
+  - **Alineaciones** (Highlightly): formacion + 11 + banca, ~1h antes del
+    partido, con throttle de cuota. `src/alineaciones.js`.
 - **Frecuencia:** cron cada **1 minuto**, solo junio/julio.
-- **Auto-regulado:** si no hay partido en vivo ni por empezar, no le pega a la
-  API (solo una consulta chica a Supabase).
+- **Auto-regulado:** cada tarea solo le pega a su API si hay algo en su ventana
+  (partido en vivo / en descanso / por empezar). Si no hay nada, sale casi gratis.
 - **Por qué Cloudflare y no GitHub:** el cron de GitHub Actions se estrangula en
   horas pico (un Mundial) y saltaba corridas; perdía frescura. Cloudflare corre
-  puntual.
+  puntual cada minuto.
 - **Disparo manual (test):** `GET https://tormenta-vivo.<subdominio>.workers.dev/?key=<TRIGGER_SECRET>`
 - **Secretos (en Cloudflare, vía `wrangler secret put`):**
-  `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `TRIGGER_SECRET`.
+  `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `TRIGGER_SECRET` y **`HL_KEY`**
+  (Highlightly; necesaria para tramos, enriquecido y alineaciones).
 
-### Bot 2 — GitHub Actions (POST-partido)
-- **Workflow:** `.github/workflows/sync.yml` → corre `robot/enriquecer.py`.
-- **Qué hace:** para cada partido finalizado, llama a Highlightly y rellena
-  `partido_eventos` (asistencias, tarjetas, cambios) y `partidos.estadisticas`.
-- **Frecuencia:** cron cada **10 minutos**, solo junio/julio. No necesita ser
-  puntual (es post-partido). Espera ~20 min tras el pitazo (gracia para que
-  Highlightly cierre los datos).
-- **Disparo manual:** Actions → "Enriquecer eventos" → Run workflow. Modo
-  `todos` re-enriquece todos los partidos finalizados.
+### Bot 2 — GitHub Actions (RESPALDO MANUAL, cron apagado)
+Ya no corre por cron. Son 3 workflows que se disparan **a mano** (Actions → Run
+workflow) si algo se desincroniza y hay que rehacerlo sin esperar al Worker:
+
+| Workflow | Script | Para qué (respaldo de...) |
+|---|---|---|
+| `sync.yml` | `robot/enriquecer.py` | enriquecido HT/FT (Highlightly). Modo `todos` rehace todo. |
+| `alineaciones.yml` | `robot/alineaciones.py` | alineaciones (Highlightly). |
+| `actualizar.yml` | `robot/actualizar.py` | marcador/goles (worldcup26.ir, NO gasta cuota HL). |
+
+- **Por qué se apagaron los cron:** los hace el Worker, puntual cada minuto.
+- **Disparo manual:** Actions → elegir el workflow → Run workflow.
 - **Secretos (en GitHub → Settings → Secrets → Actions):**
   `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `HIGHLIGHTLY_KEY`.
 
-### Código heredado (ya no corre)
-- `robot/actualizar.py` + `robot/comun.py`: fue el robot del marcador en vivo en
-  GitHub. Sigue en el repo como **fuente del port** al Worker y por si se
-  necesita, pero **ya no se ejecuta** (lo reemplazó el Worker de Cloudflare).
+### Código compartido
+- `robot/comun.py`: helpers (Supabase REST, mapa `EQUIPOS`, casts) que usan los
+  scripts de respaldo. El Worker tiene su propia copia en `worker-vivo/src/`.
+- Los scripts `robot/*.py` y el Worker hacen lo mismo: el Worker es el port a JS
+  que corre en producción; los `.py` quedan como respaldo manual y referencia.
 
 ---
 
@@ -108,11 +122,14 @@ archivos. Si aparece un `SIN MAPEAR` en algún log, agrega el país en **ambos**
 
 | Secreto | Cloudflare Worker | GitHub Actions |
 |---|:---:|:---:|
-| `SUPABASE_URL` |  |  |
-| `SUPABASE_SERVICE_KEY` |  |  |
-| `TRIGGER_SECRET` |  | — |
-| `HIGHLIGHTLY_KEY` | — |  |
+| `SUPABASE_URL` | si | si |
+| `SUPABASE_SERVICE_KEY` | si | si |
+| `TRIGGER_SECRET` | si | — |
+| `HL_KEY` (Highlightly) | si | — |
+| `HIGHLIGHTLY_KEY` (Highlightly) | — | si |
 
+> Ojo: la key de Highlightly es la MISMA, pero el secreto se llama distinto en
+> cada lado: `HL_KEY` en el Worker y `HIGHLIGHTLY_KEY` en GitHub Actions.
 > `SUPABASE_SERVICE_KEY` es la `service_role` (la larga `eyJ...`, bypassa RLS).
 > Va **solo** como secreto en los bots — nunca en el código ni en el frontend.
 > El frontend usa la `anon` key, que respeta Row Level Security.

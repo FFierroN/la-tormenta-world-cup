@@ -26,13 +26,19 @@ Una aplicacion movil instalable (PWA) donde el grupo puede:
 | Hosting de la app | Cloudflare Pages | Free |
 | Marcador en vivo | worldcup26.ir | Free (sin auth) |
 | Datos post-partido | Highlightly | Free (100 req/dia) |
-| Bot en vivo | Cloudflare Worker (cron 1 min) | Free |
-| Bot post-partido | GitHub Actions (cron 10 min) | Free |
+| Bot principal (todo) | Cloudflare Worker (cron 1 min) | Free |
+| Respaldo manual | GitHub Actions (workflow_dispatch) | Free |
 
 > Nota historica: el proyecto empezo pensado para Lovable, pero se abandono
 > cuando forzo su backend de pago. El frontend hoy es 100% Vite propio,
 > conectado al Supabase personal de Felipe. La capa de datos en vivo tambien
 > migro: de API-Football a worldcup26.ir + Highlightly (ver `APIS-Y-BOTS.md`).
+>
+> Nota de arquitectura (jun 2026): TODO el trabajo automatico de datos
+> (marcador en vivo, tramos HT/2T, enriquecido HT/FT y alineaciones) lo hace el
+> **Cloudflare Worker** en su cron de 1 min. Los workflows de GitHub Actions
+> quedaron como **respaldo manual** (disparo a mano), porque su cron se
+> estrangulaba en horas pico de Mundial.
 
 ---
 
@@ -46,12 +52,15 @@ Una aplicacion movil instalable (PWA) donde el grupo puede:
                           (tablas + RLS + realtime
                            + calculo de puntos por trigger)
                                   ^  ^
-              escribe (service key) |  | escribe (service key)
+              escribe (service key) |  | escribe (service key, solo a mano)
                                   |  |
-        Cloudflare Worker --------+  +-------- GitHub Actions
-        worldcup26.ir (1 min)           Highlightly (10 min)
-        marcador / estado / goles       asistencias / tarjetas /
-        EN VIVO                         cambios / stats POST-partido
+        Cloudflare Worker --------+  +-------- GitHub Actions (RESPALDO MANUAL)
+        cron 1 min, hace TODO:           workflows workflow_dispatch:
+         - marcador/estado/goles          - sync.yml  -> enriquecer.py
+           EN VIVO (worldcup26.ir)        - alineaciones.yml -> alineaciones.py
+         - tramos HT/2T (Highlightly)     - actualizar.yml -> actualizar.py
+         - enriquecido HT/FT (Highlightly) (todos con cron APAGADO; se corren
+         - alineaciones (Highlightly)      a mano si algo se desincroniza)
 ```
 
 Detalle completo de APIs, bots, secretos y salvaguardas en **`APIS-Y-BOTS.md`**.
@@ -65,12 +74,13 @@ MIPROYECTO/
 |- app/           -> frontend Vite (el codigo de la app)
 |   \- src/
 |       |- pages/        -> pantallas (Login, Partidos, PartidoDetalle, Tabla, Admin...)
-|       |- components/    -> Avatar, BottomTabs, Flag, RelojVivo, Iconos...
+|       |- components/    -> Avatar, BottomTabs, Flag, RelojVivo, CanchaAlineaciones, Iconos...
 |       \- lib/           -> data.ts (capa Supabase), auth, types, reglas...
 |- db/            -> SETUP-SUPABASE.sql + migraciones FIX-*.sql
-|- robot/         -> enriquecer.py (Highlightly) + actualizar.py/comun.py (legacy port)
-|- worker-vivo/   -> Cloudflare Worker del marcador en vivo
-|- .github/       -> workflow de GitHub Actions (enriquecimiento)
+|- robot/         -> scripts Python: enriquecer.py / alineaciones.py / actualizar.py
+|                    (hoy son el RESPALDO MANUAL; el Worker hace lo mismo en vivo)
+|- worker-vivo/   -> Cloudflare Worker: marcador + tramos + enriquecido + alineaciones
+|- .github/       -> workflows de GitHub Actions (los 3 con cron apagado, respaldo)
 |- _archivo/      -> documentacion historica (specs y decisiones de construccion)
 \- *.md           -> esta guia, APIS-Y-BOTS.md y MIGRACION-Y-DESPLIEGUE.md
 ```
@@ -99,13 +109,22 @@ MIPROYECTO/
 
 ## Datos en vivo: que llega y cuando
 
-- **En vivo (Cloudflare Worker, cada 1 min):** estado del partido (en vivo /
-  final), marcador y goleadores con minuto.
-- **Post-partido (GitHub Actions + Highlightly):** asistencias, tarjetas,
-  sustituciones y estadisticas.
+Todo lo automatico lo hace el **Cloudflare Worker** en un solo cron de 1 min
+(se auto-regula: fuera de ventana no le pega a las APIs):
+
+- **Marcador en vivo (worldcup26.ir):** estado del partido (en vivo / final),
+  marcador y goleadores con minuto. Es la fuente gratuita y sin limite.
+- **Tramos HT/2T (Highlightly):** detecta entretiempo y segundo tiempo.
+- **Enriquecido HT/FT (Highlightly):** asistencias, tarjetas, sustituciones y
+  estadisticas, a medio tiempo y al final.
+- **Alineaciones (Highlightly):** formacion + 11 inicial + banca, ~1 hora antes
+  del partido (con throttle para no agotar la cuota).
 - **Limitacion conocida:** worldcup26.ir no entrega el minuto numerico del
   partido, por eso el cronometro no corre solo (necesita un ancla de minuto que
   la API no da). El marcador y los goles si llegan en vivo.
+
+> GitHub Actions ya **no** corre por cron: los 3 workflows quedaron como
+> respaldo manual (ver `APIS-Y-BOTS.md`).
 
 ---
 
@@ -123,7 +142,8 @@ git push origin cambios-felipe
 
 - La **app** (Cloudflare Pages) se republica sola al push a `main`.
 - El **Worker** NO se redespliega solo: hay que correr `npx wrangler deploy`
-  dentro de `worker-vivo/` (ver `worker-vivo/README.md`).
+  dentro de `worker-vivo/` (ver `worker-vivo/README.md`). Recuerda que el Worker
+  necesita 4 secretos, incluido `HL_KEY` (Highlightly).
 - Cambios de base de datos: correr el SQL correspondiente en Supabase (idempotente).
 
 ---

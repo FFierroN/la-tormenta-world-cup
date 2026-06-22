@@ -20,6 +20,7 @@
 
 import { comoBool, comoInt, makeSupa, nuestroNombre } from "./comun.js";
 import { enriquecerPendientes, detectarTramos, hlConfirmaArranque } from "./enriquecer.js";
+import { cargarAlineaciones } from "./alineaciones.js";
 
 const API_URL = "https://worldcup26.ir/get/games";
 
@@ -383,6 +384,15 @@ async function correr(env, log) {
     await enriquecerPendientes(supa, env, log, cacheFecha);
   } catch (e) {
     log.push(`enriquecer FATAL: ${e.message}`);
+  }
+
+  // Alineaciones (pre-partido) en el mismo cron. Se auto-regula: solo cada N
+  // min, solo partidos sin alineacion en ventana pre-partido. Reusa cacheFecha
+  // (la lista de HL por fecha) para no duplicar la llamada /matches?date.
+  try {
+    await cargarAlineaciones(supa, env, log, cacheFecha);
+  } catch (e) {
+    log.push(`alineaciones FATAL: ${e.message}`);
   }
 
   log.push("Listo.");

@@ -31,10 +31,10 @@ const TIPO_HL = {
   "Substitution": "cambio",
 };
 
-class LimiteDiario extends Error {}
+export class LimiteDiario extends Error {}
 
 // ------------------------------------------------------------------ Highlightly
-async function hlGet(env, path, params) {
+export async function hlGet(env, path, params) {
   const qs = params
     ? "?" + Object.entries(params)
         .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
@@ -88,7 +88,7 @@ function fechaUtc(p) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
-async function buscarMatchId(env, supa, p, cacheFecha, log) {
+export async function buscarMatchId(env, supa, p, cacheFecha, log) {
   if (p.highlightly_id) return comoInt(p.highlightly_id);
 
   const f = fechaUtc(p);

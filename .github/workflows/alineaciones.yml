@@ -1,8 +1,16 @@
 name: Cargar alineaciones (Highlightly -> Supabase)
 
 # Robot PRE-PARTIDO dedicado a alineaciones (formacion + 11 + banca).
-# Es una pieza NUEVA y aislada: el marcador/eventos en vivo los sigue
-# manejando el Cloudflare Worker. Esto NO lo toca el worker.
+#
+# DESDE 2026-06-22: las alineaciones las carga el Cloudflare Worker
+# (worker-vivo/src/alineaciones.js) en su cron de 1 min, con throttle de cuota.
+# Motivo: el cron de GitHub Actions corria 1 vez por hora (pegado al minuto :00)
+# y se atrasa/salta en horas pico -> los partidos que empiezan "en punto"
+# recibian la alineacion al pitazo o despues. El Worker es cada 1 min y confiable.
+#
+# Por eso el CRON de aca esta DESACTIVADO: queda solo el disparo MANUAL
+# (workflow_dispatch) como respaldo, util para backfill con modo=todos si el
+# Worker se quedo corto de cuota algun dia.
 #
 # Secretos del repo (Settings -> Secrets -> Actions):
 #   SUPABASE_URL, SUPABASE_SERVICE_KEY, HIGHLIGHTLY_KEY
@@ -27,8 +35,10 @@ on:
         options:
           - auto
           - todos
-  schedule:
-    - cron: "*/60 * * * *"   # cada 60 min (la ventana acotada evita gasto inutil)
+  # schedule DESACTIVADO -> las alineaciones ahora las carga el Worker (cada 1 min).
+  # Si alguna vez quieres reactivar el respaldo automatico, descomenta:
+  # schedule:
+  #   - cron: "*/60 * * * *"
 
 concurrency:
   group: cargar-alineaciones

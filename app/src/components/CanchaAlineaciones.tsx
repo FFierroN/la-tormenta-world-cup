@@ -43,9 +43,23 @@ const SOMBRA_MINI =
   "0 1px 3px rgba(0,0,0,.5), inset 0 1px 1px rgba(255,255,255,.3)";
 
 // Fila compacta de iconos de actividad (goles, asist, tarjetas, entro/salio).
-function IconosActividad({ act }: { act: ActividadJugador }) {
+// esTitular ajusta las flechas para descartar combinaciones IMPOSIBLES que el
+// match difuso de nombres (apellidos parecidos) puede inventar:
+//   - un TITULAR empezo en cancha -> jamas "entro" (solo puede "salir").
+//   - un SUPLENTE solo pudo "salir" si antes "entro" (no sale quien no entro).
+// Asi un suplente que entro y luego fue reemplazado SI muestra ambas (caso real),
+// pero se eliminan las dobles flechas fantasma por colision de apellidos.
+function IconosActividad({
+  act,
+  esTitular,
+}: {
+  act: ActividadJugador;
+  esTitular: boolean;
+}) {
+  const entro = act.entro && !esTitular;
+  const salio = act.salio && (esTitular || act.entro);
   const hayAlgo =
-    act.goles || act.autogoles || act.asistencias || act.amarilla || act.roja || act.entro || act.salio;
+    act.goles || act.autogoles || act.asistencias || act.amarilla || act.roja || entro || salio;
   if (!hayAlgo) return null;
   return (
     <div className="flex items-center justify-center gap-0.5 flex-wrap">
@@ -64,8 +78,8 @@ function IconosActividad({ act }: { act: ActividadJugador }) {
       )}
       {act.amarilla && <YellowCard />}
       {act.roja && <RedCard />}
-      {act.entro && <FlechaEntra className="w-3 h-3" />}
-      {act.salio && <FlechaSale className="w-3 h-3" />}
+      {entro && <FlechaEntra className="w-3 h-3" />}
+      {salio && <FlechaSale className="w-3 h-3" />}
     </div>
   );
 }
@@ -91,7 +105,7 @@ function Ficha({
       <span className="text-[10px] leading-tight text-center text-white/90 drop-shadow">
         {apellido(j.nombre)}
       </span>
-      <IconosActividad act={act} />
+      <IconosActividad act={act} esTitular />
     </div>
   );
 }
@@ -169,7 +183,7 @@ function ColumnaBanca({
               {j.numero ?? "-"}
             </span>
             <span className="text-xs text-neutral-300 leading-tight">{apellido(j.nombre)}</span>
-            <IconosActividad act={act} />
+            <IconosActividad act={act} esTitular={false} />
           </div>
         );
       })}

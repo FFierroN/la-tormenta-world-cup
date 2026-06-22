@@ -1,0 +1,111 @@
+=====================================================================
+ PENDIENTES PARA ESTA NOCHE (desde tu PC) - La Tormenta Mundial 2026
+ Generado por Kira - 2026-06-22
+=====================================================================
+
+RESUMEN EN 1 LINEA:
+   Lo unico que falta es UN solo "wrangler deploy" del Worker.
+   Ese deploy trae JUNTOS el fix del Congo (0:0) y las formaciones nuevas.
+
+IMPORTANTE: lo que anotaste como "deploy del Congo" y "deploy de
+formaciones" NO son dos deploys. Es EL MISMO Worker (worker-vivo/), asi
+que con UNA sola corrida de "wrangler deploy" quedan los dos.
+
+---------------------------------------------------------------------
+ LO QUE YA ESTA HECHO (no necesitas tu PC para esto)
+---------------------------------------------------------------------
+[OK] Congo a 0:0 en la base   -> corriste FIX-marcador-final-cero.sql
+[OK] Gol de Arnautovic (A-J)  -> corriste FIX-gol-austria-jordania.sql
+[OK] Codigo de los robots     -> ya esta en main (commits 60c9235,
+                                  108effe, f78ff66)
+[OK] Cron de alineaciones      -> apagado (lo reemplaza el Worker)
+
+---------------------------------------------------------------------
+ TAREA UNICA: DEPLOY DEL WORKER (Cloudflare)
+---------------------------------------------------------------------
+Por que: el codigo nuevo del Worker (fix 0:0 en finales + carga de
+alineaciones con throttle) SOLO se activa al hacer "wrangler deploy".
+Tenerlo en main NO basta: main deploya el frontend (Cloudflare Pages),
+NO el Worker. El Worker es aparte.
+
+PASO 1 - Traer el codigo mas reciente a tu PC:
+
+   cd "C:\Users\vn5affh\Projects\Code Puppy\MIPROYECTO"
+   git checkout main
+   git pull
+
+   (Deberias ver el commit f78ff66 como ultimo. Si ya estabas en main
+    y al dia, "git pull" dira "Already up to date" y esta bien.)
+
+PASO 2 - Deployar el Worker:
+
+   cd worker-vivo
+   npx wrangler deploy
+
+   - Si te pide login a Cloudflare, sigue el link que sale en consola.
+   - NO necesitas configurar ningun secreto nuevo: el Worker ya tiene
+     SUPABASE_URL, SUPABASE_SERVICE_KEY, HL_KEY y TRIGGER_SECRET.
+   - Al terminar deberia decir algo como "Published la-tormenta-..."
+     con una URL y la version desplegada.
+
+---------------------------------------------------------------------
+ PASO 3 (OPCIONAL pero recomendado): VERIFICAR QUE QUEDO BIEN
+---------------------------------------------------------------------
+Opcion A - Ver los logs en vivo del Worker (1-2 min):
+
+   npx wrangler tail
+
+   Dejalo corriendo un par de minutos. Si hay un partido en ventana
+   pre-partido, veras lineas tipo:
+      "Alineaciones: N partido(s) en ventana."
+      "[Equipo vs Equipo] OK alineacion  local 4-3-3 / visita 4-2-3-1"
+   Si NO hay partidos cerca, es normal que no diga nada de alineaciones
+   (se auto-regula: fuera de ventana = 0 llamadas a HL). Corta con Ctrl+C.
+
+Opcion B - Dispararlo a mano una vez (sustituye TU_TRIGGER_SECRET por
+el valor real que guardaste como secreto del Worker):
+
+   abre en el navegador:
+   https://<tu-worker>.workers.dev/?key=TU_TRIGGER_SECRET
+
+   Te devuelve el log de esa corrida en texto plano.
+
+---------------------------------------------------------------------
+ QUE ESPERAR MAÑANA (partido del Congo y demas)
+---------------------------------------------------------------------
+1. FORMACIONES: deberian aparecer apenas Highlightly las publique
+   (~1 hora antes del pitazo). El Worker revisa cada 5 min dentro de la
+   ventana [75 min antes  ->  10 min despues] del inicio.
+   - Fijate a que hora EXACTA aparecen y anotalo. Si algun partido las
+     publica mas tarde de lo esperado, avisame y subo la ventana o bajo
+     el intervalo (es 1 linea).
+
+2. MARCADOR 0:0: si algun partido termina 0:0, ahora el Worker escribe
+   "0:0" solo (ya no se queda en "-:-"). El Congo de hoy ya quedo bien
+   por SQL; esto es para que NO vuelva a pasar en el futuro.
+
+---------------------------------------------------------------------
+ SI ALGO SALE MAL (plan B)
+---------------------------------------------------------------------
+- El deploy no rompe nada del frontend ni de la base. Si el Worker
+  fallara, el peor caso es que las formaciones no carguen solas: puedes
+  dispararlas a mano con el workflow de respaldo en GitHub:
+     Actions -> "Cargar alineaciones" -> Run workflow -> modo: todos
+  (eso usa Highlightly; el cron quedo apagado pero el boton manual sigue).
+
+- Rollback del Worker a la version anterior (si hiciera falta):
+     cd worker-vivo
+     npx wrangler rollback
+  (o redeploya desde el commit anterior 108effe).
+
+- Cualquier 0:0 que apareciera como "-:-" antes del deploy se arregla
+  re-corriendo en Supabase:  db/FIX-marcador-final-cero.sql
+
+---------------------------------------------------------------------
+ CHECKLIST RAPIDO
+---------------------------------------------------------------------
+[ ] cd MIPROYECTO  ->  git checkout main  ->  git pull
+[ ] cd worker-vivo  ->  npx wrangler deploy
+[ ] (opcional) npx wrangler tail  para ver logs 1-2 min
+[ ] mañana: anotar a que hora aparecen las formaciones
+=====================================================================

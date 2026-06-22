@@ -82,15 +82,24 @@ def derivar_estado(m: dict) -> str:
     return "programado"
 
 
-# Patrón goleador: "J. Quiñones 9'" o "R. Jiménez 67'+2" o "J. Doe 90+3'"
-RE_GOLEADOR = re.compile(r"^\s*(?P<jugador>.+?)\s+(?P<minuto>\d+)(?:\s*\+\s*\d+)?\s*'?\s*$")
+# Patrón goleador: "J. Quiñones 9'" | "F. Balogun 45'+5'" | "J. Doe 90+3'".
+# Captura: jugador, minuto base, descuento (opcional). Espejo del Worker
+# (worker-vivo/src/index.js) para que ambos robots se comporten IGUAL (DRY).
+RE_GOLEADOR = re.compile(
+    r"^\s*(?P<jugador>.+?)\s+(?P<minuto>\d+)\s*'?\s*(?:\+\s*(?P<adic>\d+)\s*'?)?\s*$"
+)
 
 
-def parsear_scorers(crudo) -> list[tuple[str, int]]:
-    """Convierte el string raro de la API en lista de (jugador, minuto).
+def parsear_scorers(crudo) -> list[tuple[str, int, int | None, bool, bool]]:
+    """Parsea el string raro de la API a (jugador, minuto, adicional, og, penal).
 
     Formato visto: '{"J. Quiñones 9\\'","R. Jiménez 67\\'"}'  (con comillas
     tipograficas " y "). Tambien la API devuelve a veces el string "null".
+
+    worldcup26 marca autogoles y penales junto al nombre con "(OG)" / "(p)"
+    (ej. "D. Bobadilla 7'(OG)", "Breel Embolo 17' (p)"). Los detectamos y los
+    quitamos del nombre antes de matchear el minuto, asi recuperamos esos goles
+    SIN gastar Highlightly. Antes el Python los perdia (solo lo hacia el Worker).
     """
     if crudo is None:
         return []
@@ -104,17 +113,23 @@ def parsear_scorers(crudo) -> list[tuple[str, int]]:
     s = s.replace("\u2018", "'").replace("\u2019", "'")
     # Separar entradas por '","' o ',"'
     crudos = re.split(r'"\s*,\s*"', s)
-    salida: list[tuple[str, int]] = []
+    salida: list[tuple[str, int, int | None, bool, bool]] = []
     for c in crudos:
         c = c.strip().strip('"').strip()
         if not c:
             continue
+        es_autogol = re.search(r"\(og\)", c, re.I) is not None
+        es_penal = re.search(r"\(p\)", c, re.I) is not None
+        c = re.sub(r"\(og\)", "", c, flags=re.I)
+        c = re.sub(r"\(p\)", "", c, flags=re.I)
+        c = re.sub(r"\s{2,}", " ", c).strip()
         m = RE_GOLEADOR.match(c)
         if not m:
             continue
         jugador = m.group("jugador").strip()
         minuto = int(m.group("minuto"))
-        salida.append((jugador, minuto))
+        adic = int(m.group("adic")) if m.group("adic") else None
+        salida.append((jugador, minuto, adic, es_autogol, es_penal))
     return salida
 
 
@@ -252,6 +267,14 @@ def actualizar_partido(p: dict, m: dict) -> str | None:
         body["goles_visita"] = away
     if nuevo_estado == "final":
         body["minuto"] = None
+        # Un partido FINAL siempre tiene marcador: si llega a final y no hay
+        # numero (ni en la API ni en la DB), es 0:0. Sin esto, un 0:0 donde
+        # worldcup26 manda score=null se queda en NULL para siempre y el panel
+        # de admin muestra "-:-" en vez de "0:0" (bug RD Congo, 2026-06-21).
+        if home is None and p.get("goles_local") is None:
+            body["goles_local"] = 0
+        if away is None and p.get("goles_visita") is None:
+            body["goles_visita"] = 0
         # Sellar finalizado_at SOLO la primera vez (transicion a final). Si lo
         # re-escribieramos en cada corrida, la "gracia" de 20 min del
         # enriquecedor (enriquecer.py) nunca se cumpliria. (El robot vivo real
@@ -275,24 +298,25 @@ def sincronizar_goles(p: dict, m: dict) -> None:
     Salvaguarda: si la API NO trae goles (lista vacia, p.ej. un glitch o feed
     aun sin cargar), NO borra nada. Asi un hipo de la API no te borra el partido.
     """
-    parsed: list[tuple[str, int, str]] = []
-    for jugador, minuto in parsear_scorers(m.get("home_scorers")):
-        parsed.append((jugador, minuto, "local"))
-    for jugador, minuto in parsear_scorers(m.get("away_scorers")):
-        parsed.append((jugador, minuto, "visita"))
+    parsed: list[tuple[str, int, int | None, str, bool, bool]] = []
+    for jugador, minuto, adic, og, pen in parsear_scorers(m.get("home_scorers")):
+        parsed.append((jugador, minuto, adic, "local", og, pen))
+    for jugador, minuto, adic, og, pen in parsear_scorers(m.get("away_scorers")):
+        parsed.append((jugador, minuto, adic, "visita", og, pen))
 
     if not parsed:
         return  # la API no asegura goles -> no tocamos nada
 
-    # Guardar los datos manuales existentes (asistencia/detalle) por equipo+minuto
+    # Guardar los datos manuales existentes (asistencia/detalle) por equipo+minuto+adic
     existentes = sb_get("partido_eventos", {
         "partido_id": f"eq.{p['id']}",
         "tipo": "eq.gol",
-        "select": "equipo,minuto,asistencia,detalle",
+        "select": "equipo,minuto,minuto_adicional,asistencia,detalle",
     })
     manual = {}
     for e in existentes:
-        manual[(e["equipo"], e["minuto"])] = {
+        clave = (e["equipo"], e["minuto"], e.get("minuto_adicional"))
+        manual[clave] = {
             "asistencia": e.get("asistencia"),
             "detalle": e.get("detalle") or "normal",
         }
@@ -300,19 +324,28 @@ def sincronizar_goles(p: dict, m: dict) -> None:
     # Reconstruir goles 100% desde la API, restaurando lo manual donde calce.
     filas = []
     vistos = set()
-    for jugador, minuto, equipo in parsed:
-        if (jugador, minuto, equipo) in vistos:
+    for jugador, minuto, adic, equipo, es_autogol, es_penal in parsed:
+        clave_vista = (jugador, minuto, adic, equipo)
+        if clave_vista in vistos:
             continue  # la API a veces repite
-        vistos.add((jugador, minuto, equipo))
-        prev = manual.get((equipo, minuto), {})
+        vistos.add(clave_vista)
+        prev = manual.get((equipo, minuto, adic), {})
+        # Prioridad del detalle: autogol > penal (API) > lo del admin > normal.
+        if es_autogol:
+            detalle = "autogol"
+        elif es_penal:
+            detalle = "penal"
+        else:
+            detalle = prev.get("detalle", "normal")
         filas.append({
             "partido_id": p["id"],
             "tipo": "gol",
             "equipo": equipo,
             "minuto": minuto,
-            "jugador": jugador,                      # nombre correcto de la API
+            "minuto_adicional": adic,                 # descuento (45+5 -> 5)
+            "jugador": jugador,                       # nombre correcto de la API
             "asistencia": prev.get("asistencia"),    # preservado del admin
-            "detalle": prev.get("detalle", "normal"),  # preservado del admin
+            "detalle": detalle,                       # autogol/penal de la API o lo del admin
         })
 
     sb_delete("partido_eventos",

@@ -250,6 +250,12 @@ async function actualizarPartido(supa, p, m, env, cacheFecha, log) {
 
   if (nuevoEstado === "final") {
     body.tramo = null; // se acabo: sin etiqueta de tramo
+    // Un partido FINAL siempre tiene marcador: si llega a final y no hay numero
+    // (ni en la API ni en la DB), es 0:0. Sin esto, un 0:0 donde worldcup26
+    // manda score=null se queda en NULL y el panel admin muestra "-:-" en vez
+    // de "0:0" (bug RD Congo, 2026-06-21).
+    if (home === null && p.goles_local == null) body.goles_local = 0;
+    if (away === null && p.goles_visita == null) body.goles_visita = 0;
     // Sellar finalizado_at SOLO la primera vez (transicion a final). Si lo
     // re-escribieramos cada minuto, la "gracia" de 15 min del enriquecedor
     // nunca se cumpliria y Highlightly jamas correria.

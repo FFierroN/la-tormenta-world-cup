@@ -1,24 +1,27 @@
 -- =====================================================================
 -- FIX: RPC para la pestana "Casi" de Mis predicciones.
 -- =====================================================================
--- Devuelve las predicciones de partidos YA JUGADOS (final) de CUALQUIER
--- jugador, con el mismo detalle que mis_predicciones_detalle.
+-- Devuelve las predicciones de partidos YA JUGADOS (final) de TODOS los
+-- jugadores, con el dueno (jugador_id) y el mismo detalle que
+-- mis_predicciones_detalle. La pestana "Casi" la usa para:
+--   1. armar el ranking de cuantas veces cada uno quedo a 1 gol del exacto, y
+--   2. mostrar el detalle del jugador seleccionado.
 --
--- Por que una RPC aparte y no reusar mis_predicciones_detalle:
---   mis_predicciones_detalle trae TODAS las predicciones (incluidas las de
---   partidos por jugar). Si se llamara con el id de OTRO jugador, expondria sus
---   pronosticos antes del pitazo (se podrian espiar desde el navegador). Esta
---   funcion filtra a estado='final' -> esos pronosticos ya son publicos, asi que
---   es segura para ver el conteo de "casi" de cualquier participante.
+-- Por que solo finales: asi NO expone pronosticos de partidos por jugar de
+-- otros (se podrian espiar desde el navegador). Tras el pitazo ya son publicos.
 --
--- "Casi" (a 1 gol del exacto) se calcula en el FRONT (app/src/lib/casi.ts) con
--- los goles reales vs el pronostico; aca solo entregamos los datos crudos.
+-- El conteo "casi" (a 1 gol y ambos victoria) se calcula en el FRONT
+-- (app/src/lib/casi.ts); aca solo entregamos los datos crudos.
 --
 -- Uso: Supabase -> SQL Editor -> New query -> pega TODO -> Run.
 -- =====================================================================
 
-create or replace function predicciones_jugadas_de(p_jugador_id int)
+-- Limpia la version anterior (de 1 solo jugador), por si llego a crearse.
+drop function if exists predicciones_jugadas_de(int);
+
+create or replace function predicciones_jugadas_todas()
 returns table(
+  jugador_id int,
   partido_id int, fase text, grupo text, fecha timestamptz, estado text,
   equipo_local text, equipo_visita text, pais_local text, pais_visita text,
   goles_local int, goles_visita int,
@@ -27,6 +30,7 @@ returns table(
 )
 language sql security definer set search_path = public, extensions as $$
   select
+    pr.jugador_id,
     p.id, p.fase, p.grupo, p.fecha, p.estado,
     p.equipo_local, p.equipo_visita, p.pais_local, p.pais_visita,
     p.goles_local, p.goles_visita,
@@ -47,17 +51,16 @@ language sql security definer set search_path = public, extensions as $$
     end as resultado
   from pronosticos pr
   join partidos p on p.id = pr.partido_id
-  where pr.jugador_id = p_jugador_id
-    and p.estado = 'final'
+  where p.estado = 'final'
     and p.goles_local is not null
     and p.goles_visita is not null
   order by p.fecha desc;
 $$;
 
-grant execute on function predicciones_jugadas_de(int) to anon, authenticated;
+grant execute on function predicciones_jugadas_todas() to anon, authenticated;
 
 -- Refresca el cache de PostgREST para que el front vea la funcion YA.
 notify pgrst, 'reload schema';
 
--- Verificacion (cambia el 1 por un jugador_id):
--- select * from predicciones_jugadas_de(1);
+-- Verificacion:
+-- select * from predicciones_jugadas_todas();

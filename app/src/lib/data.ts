@@ -14,8 +14,9 @@ import type {
   FilaTormenta,
   Jugador,
   JugadorAdmin,
-  MiPrediccion,
+MiPrediccion,
   Partido,
+  PrediccionJugada,
   PronosticoVista,
   TipoEvento,
 } from "./types";
@@ -252,16 +253,19 @@ export async function misPrediccionesDetalle(
   return (data ?? []).map(aMiPrediccion);
 }
 
-// Predicciones de partidos YA JUGADOS (final) de CUALQUIER jugador. Segura para
-// ver el detalle de otros (solo finales -> sus pronosticos ya son publicos).
-// La usa la pestana "Casi" de Mis predicciones.
-export async function prediccionesJugadasDe(
-  jugadorId: string
-): Promise<MiPrediccion[]> {
-  const { data, error } = await supabase.rpc("predicciones_jugadas_de", {
-    p_jugador_id: Number(jugadorId),
-  });
+// Predicciones de partidos YA JUGADOS (final) de TODOS los jugadores. Segura
+// (solo finales -> los pronosticos ya son publicos). La usa la pestana "Casi"
+// para el ranking y el detalle por jugador.
+export async function prediccionesJugadasTodas(): Promise<PrediccionJugada[]> {
+  const { data, error } = await supabase.rpc("predicciones_jugadas_todas");
   lanzarSi(error);
+  return (data ?? []).map(
+    (r: any): PrediccionJugada => ({
+      ...aMiPrediccion(r),
+      jugador_id: String(r.jugador_id),
+    })
+  );
+}
   return (data ?? []).map(aMiPrediccion);
 }
 

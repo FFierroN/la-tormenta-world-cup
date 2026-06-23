@@ -130,6 +130,13 @@ export interface MiPrediccion {
   resultado: ResultadoPrediccion | null;
 }
 
+// Igual que MiPrediccion pero con el dueno del pronostico. La devuelve la RPC
+// predicciones_jugadas_todas (solo partidos finales de TODOS), usada por la
+// pestana "Casi" para armar el ranking y el detalle por jugador.
+export interface PrediccionJugada extends MiPrediccion {
+  jugador_id: string;
+}
+
 // Predicciones especiales pre-mundial (bonus).
 export interface Especiales {
   campeon: string | null;

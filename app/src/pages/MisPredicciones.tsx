@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
-import { listarJugadores, misPrediccionesDetalle, prediccionesJugadasDe } from "../lib/data";
-import { soloCasi } from "../lib/casi";
+import { listarJugadores, misPrediccionesDetalle, prediccionesJugadasTodas } from "../lib/data";
+import { soloCasi, rankingCasi } from "../lib/casi";
 import { useAsync } from "../lib/useAsync";
 import { useAuth } from "../lib/auth";
 import { fmtHora, fmtDiaLargo } from "../lib/fechas";
@@ -142,42 +142,90 @@ function ListaTab({ jugadorId }: { jugadorId: string | null }) {
 // ---------------------------------------------------------------- Tab "Casi"
 function CasiTab({ miId }: { miId: string | null }) {
   const [sel, setSel] = useState<string | null>(miId);
-  const { data: jugadores } = useAsync(() => listarJugadores(), []);
   const { data, cargando, error } = useAsync(
-    () => (sel ? prediccionesJugadasDe(sel) : Promise.resolve([] as MiPrediccion[])),
-    [sel]
+    () => Promise.all([prediccionesJugadasTodas(), listarJugadores()]),
+    []
   );
 
-  const jugadas = data ?? [];
-  const casi = soloCasi(jugadas);
-  const esYo = sel === miId;
+  const todas = data?.[0] ?? [];
+const jugadores = data?.[1] ?? [];
+  const nombres = new Map<string, string>(
+    jugadores.map((j) => [j.id, j.nombre] as [string, string])
+  );
+  const ranking = rankingCasi(todas, nombres);
+
+  // Detalle del jugador elegido (la tabla y el selector lo sincronizan).
+  const seleccion = sel ?? miId;
+  const jugadasSel = todas.filter((p) => p.jugador_id === seleccion);
+  const casi = soloCasi(jugadasSel);
+  const esYo = seleccion === miId;
+  const nombreSel = seleccion ? nombres.get(seleccion) ?? "" : "";
 
   return (
     <section className="px-4 mt-3 mb-6">
-      {/* Selector de participante */}
-      <label className="block mb-4">
-        <span className="text-[11px] uppercase tracking-wide text-neutral-400">
-          Participante
-        </span>
-        <select
-          value={sel ?? ""}
-          onChange={(e) => setSel(e.target.value)}
-          className="mt-1 w-full bg-carbon-card border border-borde rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-oro"
-        >
-          {(jugadores ?? []).map((j) => (
-            <option key={j.id} value={j.id}>
-              {j.nombre}
-              {j.id === miId ? " (tu)" : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      {cargando && <p className="text-neutral-400 text-sm">Calculando...</p>}
-      {error && <p className="text-rose-400 text-sm">No se pudo calcular.</p>}
+      {cargando && <p className="text-neutral-400 text-sm mt-1">Calculando...</p>}
+      {error && <p className="text-rose-400 text-sm mt-1">No se pudo calcular.</p>}
 
       {!cargando && !error && (
         <>
+          {/* Mini tabla de posiciones por "casi" */}
+          <h2 className="mb-2 text-sm font-bold text-oro uppercase tracking-wide">
+            Tabla de "casi"
+          </h2>
+          <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden mb-5">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wide text-neutral-500 border-b border-borde">
+                  <th className="text-left font-semibold py-2 pl-3 w-8">#</th>
+                  <th className="text-left font-semibold py-2">Jugador</th>
+                  <th className="text-right font-semibold py-2 pr-3 w-20">A 1 gol</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ranking.map((f) => {
+                  const activo = f.jugador_id === seleccion;
+                  return (
+                    <tr
+                      key={f.jugador_id}
+                      onClick={() => setSel(f.jugador_id)}
+                      className={`cursor-pointer border-b border-borde/40 last:border-0 ${
+                        activo ? "bg-oro/10" : "active:bg-white/5"
+                      }`}
+                    >
+                      <td className="py-2 pl-3 tabular-nums text-neutral-400">{f.posicion}</td>
+                      <td className={`py-2 ${activo ? "text-white font-semibold" : "text-neutral-200"}`}>
+                        {f.nombre}
+                        {f.jugador_id === miId ? " (tu)" : ""}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums font-bold text-oro">
+                        {f.casi}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Selector de participante (sincronizado con la tabla) */}
+          <label className="block mb-4">
+            <span className="text-[11px] uppercase tracking-wide text-neutral-400">
+              Detalle de
+            </span>
+            <select
+              value={seleccion ?? ""}
+              onChange={(e) => setSel(e.target.value)}
+              className="mt-1 w-full bg-carbon-card border border-borde rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-oro"
+            >
+              {jugadores.map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.nombre}
+                  {j.id === miId ? " (tu)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+
           {/* Numero grande */}
           <div className="bg-carbon-card border border-borde rounded-2xl p-5 text-center mb-4">
             <div className="text-5xl font-black text-oro tabular-nums leading-none">
@@ -187,8 +235,8 @@ function CasiTab({ miId }: { miId: string | null }) {
               {casi.length === 1 ? "vez" : "veces"} a <strong>1 gol</strong> de la clavada
             </p>
             <p className="mt-1 text-[11px] text-neutral-500">
-de {jugadas.length}{" "}
-              {jugadas.length === 1 ? "partido jugado" : "partidos jugados"} con pronostico
+              {nombreSel ? `${nombreSel} \u00b7 ` : ""}de {jugadasSel.length}{" "}
+              {jugadasSel.length === 1 ? "partido jugado" : "partidos jugados"} con pronostico
             </p>
           </div>
 
@@ -199,7 +247,7 @@ de {jugadas.length}{" "}
             se escaparon por poquito. Empates y derrotas no cuentan.
           </p>
 
-          {/* Lista de los "casi" */}
+          {/* Lista de los "casi" del jugador elegido */}
           {casi.length === 0 ? (
             <p className="text-neutral-400 text-sm">
               Todavia no hay ningun "casi". {esYo ? "A seguir intentando!" : ""}

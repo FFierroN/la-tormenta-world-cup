@@ -390,12 +390,15 @@ from pronosticos pr
   order by p.fecha desc;
 $$;
 
--- Predicciones de partidos YA JUGADOS (final) de CUALQUIER jugador. A diferencia
--- de mis_predicciones_detalle, NO expone partidos por jugar -> segura para ver el
--- detalle de otros (sus pronosticos ya son publicos tras el pitazo). La usa la
--- pestana "Casi" de Mis predicciones (conteo de pronosticos a 1 gol del exacto).
-create or replace function predicciones_jugadas_de(p_jugador_id int)
+-- Predicciones de partidos YA JUGADOS (final) de TODOS los jugadores. A
+-- diferencia de mis_predicciones_detalle, NO expone partidos por jugar -> segura
+-- para ver el detalle de otros (sus pronosticos ya son publicos tras el pitazo).
+-- La usa la pestana "Casi" de Mis predicciones: arma el ranking de cuantas veces
+-- cada uno quedo a 1 gol del exacto, y el detalle por jugador. El conteo "casi"
+-- se calcula en el FRONT (app/src/lib/casi.ts); aca solo van los datos crudos.
+create or replace function predicciones_jugadas_todas()
 returns table(
+  jugador_id int,
   partido_id int, fase text, grupo text, fecha timestamptz, estado text,
   equipo_local text, equipo_visita text, pais_local text, pais_visita text,
   goles_local int, goles_visita int,
@@ -404,6 +407,7 @@ returns table(
 )
 language sql security definer set search_path = public, extensions as $$
   select
+    pr.jugador_id,
     p.id, p.fase, p.grupo, p.fecha, p.estado,
     p.equipo_local, p.equipo_visita, p.pais_local, p.pais_visita,
     p.goles_local, p.goles_visita,
@@ -424,8 +428,7 @@ language sql security definer set search_path = public, extensions as $$
     end as resultado
   from pronosticos pr
   join partidos p on p.id = pr.partido_id
-  where pr.jugador_id = p_jugador_id
-    and p.estado = 'final'
+  where p.estado = 'final'
     and p.goles_local is not null
     and p.goles_visita is not null
   order by p.fecha desc;
@@ -700,7 +703,7 @@ grant execute on function pronosticos_partido(int,int)    to anon, authenticated
 grant execute on function contar_exactos(int)             to anon, authenticated;
 grant execute on function mis_pronosticos(int)             to anon, authenticated;
 grant execute on function mis_predicciones_detalle(int)   to anon, authenticated;
-grant execute on function predicciones_jugadas_de(int)    to anon, authenticated;
+grant execute on function predicciones_jugadas_todas()    to anon, authenticated;
 grant execute on function actualizar_alias(int,text)       to anon, authenticated;
 grant execute on function guardar_especiales(int,text,text,text,text,text,text,text,text,text,text,text,text) to anon, authenticated;
 grant execute on function recalcular_especiales()         to anon, authenticated;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
@@ -142,13 +142,29 @@ function ListaTab({ jugadorId }: { jugadorId: string | null }) {
 // ---------------------------------------------------------------- Tab "Casi"
 function CasiTab({ miId }: { miId: string | null }) {
   const [sel, setSel] = useState<string | null>(miId);
+  const [nonce, setNonce] = useState(0);
   const { data, cargando, error } = useAsync(
     () => Promise.all([prediccionesJugadasTodas(), listarJugadores()]),
-    []
+    [nonce]
   );
 
+  // Refresca al volver a la app (foco / pestana visible de nuevo): si termino un
+  // partido mientras estabas afuera, la tabla se pone al dia sola al regresar.
+  useEffect(() => {
+    const refrescar = () => setNonce((n) => n + 1);
+    const alVisible = () => {
+      if (document.visibilityState === "visible") refrescar();
+    };
+    window.addEventListener("focus", refrescar);
+    document.addEventListener("visibilitychange", alVisible);
+    return () => {
+      window.removeEventListener("focus", refrescar);
+      document.removeEventListener("visibilitychange", alVisible);
+    };
+  }, []);
+
   const todas = data?.[0] ?? [];
-const jugadores = data?.[1] ?? [];
+  const jugadores = data?.[1] ?? [];
   const nombres = new Map<string, string>(
     jugadores.map((j) => [j.id, j.nombre] as [string, string])
   );
@@ -160,18 +176,44 @@ const jugadores = data?.[1] ?? [];
   const casi = soloCasi(jugadasSel);
   const esYo = seleccion === miId;
   const nombreSel = seleccion ? nombres.get(seleccion) ?? "" : "";
+  const primeraCarga = cargando && !data;
 
   return (
     <section className="px-4 mt-3 mb-6">
-      {cargando && <p className="text-neutral-400 text-sm mt-1">Calculando...</p>}
-      {error && <p className="text-rose-400 text-sm mt-1">No se pudo calcular.</p>}
+      {primeraCarga && <p className="text-neutral-400 text-sm mt-1">Calculando...</p>}
+      {error && !data && (
+        <p className="text-rose-400 text-sm mt-1">No se pudo calcular.</p>
+      )}
 
-      {!cargando && !error && (
+      {data && (
         <>
           {/* Mini tabla de posiciones por "casi" */}
-          <h2 className="mb-2 text-sm font-bold text-oro uppercase tracking-wide">
-            Tabla de "casi"
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-bold text-oro uppercase tracking-wide">
+              Tabla de "casi"
+            </h2>
+            <button
+              onClick={() => setNonce((n) => n + 1)}
+              disabled={cargando}
+              className="flex items-center gap-1 text-[11px] font-semibold text-neutral-300 disabled:opacity-50"
+              aria-label="Actualizar"
+            >
+              <svg
+                className={`w-3.5 h-3.5 ${cargando ? "animate-spin" : ""}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  d="M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {cargando ? "Actualizando" : "Actualizar"}
+            </button>
+          </div>
           <div className="bg-carbon-card border border-borde rounded-2xl overflow-hidden mb-5">
             <table className="w-full text-sm">
               <thead>

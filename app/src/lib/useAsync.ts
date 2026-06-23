@@ -17,7 +17,9 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): Estado<
 
   useEffect(() => {
     let vivo = true;
-    setEstado({ data: null, cargando: true, error: null });
+    // Mantiene los datos previos visibles mientras recarga (evita parpadeo en
+    // refrescos; en el primer montaje data ya es null igual).
+    setEstado((prev) => ({ data: prev.data, cargando: true, error: null }));
     fn()
       .then((data) => vivo && setEstado({ data, cargando: false, error: null }))
       .catch((e) =>

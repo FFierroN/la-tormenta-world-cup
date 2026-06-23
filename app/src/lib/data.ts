@@ -218,6 +218,28 @@ export async function misPronosticos(jugadorId: string): Promise<Set<string>> {
   return new Set((data ?? []).map((r: any) => String(r.partido_id)));
 }
 
+// Mapea una fila cruda (RPC) al tipo MiPrediccion. Compartido por las RPC de
+// "mis predicciones" y "predicciones jugadas de cualquiera" (DRY).
+function aMiPrediccion(r: any): MiPrediccion {
+  return {
+    partido_id: String(r.partido_id),
+    fase: r.fase,
+    grupo: r.grupo ?? null,
+    fecha: r.fecha,
+    estado: r.estado,
+    equipo_local: r.equipo_local,
+    equipo_visita: r.equipo_visita,
+    pais_local: r.pais_local,
+    pais_visita: r.pais_visita,
+    goles_local: r.goles_local ?? null,
+    goles_visita: r.goles_visita ?? null,
+    pred_local: r.pred_local,
+    pred_visita: r.pred_visita,
+    puntos: r.puntos ?? null,
+    resultado: r.resultado ?? null,
+  };
+}
+
 // Todas MIS predicciones con el detalle del partido, puntos y categoria.
 // Solo trae las que yo pronostique (las pendientes no tienen fila).
 export async function misPrediccionesDetalle(
@@ -227,25 +249,20 @@ export async function misPrediccionesDetalle(
     p_jugador_id: Number(jugadorId),
   });
   lanzarSi(error);
-  return (data ?? []).map(
-    (r: any): MiPrediccion => ({
-      partido_id: String(r.partido_id),
-      fase: r.fase,
-      grupo: r.grupo ?? null,
-      fecha: r.fecha,
-      estado: r.estado,
-      equipo_local: r.equipo_local,
-      equipo_visita: r.equipo_visita,
-      pais_local: r.pais_local,
-      pais_visita: r.pais_visita,
-      goles_local: r.goles_local ?? null,
-      goles_visita: r.goles_visita ?? null,
-      pred_local: r.pred_local,
-      pred_visita: r.pred_visita,
-      puntos: r.puntos ?? null,
-      resultado: r.resultado ?? null,
-    })
-  );
+  return (data ?? []).map(aMiPrediccion);
+}
+
+// Predicciones de partidos YA JUGADOS (final) de CUALQUIER jugador. Segura para
+// ver el detalle de otros (solo finales -> sus pronosticos ya son publicos).
+// La usa la pestana "Casi" de Mis predicciones.
+export async function prediccionesJugadasDe(
+  jugadorId: string
+): Promise<MiPrediccion[]> {
+  const { data, error } = await supabase.rpc("predicciones_jugadas_de", {
+    p_jugador_id: Number(jugadorId),
+  });
+  lanzarSi(error);
+  return (data ?? []).map(aMiPrediccion);
 }
 
 export async function obtenerTabla(): Promise<FilaTabla[]> {

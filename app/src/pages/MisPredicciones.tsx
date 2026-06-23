@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
-import { misPrediccionesDetalle } from "../lib/data";
+import { listarJugadores, misPrediccionesDetalle, prediccionesJugadasDe } from "../lib/data";
+import { soloCasi } from "../lib/casi";
 import { useAsync } from "../lib/useAsync";
 import { useAuth } from "../lib/auth";
 import { fmtHora, fmtDiaLargo } from "../lib/fechas";
@@ -31,25 +33,12 @@ const PUNTOS: Record<ResultadoPrediccion, string> = {
   falla: "text-red-400",
 };
 
+type Tab = "lista" | "casi";
+
 export default function MisPredicciones() {
   const navigate = useNavigate();
   const { jugador } = useAuth();
-  const { data, cargando, error } = useAsync(
-    () =>
-      jugador
-        ? misPrediccionesDetalle(jugador.id)
-        : Promise.resolve([] as MiPrediccion[]),
-    [jugador?.id]
-  );
-
-  const todas = data ?? [];
-  // Jugados (final) mas reciente arriba; luego los proximos ya pronosticados.
-  const jugados = todas
-    .filter((p) => p.estado === "final")
-    .sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const proximos = todas
-    .filter((p) => p.estado !== "final")
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const [tab, setTab] = useState<Tab>("lista");
 
   return (
     <div className="max-w-md mx-auto pb-10">
@@ -62,34 +51,175 @@ export default function MisPredicciones() {
         <h1 className="text-lg font-bold">Mis predicciones</h1>
       </header>
 
-      {cargando && (
-        <p className="px-4 text-neutral-400 text-sm">Cargando tus predicciones...</p>
-      )}
-      {error && (
-        <p className="px-4 text-rose-400 text-sm">
-          No se pudieron cargar tus predicciones.
-        </p>
-      )}
+      {/* Pestanas */}
+      <div className="px-4">
+        <div className="grid grid-cols-2 border-b border-borde">
+          <TabBtn activo={tab === "lista"} onClick={() => setTab("lista")}>
+            Lista
+          </TabBtn>
+          <TabBtn activo={tab === "casi"} onClick={() => setTab("casi")}>
+            Casi
+          </TabBtn>
+        </div>
+      </div>
 
-      {!cargando && !error && todas.length === 0 && (
-        <p className="px-4 text-neutral-400 text-sm">
-          Aun no has hecho ninguna prediccion.
-        </p>
-      )}
-
-      {jugados.length > 0 && (
-        <Seccion titulo="Jugados" filas={jugados} />
-      )}
-      {proximos.length > 0 && (
-        <Seccion titulo="Proximos (ya pronosticados)" filas={proximos} />
+      {tab === "lista" ? (
+        <ListaTab jugadorId={jugador?.id ?? null} />
+      ) : (
+        <CasiTab miId={jugador?.id ?? null} />
       )}
     </div>
   );
 }
 
+function TabBtn({
+  activo,
+  onClick,
+  children,
+}: {
+  activo: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`pb-2 pt-1 text-center text-sm font-semibold transition-colors ${
+        activo
+          ? "text-white border-b-2 border-oro"
+          : "text-neutral-400 border-b-2 border-transparent"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------- Tab "Lista"
+function ListaTab({ jugadorId }: { jugadorId: string | null }) {
+  const { data, cargando, error } = useAsync(
+    () =>
+      jugadorId
+        ? misPrediccionesDetalle(jugadorId)
+        : Promise.resolve([] as MiPrediccion[]),
+    [jugadorId]
+  );
+
+  const todas = data ?? [];
+  // Jugados (final) mas reciente arriba; luego los proximos ya pronosticados.
+  const jugados = todas
+    .filter((p) => p.estado === "final")
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const proximos = todas
+    .filter((p) => p.estado !== "final")
+    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+  return (
+    <>
+      {cargando && (
+        <p className="px-4 mt-3 text-neutral-400 text-sm">Cargando tus predicciones...</p>
+      )}
+      {error && (
+        <p className="px-4 mt-3 text-rose-400 text-sm">
+          No se pudieron cargar tus predicciones.
+        </p>
+      )}
+
+      {!cargando && !error && todas.length === 0 && (
+        <p className="px-4 mt-3 text-neutral-400 text-sm">
+          Aun no has hecho ninguna prediccion.
+        </p>
+      )}
+
+      {jugados.length > 0 && <Seccion titulo="Jugados" filas={jugados} />}
+      {proximos.length > 0 && (
+        <Seccion titulo="Proximos (ya pronosticados)" filas={proximos} />
+      )}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------- Tab "Casi"
+function CasiTab({ miId }: { miId: string | null }) {
+  const [sel, setSel] = useState<string | null>(miId);
+  const { data: jugadores } = useAsync(() => listarJugadores(), []);
+  const { data, cargando, error } = useAsync(
+    () => (sel ? prediccionesJugadasDe(sel) : Promise.resolve([] as MiPrediccion[])),
+    [sel]
+  );
+
+  const jugadas = data ?? [];
+  const casi = soloCasi(jugadas);
+  const esYo = sel === miId;
+
+  return (
+    <section className="px-4 mt-3 mb-6">
+      {/* Selector de participante */}
+      <label className="block mb-4">
+        <span className="text-[11px] uppercase tracking-wide text-neutral-400">
+          Participante
+        </span>
+        <select
+          value={sel ?? ""}
+          onChange={(e) => setSel(e.target.value)}
+          className="mt-1 w-full bg-carbon-card border border-borde rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-oro"
+        >
+          {(jugadores ?? []).map((j) => (
+            <option key={j.id} value={j.id}>
+              {j.nombre}
+              {j.id === miId ? " (tu)" : ""}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {cargando && <p className="text-neutral-400 text-sm">Calculando...</p>}
+      {error && <p className="text-rose-400 text-sm">No se pudo calcular.</p>}
+
+      {!cargando && !error && (
+        <>
+          {/* Numero grande */}
+          <div className="bg-carbon-card border border-borde rounded-2xl p-5 text-center mb-4">
+            <div className="text-5xl font-black text-oro tabular-nums leading-none">
+              {casi.length}
+            </div>
+            <p className="mt-2 text-sm text-neutral-200">
+              {casi.length === 1 ? "vez" : "veces"} a <strong>1 gol</strong> de la clavada
+            </p>
+            <p className="mt-1 text-[11px] text-neutral-500">
+de {jugadas.length}{" "}
+              {jugadas.length === 1 ? "partido jugado" : "partidos jugados"} con pronostico
+            </p>
+          </div>
+
+          {/* Explicacion corta */}
+          <p className="text-[11px] text-neutral-500 mb-4 leading-snug">
+            Cuenta los partidos donde falto 1 solo gol para el marcador exacto y
+            tanto el pronostico como el resultado fueron victoria: los +6/+5/+4 que
+            se escaparon por poquito. Empates y derrotas no cuentan.
+          </p>
+
+          {/* Lista de los "casi" */}
+          {casi.length === 0 ? (
+            <p className="text-neutral-400 text-sm">
+              Todavia no hay ningun "casi". {esYo ? "A seguir intentando!" : ""}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {casi.map((p) => (
+                <PrediccionCard key={p.partido_id} p={p} casi />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 function Seccion({ titulo, filas }: { titulo: string; filas: MiPrediccion[] }) {
   return (
-    <section className="px-4 mt-2 mb-5">
+    <section className="px-4 mt-3 mb-5">
       <h2 className="mb-2 text-sm font-bold text-oro uppercase tracking-wide">
         {titulo}
       </h2>
@@ -102,12 +232,17 @@ function Seccion({ titulo, filas }: { titulo: string; filas: MiPrediccion[] }) {
   );
 }
 
-function PrediccionCard({ p }: { p: MiPrediccion }) {
+function PrediccionCard({ p, casi = false }: { p: MiPrediccion; casi?: boolean }) {
   const navigate = useNavigate();
   const jugado = p.estado === "final";
   const cat = jugado && p.resultado ? RESULTADO[p.resultado] : null;
   // Borde por resultado (rojo falla / verde el resto); si no hay resultado, neutro.
-  const borde = jugado && p.resultado ? BORDE[p.resultado] : "border-borde";
+  // En la pestana Casi todos son aciertos -> borde dorado para destacarlos.
+  const borde = casi
+    ? "border-oro"
+    : jugado && p.resultado
+    ? BORDE[p.resultado]
+    : "border-borde";
 
   return (
     <li>
@@ -131,16 +266,23 @@ function PrediccionCard({ p }: { p: MiPrediccion }) {
           <Equipo code={p.pais_visita} nombre={p.equipo_visita} />
         </div>
 
-        {cat && (
-          <div className="mt-3 flex items-center justify-center gap-2">
-            <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${cat.clase}`}>
-              {cat.texto}
+        <div className="mt-3 flex items-center justify-center gap-2">
+          {casi && (
+            <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold bg-oro/15 text-oro">
+              A 1 gol
             </span>
-            <span className={`text-xs font-bold tabular-nums ${p.resultado ? PUNTOS[p.resultado] : "text-oro"}`}>
-              +{p.puntos ?? 0} pts
-            </span>
-          </div>
-        )}
+          )}
+          {cat && (
+            <>
+              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${cat.clase}`}>
+                {cat.texto}
+              </span>
+              <span className={`text-xs font-bold tabular-nums ${p.resultado ? PUNTOS[p.resultado] : "text-oro"}`}>
+                +{p.puntos ?? 0} pts
+              </span>
+            </>
+          )}
+        </div>
       </button>
     </li>
   );

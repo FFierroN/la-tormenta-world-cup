@@ -210,26 +210,38 @@ function statsDesdeHl(detalle, p) {
 }
 
 async function enriquecerPartido(env, supa, p, cacheFecha, log) {
+  const sinHacer = { hizoAlgo: false, eventosCompletos: false };
   const mid = await buscarMatchId(env, supa, p, cacheFecha, log);
-  if (mid === null) return false;
+  if (mid === null) return sinHacer;
 
   const detalle = await hlDetalle(env, mid);
   if (!detalle) {
     log.push(`  HL sin detalle match ${mid} (${p.equipo_local} vs ${p.equipo_visita})`);
-    return false;
+    return sinHacer;
   }
 
   let hizoAlgo = false;
 
   // --- Eventos (goles+asist, tarjetas, cambios). HL manda: borra+reinserta. ---
+  // GUARDA anti-pisado-parcial: solo reemplazamos los eventos si HL trae al menos
+  // tantos goles como el marcador. Si la lista de HL viene corta (caso lluvia:
+  // stats listas pero timeline aun incompleto), NO pisamos los del feed en vivo y
+  // dejamos el partido sin marcar para reintentar. Asi no perdemos goles ni se
+  // congelan nombres abreviados (bug Mbappe 2026: K. Mbappe vs Kylian Mbappe).
   const filas = await eventosDesdeHl(detalle, p, supa);
-  if (filas.length) {
+  const golesHl = filas.filter((f) => f.tipo === "gol").length;
+  const golesReales = (p.goles_local ?? 0) + (p.goles_visita ?? 0);
+  const eventosCompletos = golesHl >= golesReales;
+
+  if (eventosCompletos && filas.length) {
     await supa.del("partido_eventos", { partido_id: `eq.${p.id}` });
     await supa.insert("partido_eventos", filas);
     hizoAlgo = true;
     const n = (t) => filas.filter((f) => f.tipo === t).length;
     const asist = filas.filter((f) => f.tipo === "gol" && f.asistencia).length;
     log.push(`  OK eventos ${p.equipo_local} vs ${p.equipo_visita}: ${n("gol")} gol(es) (${asist} con asist.), ${n("amarilla")} amarilla(s), ${n("roja")} roja(s), ${n("cambio")} cambio(s)`);
+  } else if (!eventosCompletos) {
+    log.push(`  HL eventos INCOMPLETOS (${golesHl}/${golesReales} goles) ${p.equipo_local} vs ${p.equipo_visita}: no piso, reintento luego`);
   } else {
     log.push(`  HL sin eventos para ${p.equipo_local} vs ${p.equipo_visita} (no se tocan eventos)`);
   }
@@ -242,7 +254,7 @@ async function enriquecerPartido(env, supa, p, cacheFecha, log) {
     log.push(`  OK stats ${p.equipo_local} vs ${p.equipo_visita}: ${Object.keys(stats.local || {}).length} metricas/equipo`);
   }
 
-  return hizoAlgo;
+  return { hizoAlgo, eventosCompletos };
 }
 
 // Partidos a enriquecer: FT (final + gracia, sin enriquecido_at),
@@ -251,7 +263,8 @@ async function enriquecerPartido(env, supa, p, cacheFecha, log) {
 // 1er tiempo a Detalles, que HL suele tener vacias durante el entretiempo.
 async function candidatos(supa) {
   const out = [];
-  const corteFt = new Date(Date.now() - MIN_GRACIA_FT * 60e3).toISOString();
+  const ahora = Date.now();
+  const corteFt = new Date(ahora - MIN_GRACIA_FT * 60e3).toISOString();
   const ft = await supa.get("partidos", {
     estado: "eq.final",
     enriquecido_at: "is.null",
@@ -259,7 +272,15 @@ async function candidatos(supa) {
     select: "*",
     order: "fecha.asc",
   });
-  for (const p of ft) out.push({ p, fase: "ft" });
+  for (const p of ft) {
+    const finMs = p.finalizado_at ? new Date(p.finalizado_at).getTime() : 0;
+    const minsFin = finMs ? (ahora - finMs) / 60000 : 999;
+    // Ventana fresca (~primeros 25 min tras la gracia): intenta cada ciclo.
+    // Despues, los reintentos (por eventos HL incompletos) van solo cada 5 min
+    // para cuidar la cuota de Highlightly (100/dia).
+    if (minsFin > 25 && new Date().getMinutes() % 5 !== 0) continue;
+    out.push({ p, fase: "ft" });
+  }
 
   const ht = await supa.get("partidos", {
     estado: "eq.entretiempo",
@@ -465,14 +486,33 @@ export async function enriquecerPendientes(supa, env, log, cacheFecha = {}) {
   if (!lista.length) return; // nada pendiente -> cero requests a Highlightly
 
   log.push(`Enriquecer: ${lista.length} candidato(s) (HT/FT).`);
+  // Tope para dejar de reintentar el FT de un partido cuyos eventos HL nunca
+  // completa; si no, reintentariamos hasta el corte de 12h de hayTrabajo.
+  const FT_TIMEOUT_MIN = 180;
   let hechos = 0;
   for (const { p, fase } of lista) {
     try {
-      if (await enriquecerPartido(env, supa, p, cacheFecha, log)) {
-        const campo =
-          fase === "ht" ? "enriquecido_ht_at"
-          : fase === "2t" ? "enriquecido_2t_at"
-          : "enriquecido_at";
+      const { hizoAlgo, eventosCompletos } = await enriquecerPartido(
+        env, supa, p, cacheFecha, log
+      );
+      if (!hizoAlgo) continue;
+
+      if (fase === "ft") {
+        // FT: solo damos por enriquecido si los eventos quedaron completos. Si
+        // HL aun viene corto (caso lluvia), NO marcamos -> se reintenta el
+        // proximo ciclo, salvo que ya haya pasado el tope (ahi marcamos igual).
+        const finMs = p.finalizado_at ? new Date(p.finalizado_at).getTime() : 0;
+        const vencio = finMs && (Date.now() - finMs) / 60000 >= FT_TIMEOUT_MIN;
+        if (!eventosCompletos && !vencio) continue;
+        if (!eventosCompletos && vencio) {
+          log.push(`  FT ${p.equipo_local} vs ${p.equipo_visita}: eventos sin completar tras ${FT_TIMEOUT_MIN}min, marco igual`);
+        }
+        await supa.patch("partidos", { id: `eq.${p.id}` }, { enriquecido_at: new Date().toISOString() });
+        hechos += 1;
+      } else {
+        // HT / 2T: intermedios, se marcan siempre (no alimentan goleadores y la
+        // ventana se cierra sola al cambiar de estado).
+        const campo = fase === "ht" ? "enriquecido_ht_at" : "enriquecido_2t_at";
         await supa.patch("partidos", { id: `eq.${p.id}` }, { [campo]: new Date().toISOString() });
         hechos += 1;
       }

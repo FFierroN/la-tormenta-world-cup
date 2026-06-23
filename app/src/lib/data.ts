@@ -261,12 +261,10 @@ export async function prediccionesJugadasTodas(): Promise<PrediccionJugada[]> {
   lanzarSi(error);
   return (data ?? []).map(
     (r: any): PrediccionJugada => ({
-      ...aMiPrediccion(r),
+aMiPrediccion(r),
       jugador_id: String(r.jugador_id),
     })
   );
-}
-  return (data ?? []).map(aMiPrediccion);
 }
 
 export async function obtenerTabla(): Promise<FilaTabla[]> {

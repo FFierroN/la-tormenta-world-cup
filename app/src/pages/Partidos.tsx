@@ -8,7 +8,7 @@ import { useAsync } from "../lib/useAsync";
 import { useScrollRestore, guardarScroll } from "../lib/useScrollRestore";
 import { useAuth } from "../lib/auth";
 import { useSwipe } from "../lib/useSwipe";
-import { fmtHora, fmtDiaLargo, claveDia, claveHoy } from "../lib/fechas";
+import { fmtHora, fmtDiaLargo, claveDia } from "../lib/fechas";
 import type { Partido } from "../lib/types";
 
 // Orden de las fases de eliminacion (para mostrarlas en secuencia).
@@ -20,20 +20,6 @@ const ORDEN_FASE = [
   "Tercer Puesto",
   "Final",
 ];
-
-// Las 3 fechas (jornadas) de la fase de grupos, con su rango (YYYY-MM-DD).
-const FECHAS = [
-  { id: "fecha1", label: "Fecha 1", desde: "2026-06-11", hasta: "2026-06-17" },
-  { id: "fecha2", label: "Fecha 2", desde: "2026-06-18", hasta: "2026-06-23" },
-  { id: "fecha3", label: "Fecha 3", desde: "2026-06-24", hasta: "2026-06-27" },
-];
-
-// Liberacion MANUAL de una jornada antes de que llegue su dia (override).
-// null = automatico por calendario. Si se pone un id (ej. "fecha2"), esa
-// jornada se muestra en "Proximos" aunque su 'desde' aun no llegue. OJO: solo
-// ADELANTA, nunca hace retroceder el auto-avance (cuando llegue el dia de una
-// jornada posterior, igual avanza sola). Para volver al automatico: null.
-const FECHA_LIBERADA: string | null = "fecha2";
 
 type Tab = {
   id: string; // "fecha1".. | "g-A".."g-L" | "f-Octavos"...
@@ -66,47 +52,6 @@ function agruparPorDia(partidos: Partido[]): { dia: string; partidos: Partido[] 
   return grupos;
 }
 
-// "2026-06-11" -> "11/06"
-function ddmm(clave: string): string {
-  const [, m, d] = clave.split("-");
-  return `${d}/${m}`;
-}
-
-// Jornada del CALENDARIO: la ultima fecha cuyo dia de inicio (desde) ya llego.
-// Antes del Mundial (hoy < Fecha 1) devuelve Fecha 1 (indice 0).
-function idxCalendario(): number {
-  const hoy = claveHoy();
-  let idx = 0;
-  FECHAS.forEach((f, i) => {
-    if (hoy >= f.desde) idx = i;
-  });
-  return idx;
-}
-
-// Indice de la jornada MOSTRADA: la del calendario, salvo que se haya liberado
-// manualmente una mas adelantada (FECHA_LIBERADA). Nunca retrocede.
-function idxMostrado(): number {
-  let idx = idxCalendario();
-  if (FECHA_LIBERADA) {
-    const libIdx = FECHAS.findIndex((f) => f.id === FECHA_LIBERADA);
-    if (libIdx > idx) idx = libIdx;
-  }
-  return idx;
-}
-
-// Ventana de "Proximos": va DESDE el inicio de la jornada del calendario HASTA
-// el fin de la jornada mostrada. Asi, al liberar una jornada futura, esta se
-// suma SIN esconder los partidos aun pendientes de la jornada en curso.
-function ventanaProximos(): { desde: string; hasta: string; label: string } {
-  const cal = FECHAS[idxCalendario()];
-  const disp = FECHAS[idxMostrado()];
-  const label =
-    cal.id === disp.id
-      ? `${disp.label} \u00b7 ${ddmm(cal.desde)} al ${ddmm(disp.hasta)}`
-      : `${cal.label} y ${disp.label} \u00b7 ${ddmm(cal.desde)} al ${ddmm(disp.hasta)}`;
-  return { desde: cal.desde, hasta: disp.hasta, label };
-}
-
 function construirTabs(partidos: Partido[]): Tab[] {
   const tabs: Tab[] = [];
 
@@ -123,22 +68,19 @@ function construirTabs(partidos: Partido[]): Tab[] {
     partidos: jugados,
   });
 
-  // 1) Pestana "Proximos": jornada en curso + liberadas (rola sola en el 'desde').
-  //    Ademas escondemos los que ya terminaron: esos viven en su grupo/fase.
-  const v = ventanaProximos();
-  const lista = partidos
-    .filter((p) => {
-      if (p.estado === "final") return false; // finalizado -> fuera de Proximos
-      const d = claveDia(p.fecha);
-      return d >= v.desde && d <= v.hasta;
-    })
+  // 1) Pestana "Proximos": TODOS los partidos de fase de grupos que faltan por
+  //    jugar (no finalizados), sin importar la jornada. Asi se ve de un vistazo
+  //    todo lo que queda antes de los dieciseisavos. Cuando terminan los grupos
+  //    queda vacia y la accion pasa a las pestanas de eliminatorias.
+  const proximos = partidos
+    .filter((p) => p.grupo && p.estado !== "final")
     .sort(porFecha);
   tabs.push({
     id: "proximos",
     label: "Pr\u00f3ximos",
-    subtitulo: v.label,
+    subtitulo: "Fase de grupos \u00b7 partidos por jugar",
     mostrarFase: true,
-    partidos: lista,
+    partidos: proximos,
   });
 
   // 2) Fase de grupos: una pestana por grupo (A..L).

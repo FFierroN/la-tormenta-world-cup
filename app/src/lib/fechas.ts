@@ -27,6 +27,14 @@ export function fmtFechaHora(iso: string): string {
   return `${fmtFechaCorta(iso)} \u00b7 ${fmtHora(iso)}`;
 }
 
+// Ej: "4/7" (dia/mes, compacto para las tarjetas del cuadro de llaves).
+export function fmtDiaMes(iso: string): string {
+  const d = new Date(iso);
+  const dia = d.toLocaleDateString("es-CL", { day: "numeric", timeZone: TZ });
+  const mes = d.toLocaleDateString("es-CL", { month: "numeric", timeZone: TZ });
+  return `${dia}/${mes}`;
+}
+
 // Ej: "Jueves 11 de junio" (encabezado de dia, con mayuscula inicial).
 export function fmtDiaLargo(iso: string): string {
   const s = new Date(iso).toLocaleDateString("es-CL", {

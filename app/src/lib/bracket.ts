@@ -26,6 +26,8 @@ export interface SlotLlave {
   ciudad?: string;
   local: string;
   visita: string;
+  localCorto: string; // version compacta para el cuadro (G74 / P101 / 1A)
+  visitaCorto: string;
   equipoLocal: string | null;
   paisLocal: string | null;
   equipoVisita: string | null;
@@ -57,6 +59,20 @@ export function placeholderDeOrigen(origen: string | null | undefined): string {
   return origen; // '1A' / '2B' tal cual
 }
 
+// Version COMPACTA para las tarjetas del cuadro (estilo 365scores):
+//   'GP74'    -> "G74"   (ganador del partido 74)
+//   'PP101'   -> "P101"  (perdedor del 101 -> juega 3er puesto)
+//   '3CDFGH'  -> "3C/D/F/G/H"
+//   '1A'/'2B' -> tal cual
+export function placeholderCorto(origen: string | null | undefined): string {
+  if (!origen) return "\u2014";
+  if (origen.startsWith("GP")) return `G${origen.slice(2)}`;
+  if (origen.startsWith("PP")) return `P${origen.slice(2)}`;
+  const tipo = origen[0];
+  if (tipo === "3") return `3${origen.slice(1).split("").join("/")}`;
+  return origen;
+}
+
 const esDefinido = (nombre: string) => !!nombre && nombre !== "Por definir";
 
 // Mapea un partido de eliminatoria a un SlotLlave para la UI.
@@ -68,11 +84,20 @@ export function partidoASlot(p: Partido): SlotLlave {
     ciudad: p.ciudad ?? undefined,
     local: placeholderDeOrigen(p.origen_local),
     visita: placeholderDeOrigen(p.origen_visita),
+    localCorto: placeholderCorto(p.origen_local),
+    visitaCorto: placeholderCorto(p.origen_visita),
     equipoLocal: esDefinido(p.equipo_local) ? p.equipo_local : null,
     paisLocal: esDefinido(p.equipo_local) ? p.pais_local : null,
     equipoVisita: esDefinido(p.equipo_visita) ? p.equipo_visita : null,
     paisVisita: esDefinido(p.equipo_visita) ? p.pais_visita : null,
   };
+}
+
+// Indexa los slots por su codigo (P73..P104) para navegar el arbol.
+export function indexarPorSlot(slots: SlotLlave[]): Record<string, SlotLlave> {
+  const m: Record<string, SlotLlave> = {};
+  for (const s of slots) m[s.slot] = s;
+  return m;
 }
 
 // De la lista cruda de partidos saca SOLO los de eliminatoria (sin grupo)

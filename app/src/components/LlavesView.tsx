@@ -1,25 +1,21 @@
 // =====================================================================
-// LlavesView.tsx  ·  Pestana "Llaves" dentro de Copa (Opcion B / 365scores).
+// LlavesView.tsx  ·  Pestana "Llaves" dentro de Copa (estilo 365scores).
 // =====================================================================
 // Dos sub-pestanas:
-//   - "Dieciseisavos": lista de los 16 cruces (con placeholders 1A/3C.. o
-//     bandera+nombre cuando ya hay equipo).
-//   - "Fase Final": cuadro compacto de Octavos -> Cuartos -> Semis -> Final
-//     (+ 3er puesto), apilado por fase.
+//   - "Dieciseisavos": lista de los 16 cruces (con placeholders 1A / 2B /
+//     3C/D/F/G/H, o bandera+nombre cuando ya hay equipo).
+//   - "Fase Final": CUADRO conectado en espejo (Octavos -> Final -> Octavos
+//     + 3er puesto) -> ver BracketFinal.tsx.
 // Lee los partidos REALES de Supabase (listarPartidos) y arma el cuadro con
 // construirLlaves(). Mientras un equipo no este definido, muestra el
 // placeholder del 'origen' (1A / 3C/D/F/G/H / Gan. P73 ...).
 import { useState, type ReactNode } from "react";
 import Flag from "./Flag";
+import BracketFinal from "./BracketFinal";
 import { fmtFechaHora } from "../lib/fechas";
 import { listarPartidos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
-import {
-  construirLlaves,
-  slotsPorFase,
-  type FaseLlave,
-  type SlotLlave,
-} from "../lib/bracket";
+import { construirLlaves, slotsPorFase, type SlotLlave } from "../lib/bracket";
 
 type SubTab = "dieciseisavos" | "final";
 
@@ -53,7 +49,7 @@ export default function LlavesView() {
         sub === "dieciseisavos" ? (
           <ListaDieciseisavos slots={slotsPorFase(slots, "Dieciseisavos")} />
         ) : (
-          <FaseFinal slots={slots} />
+          <BracketFinal slots={slots} />
         )
       )}
     </div>
@@ -86,7 +82,11 @@ function Chip({
 // --------------------------------------------------------- Dieciseisavos
 function ListaDieciseisavos({ slots }: { slots: SlotLlave[] }) {
   if (slots.length === 0) {
-    return <Vacio />;
+    return (
+      <p className="px-4 py-8 text-center text-neutral-400 text-sm">
+        Aun no hay cruces para mostrar.
+      </p>
+    );
   }
   return (
     <ul className="px-4 flex flex-col gap-3">
@@ -159,98 +159,5 @@ function LadoEquipo({
         {definido ? nombre : placeholder}
       </span>
     </div>
-  );
-}
-
-// --------------------------------------------------------- Fase Final
-// Cuadro compacto: una seccion por fase (Octavos -> Final + 3er puesto),
-// cada cruce como mini-tarjeta de dos lados apilados.
-const FASES_FINAL: FaseLlave[] = [
-  "Octavos",
-  "Cuartos",
-  "Semifinales",
-  "Final",
-  "Tercer Puesto",
-];
-
-function FaseFinal({ slots }: { slots: SlotLlave[] }) {
-  return (
-    <div className="px-4 flex flex-col gap-6">
-      {FASES_FINAL.map((fase) => {
-        const ss = slotsPorFase(slots, fase);
-        if (ss.length === 0) return null;
-        return (
-          <section key={fase}>
-            <h3 className="mb-2 text-sm font-bold text-oro uppercase tracking-wide">
-              {etiquetaFase(fase)}
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {ss.map((s) => (
-                <MiniCruce key={s.slot} s={s} destacado={fase === "Final"} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
-    </div>
-  );
-}
-
-function etiquetaFase(fase: FaseLlave): string {
-  if (fase === "Tercer Puesto") return "Tercer puesto";
-  return fase;
-}
-
-// Mini-tarjeta con los dos lados apilados (estilo cuadro 365scores).
-function MiniCruce({ s, destacado }: { s: SlotLlave; destacado?: boolean }) {
-  return (
-    <article
-      className={`rounded-2xl p-3 border ${
-        destacado
-          ? "bg-oro/10 border-oro/50 col-span-2"
-          : "bg-carbon-card border-borde"
-      }`}
-    >
-      <div className="text-[10px] text-neutral-400 tabular-nums mb-2 text-center">
-        {fmtFechaHora(s.fecha)}
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <LineaEquipo nombre={s.equipoLocal} pais={s.paisLocal} placeholder={s.local} />
-        <LineaEquipo nombre={s.equipoVisita} pais={s.paisVisita} placeholder={s.visita} />
-      </div>
-    </article>
-  );
-}
-
-function LineaEquipo({
-  nombre,
-  pais,
-  placeholder,
-}: {
-  nombre?: string | null;
-  pais?: string | null;
-  placeholder: string;
-}) {
-  const definido = !!nombre;
-  return (
-    <div className="flex items-center gap-2 min-w-0">
-      <Flag code={pais ?? "XX"} size={22} nombre={nombre ?? placeholder} />
-      <span
-        className={`min-w-0 truncate text-xs leading-tight ${
-          definido ? "font-semibold" : "text-neutral-500"
-        }`}
-        title={nombre ?? placeholder}
-      >
-        {definido ? nombre : placeholder}
-      </span>
-    </div>
-  );
-}
-
-function Vacio() {
-  return (
-    <p className="px-4 py-8 text-center text-neutral-400 text-sm">
-      Aun no hay cruces para mostrar.
-    </p>
   );
 }

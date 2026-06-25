@@ -21,6 +21,12 @@ const ORDEN_FASE = [
   "Final",
 ];
 
+// Etiqueta corta para el chip de cada fase (la data guarda el nombre largo).
+const ETIQUETA_FASE: Record<string, string> = {
+  Semifinales: "Semis",
+  "Tercer Puesto": "3er puesto",
+};
+
 type Tab = {
   id: string; // "fecha1".. | "g-A".."g-L" | "f-Octavos"...
   label: string; // texto del chip
@@ -83,7 +89,30 @@ function construirTabs(partidos: Partido[]): Tab[] {
     partidos: proximos,
   });
 
-  // 2) Fase de grupos: una pestana por grupo (A..L).
+  // 2) Eliminatorias: una pestana por fase (Dieciseisavos..Final).
+  //    REGLA DINAMICA (pedido de Felipe): las fases TODAVIA por jugar van
+  //    primero (en orden), y las fases YA TERMINADAS (todos sus partidos
+  //    'final') se mueven al final -> quedan "a la derecha de Final".
+  const llaves = partidos.filter((p) => !p.grupo);
+  const fases = [...new Set(llaves.map((p) => p.fase))].sort(
+    (a, b) => ORDEN_FASE.indexOf(a) - ORDEN_FASE.indexOf(b)
+  );
+  const faseTerminada = (fase: string) => {
+    const ps = llaves.filter((p) => p.fase === fase);
+    return ps.length > 0 && ps.every((p) => p.estado === "final");
+  };
+  const pendientes = fases.filter((f) => !faseTerminada(f));
+  const terminadas = fases.filter((f) => faseTerminada(f));
+  for (const fase of [...pendientes, ...terminadas]) {
+    tabs.push({
+      id: `f-${fase}`,
+      label: ETIQUETA_FASE[fase] ?? fase,
+      mostrarFase: true,
+      partidos: llaves.filter((p) => p.fase === fase).sort(porFecha),
+    });
+  }
+
+  // 3) Fase de grupos: una pestana por grupo (A..L), al final (se mantienen).
   const grupos = partidos.filter((p) => p.grupo);
   const letras = [...new Set(grupos.map((p) => p.grupo as string))].sort();
   for (const letra of letras) {
@@ -91,20 +120,6 @@ function construirTabs(partidos: Partido[]): Tab[] {
       id: `g-${letra}`,
       label: `Grupo ${letra}`,
       partidos: grupos.filter((p) => p.grupo === letra).sort(porFecha),
-    });
-  }
-
-  // 3) Eliminatorias: una pestana por fase, en orden.
-  const llaves = partidos.filter((p) => !p.grupo);
-  const fases = [...new Set(llaves.map((p) => p.fase))].sort(
-    (a, b) => ORDEN_FASE.indexOf(a) - ORDEN_FASE.indexOf(b)
-  );
-  for (const fase of fases) {
-    tabs.push({
-      id: `f-${fase}`,
-      label: fase,
-      mostrarFase: true,
-      partidos: llaves.filter((p) => p.fase === fase).sort(porFecha),
     });
   }
 

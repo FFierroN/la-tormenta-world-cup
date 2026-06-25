@@ -1,10 +1,9 @@
-// Pantalla COPA: pestanas para Grupos + cada fase de eliminacion (llaves).
-// Antes era "Grupos". El cuadro de llaves es solo visual (no afecta puntos).
+// Pantalla COPA: dos pestanas -> "Grupos" (tabla de posiciones) y
+// "Llaves" (cuadro de eliminacion, Opcion B). El cuadro por fase ya no vive
+// aqui en pestanas separadas: todo el bracket esta dentro de "Llaves".
 import { useEffect, useState } from "react";
-import Llave from "../components/Llave";
+import LlavesView from "../components/LlavesView";
 import TablaGrupos from "../components/TablaGrupos";
-import { listarPartidos } from "../lib/data";
-import { useAsync } from "../lib/useAsync";
 import { useSwipe } from "../lib/useSwipe";
 import { TABS_COPA } from "../lib/llaves";
 
@@ -14,12 +13,6 @@ const INICIO_MUNDIAL = new Date("2026-06-11T15:00:00-04:00").getTime();
 
 export default function Copa() {
   const [tabKey, setTabKey] = useState(TABS_COPA[0].key);
-  const { data, cargando, error } = useAsync(listarPartidos, []);
-  const partidos = data ?? [];
-
-  const tab = TABS_COPA.find((t) => t.key === tabKey) ?? TABS_COPA[0];
-  const esGrupos = tab.fases.length === 0;
-  const partidosFase = partidos.filter((p) => tab.fases.includes(p.fase));
 
   // Swipe: desliza a los lados para cambiar de pestana (con tope en extremos).
   const irRelativo = (delta: number) => {
@@ -36,7 +29,7 @@ export default function Copa() {
         <h1 className="text-xl font-bold">Copa</h1>
       </header>
 
-      {/* Pestanas con scroll horizontal */}
+      {/* Pestanas */}
       <div className="overflow-x-auto no-scrollbar border-b border-borde">
         <div className="flex gap-1 px-4 min-w-max">
           {TABS_COPA.map((t) => {
@@ -60,25 +53,7 @@ export default function Copa() {
       </div>
 
       <div {...swipe} className="min-h-[60vh]">
-        {cargando && (
-          <p className="px-4 py-6 text-neutral-400 text-sm">Cargando...</p>
-        )}
-        {error && (
-          <p className="px-4 py-6 text-red-400 text-sm">
-            No se pudo cargar. Revisa la conexion con Supabase.
-          </p>
-        )}
-
-        {!cargando && !error && (
-          esGrupos ? (
-            <TablaGrupos />
-          ) : (
-            <Llave
-              partidos={partidosFase}
-              titulo={tab.key === "final" ? "La Gran Final" : undefined}
-            />
-          )
-        )}
+        {tabKey === "grupos" ? <TablaGrupos /> : <LlavesView />}
       </div>
     </div>
   );

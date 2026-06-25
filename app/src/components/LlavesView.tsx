@@ -6,13 +6,16 @@
 //     bandera+nombre cuando ya hay equipo).
 //   - "Fase Final": cuadro compacto de Octavos -> Cuartos -> Semis -> Final
 //     (+ 3er puesto), apilado por fase.
-// Hoy lee de un TEMPLATE MOCK (ver lib/bracket.ts). Cuando llegue el cuadro
-// oficial, solo cambia la fuente de datos; este componente no se toca.
+// Lee los partidos REALES de Supabase (listarPartidos) y arma el cuadro con
+// construirLlaves(). Mientras un equipo no este definido, muestra el
+// placeholder del 'origen' (1A / 3C/D/F/G/H / Gan. P73 ...).
 import { useState, type ReactNode } from "react";
 import Flag from "./Flag";
 import { fmtFechaHora } from "../lib/fechas";
+import { listarPartidos } from "../lib/data";
+import { useAsync } from "../lib/useAsync";
 import {
-  obtenerLlavesMock,
+  construirLlaves,
   slotsPorFase,
   type FaseLlave,
   type SlotLlave,
@@ -22,7 +25,8 @@ type SubTab = "dieciseisavos" | "final";
 
 export default function LlavesView() {
   const [sub, setSub] = useState<SubTab>("dieciseisavos");
-  const slots = obtenerLlavesMock();
+  const { data, cargando, error } = useAsync(listarPartidos, []);
+  const slots = construirLlaves(data ?? []);
 
   return (
     <div className="pb-2">
@@ -36,15 +40,21 @@ export default function LlavesView() {
         </Chip>
       </div>
 
-      {/* Aviso: datos de ejemplo (se quita cuando llegue el cuadro oficial). */}
-      <p className="px-4 pb-2 text-[11px] text-neutral-500">
-        Vista previa · los cruces se completan al cerrar los grupos.
-      </p>
+      {cargando && (
+        <p className="px-4 py-6 text-neutral-400 text-sm">Cargando llaves...</p>
+      )}
+      {error && (
+        <p className="px-4 py-6 text-red-400 text-sm">
+          No se pudo cargar el cuadro. Revisa la conexion con Supabase.
+        </p>
+      )}
 
-      {sub === "dieciseisavos" ? (
-        <ListaDieciseisavos slots={slotsPorFase(slots, "Dieciseisavos")} />
-      ) : (
-        <FaseFinal slots={slots} />
+      {!cargando && !error && (
+        sub === "dieciseisavos" ? (
+          <ListaDieciseisavos slots={slotsPorFase(slots, "Dieciseisavos")} />
+        ) : (
+          <FaseFinal slots={slots} />
+        )
       )}
     </div>
   );

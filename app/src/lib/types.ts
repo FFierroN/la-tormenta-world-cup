@@ -23,6 +23,9 @@ export interface Partido {
   id: string;
   fase: string; // grupos / octavos / etc
   grupo: string | null; // A..L (solo fase de grupos)
+  slot: string | null; // codigo de llave P73..P104 (solo eliminatoria)
+  origen_local: string | null; // de donde sale el local: '1A'/'2B'/'3ABCDF'/'GP73'/'PP101'
+  origen_visita: string | null; // idem visitante
   fecha: string; // ISO
   estadio: string | null;
   ciudad: string | null;

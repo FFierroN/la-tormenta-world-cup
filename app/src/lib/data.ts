@@ -43,6 +43,7 @@ function aPartido(r: any): Partido {
     slot: r.slot ?? null,
     origen_local: r.origen_local ?? null,
     origen_visita: r.origen_visita ?? null,
+    equipos_bloqueados: r.equipos_bloqueados ?? false,
     fecha: r.fecha,
     estadio: r.estadio ?? null,
     ciudad: r.ciudad ?? null,
@@ -432,6 +433,35 @@ export async function guardarResultado(
     .update(r)
     .eq("id", Number(partidoId));
   lanzarSi(error);
+}
+
+// ADMIN (eliminatoria): fija/corrige los equipos de una llave a mano.
+// Marca equipos_bloqueados=true para que propagar_llaves() no los pise.
+export interface EquiposInput {
+  equipo_local: string;
+  pais_local: string;
+  equipo_visita: string;
+  pais_visita: string;
+  equipos_bloqueados: boolean;
+}
+
+export async function guardarEquipos(
+  partidoId: string,
+  e: EquiposInput
+): Promise<void> {
+  const { error } = await supabase
+    .from("partidos")
+    .update(e)
+    .eq("id", Number(partidoId));
+  lanzarSi(error);
+}
+
+// Re-dispara el motor de llaves (rellena lo que ya se pueda resolver).
+// Devuelve cuantos lados se rellenaron en esta corrida.
+export async function propagarLlaves(): Promise<number> {
+  const { data, error } = await supabase.rpc("propagar_llaves");
+  lanzarSi(error);
+  return Number(data ?? 0);
 }
 
 export interface EventoInput {

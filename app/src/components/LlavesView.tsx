@@ -10,6 +10,7 @@
 // construirLlaves(). Mientras un equipo no este definido, muestra el
 // placeholder del 'origen' (1A / 3C/D/F/G/H / Gan. P73 ...).
 import { useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import Flag from "./Flag";
 import BracketFinal from "./BracketFinal";
 import { fmtFechaHora } from "../lib/fechas";
@@ -100,9 +101,14 @@ function ListaDieciseisavos({ slots }: { slots: SlotLlave[] }) {
 }
 
 // Tarjeta horizontal: [equipo local] — fecha/hora — [equipo visita].
+// Toda la tarjeta es un boton -> abre el detalle/pronostico del partido.
 function CardCruce({ s }: { s: SlotLlave }) {
+  const navigate = useNavigate();
   return (
-    <article className="bg-carbon-card border border-borde rounded-2xl p-4">
+    <button
+      onClick={() => navigate(`/partido/${s.id}`)}
+      className="w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
+    >
       <div className="flex items-center justify-between gap-2">
         <LadoEquipo
           nombre={s.equipoLocal}
@@ -127,7 +133,7 @@ function CardCruce({ s }: { s: SlotLlave }) {
           alinear="end"
         />
       </div>
-    </article>
+    </button>
   );
 }
 

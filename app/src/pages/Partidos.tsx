@@ -74,22 +74,7 @@ function construirTabs(partidos: Partido[]): Tab[] {
     partidos: jugados,
   });
 
-  // 1) Pestana "Proximos": TODOS los partidos de fase de grupos que faltan por
-  //    jugar (no finalizados), sin importar la jornada. Asi se ve de un vistazo
-  //    todo lo que queda antes de los dieciseisavos. Cuando terminan los grupos
-  //    queda vacia y la accion pasa a las pestanas de eliminatorias.
-  const proximos = partidos
-    .filter((p) => p.grupo && p.estado !== "final")
-    .sort(porFecha);
-  tabs.push({
-    id: "proximos",
-    label: "Pr\u00f3ximos",
-    subtitulo: "Fase de grupos \u00b7 partidos por jugar",
-    mostrarFase: true,
-    partidos: proximos,
-  });
-
-  // 2) Eliminatorias: una pestana por fase (Dieciseisavos..Final).
+  // 1) Eliminatorias: una pestana por fase (Dieciseisavos..Final).
   //    REGLA DINAMICA (pedido de Felipe): las fases TODAVIA por jugar van
   //    primero (en orden), y las fases YA TERMINADAS (todos sus partidos
   //    'final') se mueven al final -> quedan "a la derecha de Final".
@@ -126,6 +111,24 @@ function construirTabs(partidos: Partido[]): Tab[] {
   return tabs;
 }
 
+// Pestana por defecto del menu Partido: la PRIMERA fase eliminatoria que
+// todavia no termina (Dieciseisavos -> Octavos -> ... -> Final). Asi la
+// pantalla principal va avanzando sola a medida que se cierran las fases.
+// Si todas terminaron, muestra la Final; si aun no hay llaves, cae en
+// "Jugados".
+function tabPorDefecto(partidos: Partido[]): string {
+  const llaves = partidos.filter((p) => !p.grupo);
+  const terminada = (fase: string) => {
+    const ps = llaves.filter((p) => p.fase === fase);
+    return ps.length > 0 && ps.every((p) => p.estado === "final");
+  };
+  for (const fase of ORDEN_FASE) {
+    const ps = llaves.filter((p) => p.fase === fase);
+    if (ps.length > 0 && !terminada(fase)) return `f-${fase}`;
+  }
+  return llaves.length ? "f-Final" : "jugados";
+}
+
 export default function Partidos() {
   const { jugador } = useAuth();
   const { data: partidos, cargando, error } = useAsync(listarPartidos, []);
@@ -143,15 +146,24 @@ export default function Partidos() {
   // Deep-link desde Grupos: /partidos?grupo=A -> abre esa pestana.
   const [params] = useSearchParams();
   const grupoParam = params.get("grupo");
-  const [activo, setActivo] = useState<string>(
-    grupoParam ? `g-${grupoParam}` : "proximos"
+
+  // Default dinamico: la fase eliminatoria activa (Dieciseisavos -> ... ->
+  // Final). 'override' guarda la pestana que el usuario elige a mano (o el
+  // deep-link); si no hay override, manda el default calculado.
+  const defaultId = useMemo(
+    () => (partidos ? tabPorDefecto(partidos) : ""),
+    [partidos]
+  );
+  const [override, setOverride] = useState<string | null>(
+    grupoParam ? `g-${grupoParam}` : null
   );
 
   // Si llega un ?grupo despues de montar (o cambia), seguimos el deep-link.
   useEffect(() => {
-    if (grupoParam) setActivo(`g-${grupoParam}`);
+    if (grupoParam) setOverride(`g-${grupoParam}`);
   }, [grupoParam]);
 
+  const activo = override ?? defaultId;
   const tabActiva = tabs.find((t) => t.id === activo) ?? tabs[0];
 
   // Swipe: desliza a los lados para cambiar de pestana (con tope en los extremos).
@@ -159,7 +171,7 @@ export default function Partidos() {
     const ids = tabs.map((t) => t.id);
     const i = ids.indexOf(tabActiva?.id ?? "");
     const j = Math.min(ids.length - 1, Math.max(0, i + delta));
-    if (j !== i) setActivo(ids[j]);
+    if (j !== i) setOverride(ids[j]);
   };
   const swipe = useSwipe(() => irRelativo(1), () => irRelativo(-1));
 
@@ -183,7 +195,7 @@ export default function Partidos() {
 
       {partidos && partidos.length > 0 && tabActiva && (
         <>
-          <BarraPestanas tabs={tabs} activo={tabActiva.id} onSelect={setActivo} />
+          <BarraPestanas tabs={tabs} activo={tabActiva.id} onSelect={setOverride} />
           <div {...swipe}>
             <Panel tab={tabActiva} pronosticadoIds={pronosticadoIds} />
           </div>

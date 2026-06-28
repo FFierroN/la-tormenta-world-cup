@@ -8,9 +8,12 @@ import {
   agregarEvento,
   eliminarEvento,
   guardarResultado,
+  guardarEquipos,
+  propagarLlaves,
   listarEventos,
   obtenerPartido,
   type ResultadoInput,
+  type EquiposInput,
 } from "../lib/data";
 import type { EstadoPartido, EventoPartido, Partido, TipoEvento } from "../lib/types";
 
@@ -64,10 +67,140 @@ export default function AdminPartido() {
       </header>
 
       <div className="px-4 flex flex-col gap-4">
+        {!partido.grupo && <EquiposForm partido={partido} onGuardado={refrescar} />}
         <ResultadoForm partido={partido} onGuardado={refrescar} />
         <EventosForm partido={partido} eventos={eventos} onCambio={refrescar} />
       </div>
     </div>
+  );
+}
+
+/* ---------- Equipos de la llave (solo eliminatoria) ---------- */
+function EquiposForm({
+  partido,
+  onGuardado,
+}: {
+  partido: Partido;
+  onGuardado: () => void;
+}) {
+  const [eqL, setEqL] = useState(partido.equipo_local);
+  const [paL, setPaL] = useState(partido.pais_local);
+  const [eqV, setEqV] = useState(partido.equipo_visita);
+  const [paV, setPaV] = useState(partido.pais_visita);
+  const [bloq, setBloq] = useState(partido.equipos_bloqueados);
+  const [guardando, setGuardando] = useState(false);
+  const [propagando, setPropagando] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const guardar = async () => {
+    setGuardando(true);
+    setMsg(null);
+    const e: EquiposInput = {
+      equipo_local: eqL.trim() || "Por definir",
+      pais_local: paL.trim().toUpperCase() || "XX",
+      equipo_visita: eqV.trim() || "Por definir",
+      pais_visita: paV.trim().toUpperCase() || "XX",
+      equipos_bloqueados: bloq,
+    };
+    try {
+      await guardarEquipos(partido.id, e);
+      setMsg("Equipos guardados.");
+      onGuardado();
+    } catch {
+      setMsg("No se pudo guardar.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const propagar = async () => {
+    setPropagando(true);
+    setMsg(null);
+    try {
+      const n = await propagarLlaves();
+      setMsg(`Motor ejecutado: ${n} lado(s) rellenado(s).`);
+      onGuardado();
+    } catch {
+      setMsg("No se pudo ejecutar el motor.");
+    } finally {
+      setPropagando(false);
+    }
+  };
+
+  return (
+    <section className="bg-carbon-card border border-borde rounded-2xl p-4">
+      <h2 className="text-sm font-bold text-oro uppercase tracking-wide mb-1">
+        Equipos de la llave
+      </h2>
+      <p className="text-[11px] text-neutral-400 mb-3">
+        {partido.slot ? `Slot ${partido.slot}` : "Eliminatoria"} · origen{" "}
+        {partido.origen_local ?? "?"} vs {partido.origen_visita ?? "?"}. Corrige a
+        mano si el motor no pudo resolverlos.
+      </p>
+
+      <div className="grid grid-cols-[1fr_auto] gap-2 mb-2">
+        <input
+          value={eqL}
+          onChange={(e) => setEqL(e.target.value)}
+          placeholder="Equipo local"
+          className="px-3 py-2 rounded-lg bg-carbon-soft border border-borde text-sm"
+        />
+        <input
+          value={paL}
+          onChange={(e) => setPaL(e.target.value)}
+          placeholder="ISO"
+          maxLength={3}
+          className="w-16 px-2 py-2 rounded-lg bg-carbon-soft border border-borde text-sm text-center uppercase"
+        />
+      </div>
+      <div className="grid grid-cols-[1fr_auto] gap-2 mb-3">
+        <input
+          value={eqV}
+          onChange={(e) => setEqV(e.target.value)}
+          placeholder="Equipo visita"
+          className="px-3 py-2 rounded-lg bg-carbon-soft border border-borde text-sm"
+        />
+        <input
+          value={paV}
+          onChange={(e) => setPaV(e.target.value)}
+          placeholder="ISO"
+          maxLength={3}
+          className="w-16 px-2 py-2 rounded-lg bg-carbon-soft border border-borde text-sm text-center uppercase"
+        />
+      </div>
+
+      <label className="flex items-center gap-2 mb-3 text-sm">
+        <input
+          type="checkbox"
+          checked={bloq}
+          onChange={(e) => setBloq(e.target.checked)}
+          className="w-4 h-4 accent-oro"
+        />
+        <span>
+          Fijar a mano
+          <span className="block text-[11px] text-neutral-400">
+            El motor de llaves NO volvera a pisar estos equipos.
+          </span>
+        </span>
+      </label>
+
+      <button
+        onClick={guardar}
+        disabled={guardando}
+        className="w-full py-2.5 rounded-full bg-oro text-carbon font-bold disabled:opacity-50"
+      >
+        {guardando ? "Guardando..." : "Guardar equipos"}
+      </button>
+
+      <button
+        onClick={propagar}
+        disabled={propagando}
+        className="w-full mt-2 py-2.5 rounded-full bg-carbon-soft border border-oro text-oro font-bold disabled:opacity-50"
+      >
+        {propagando ? "Ejecutando..." : "Re-ejecutar motor de llaves"}
+      </button>
+      {msg && <p className="mt-2 text-center text-xs text-neutral-300">{msg}</p>}
+    </section>
   );
 }
 

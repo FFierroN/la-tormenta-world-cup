@@ -11,6 +11,7 @@
 // 50% / 75% de su celda -> siempre calzan, sin importar el ancho real.
 import Flag from "./Flag";
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { fmtHora, fmtDiaMes } from "../lib/fechas";
 import { indexarPorSlot, type SlotLlave } from "../lib/bracket";
 
@@ -97,12 +98,18 @@ function Label({ children, dorado }: { children: ReactNode; dorado?: boolean }) 
 }
 
 // -------------------------------------------------------------- Tarjeta
+// Toda la tarjeta es un boton -> abre el detalle/pronostico del partido.
 function Card({ s, big }: { s?: SlotLlave; big?: boolean }) {
+  const navigate = useNavigate();
   if (!s) return null;
+  const ir = () => navigate(`/partido/${s.id}`);
 
   if (big) {
     return (
-      <div className="rounded-2xl border border-oro/50 bg-oro/10 px-4 py-3 max-w-[300px] mx-auto">
+      <button
+        onClick={ir}
+        className="block w-full rounded-2xl border border-oro/50 bg-oro/10 px-4 py-3 max-w-[300px] mx-auto active:scale-[0.99] transition-transform"
+      >
         <div className="flex items-center justify-between gap-2">
           <Equipo nombre={s.equipoLocal} pais={s.paisLocal} corto={s.localCorto} size={40} />
           <span className="text-2xl leading-none">{"\u{1F3C6}"}</span>
@@ -112,12 +119,15 @@ function Card({ s, big }: { s?: SlotLlave; big?: boolean }) {
           <div className="text-lg font-bold tabular-nums leading-tight">{fmtHora(s.fecha)}</div>
           <div className="text-[10px] text-neutral-400 tabular-nums">{fmtDiaMes(s.fecha)}</div>
         </div>
-      </div>
+      </button>
     );
   }
 
   return (
-    <div className="rounded-xl border border-borde bg-carbon-card px-1 py-1.5 w-full max-w-[92px] mx-auto">
+    <button
+      onClick={ir}
+      className="block w-full rounded-xl border border-borde bg-carbon-card px-1 py-1.5 max-w-[92px] mx-auto active:scale-[0.97] transition-transform"
+    >
       <div className="text-[9px] text-neutral-400 text-center tabular-nums leading-none mb-1">
         {fmtHora(s.fecha)}
       </div>
@@ -128,7 +138,7 @@ function Card({ s, big }: { s?: SlotLlave; big?: boolean }) {
       <div className="text-[9px] text-neutral-500 text-center tabular-nums leading-none mt-1">
         {fmtDiaMes(s.fecha)}
       </div>
-    </div>
+    </button>
   );
 }
 

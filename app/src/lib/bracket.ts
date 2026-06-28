@@ -20,6 +20,7 @@ export type FaseLlave =
 // mostrar cuando NO hay equipo real (placeholder); equipoLocal/paisLocal
 // se llenan cuando el equipo ya quedo definido por resultados.
 export interface SlotLlave {
+  id: string; // id real del partido (para navegar a /partido/:id)
   slot: string;
   fase: FaseLlave;
   fecha: string;
@@ -78,6 +79,7 @@ const esDefinido = (nombre: string) => !!nombre && nombre !== "Por definir";
 // Mapea un partido de eliminatoria a un SlotLlave para la UI.
 export function partidoASlot(p: Partido): SlotLlave {
   return {
+    id: p.id,
     slot: p.slot ?? p.id,
     fase: p.fase as FaseLlave,
     fecha: p.fecha,

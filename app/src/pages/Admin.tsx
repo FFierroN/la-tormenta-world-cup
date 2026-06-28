@@ -19,12 +19,21 @@ export default function Admin() {
   const { data, cargando, error } = useAsync(listarPartidos, []);
   const [q, setQ] = useState("");
 
+  // Orden del panel: primero los NO jugados (proximos arriba, fecha ascendente)
+  // para acceso rapido; los ya jugados (estado 'final') caen al final en orden
+  // descendente (el ultimo jugado primero). Asi no hay que scrollear el historial.
   const partidos = (data ?? [])
     .filter((p) => {
       const t = `${p.equipo_local} ${p.equipo_visita} ${p.fase} ${p.grupo ?? ""}`.toLowerCase();
       return t.includes(q.trim().toLowerCase());
     })
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    .sort((a, b) => {
+      const ja = a.estado === "final";
+      const jb = b.estado === "final";
+      if (ja !== jb) return ja ? 1 : -1; // no jugados primero
+      if (!ja) return a.fecha.localeCompare(b.fecha); // proximos: ascendente
+      return b.fecha.localeCompare(a.fecha); // jugados: descendente
+    });
 
   return (
     <div className="max-w-md mx-auto">

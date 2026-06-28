@@ -43,6 +43,8 @@ export interface Partido {
   penales_local: number | null; // tanda de penales (llaves)
   penales_visita: number | null;
   ganador_penales: "local" | "visita" | null;
+  alargue_local: number | null; // goles SOLO del tiempo extra (llaves)
+  alargue_visita: number | null;
   estado: EstadoPartido;
   estadisticas: EstadisticasPartido | null; // panel de stats (Highlightly)
   alineaciones: Alineaciones | null; // formacion + 11 + banca (Highlightly)
@@ -109,7 +111,15 @@ export interface PronosticoVista {
   pred_local: number;
   pred_visita: number;
   puntos: number;
+  // Prediccion de definicion del empate (solo eliminatoria; null en grupos).
+  pred_definicion: ModoDefinicion | null;
+  pred_def_local: number | null;
+  pred_def_visita: number | null;
+  puntos_definicion: number;
 }
+
+// Como cree el jugador que se define un empate en fase final.
+export type ModoDefinicion = "alargue" | "penales";
 
 // Categoria del resultado de una prediccion ya jugada (null si aun no se juega).
 export type ResultadoPrediccion = "exacto" | "diferencia" | "acierto" | "falla";

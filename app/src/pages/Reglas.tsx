@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { PUNTOS_DISTINCION, PUNTOS_PAIS, PUNTOS_PARTIDO } from "../lib/reglas";
+import { PUNTOS_DEFINICION, PUNTOS_DISTINCION, PUNTOS_PAIS, PUNTOS_PARTIDO } from "../lib/reglas";
 
 export default function Reglas() {
   const navigate = useNavigate();
@@ -21,8 +21,9 @@ export default function Reglas() {
             Por cada partido
           </h2>
           <p className="text-sm text-neutral-300 mb-3">
-            Predices el marcador de cada partido. Ganas puntos segun que tan bien
-            le achuntas (y vale mas mientras mas avanza el Mundial):
+            Predices el marcador de cada partido (resultado a los 90'). Ganas
+            puntos segun que tan bien le achuntas. La tarifa es la misma en toda
+            la copa:
           </p>
           <ul className="text-sm text-neutral-300 space-y-1 mb-3">
             <li>
@@ -87,6 +88,36 @@ export default function Reglas() {
               </tbody>
             </table>
           </div>
+        </section>
+
+        {/* Definicion del empate (eliminatoria) */}
+        <section className="bg-carbon-card border border-borde rounded-2xl p-4">
+          <h2 className="text-sm font-bold text-oro uppercase tracking-wide mb-2">
+            Si hay empate (fase final)
+          </h2>
+          <p className="text-sm text-neutral-300 mb-3">
+            Solo en eliminatoria. Ademas del marcador, predices como se define un
+            empate: <b>Alargue</b> o <b>Penales</b> (eliges uno; el otro se
+            bloquea), y pones el marcador de esa instancia. Es una apuesta
+            <b> extra y opcional</b>: solo suma si el partido <b>realmente</b> se
+            va a esa definicion.
+          </p>
+          <ul className="space-y-1.5">
+            {PUNTOS_DEFINICION.map((e) => (
+              <li
+                key={e.item}
+                className="flex items-center justify-between text-sm bg-carbon-soft rounded-lg px-3 py-2"
+              >
+                <span className="text-neutral-300">{e.item}</span>
+                <span className="font-bold text-oro tabular-nums">+{e.pts} pts</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-neutral-500 mt-3">
+            El marcador del alargue cuenta <b>solo</b> los goles del tiempo extra;
+            el de penales, la tanda. Si el partido se resuelve en los 90', esta
+            apuesta no suma ni resta.
+          </p>
         </section>
 
         {/* Predicciones especiales */}

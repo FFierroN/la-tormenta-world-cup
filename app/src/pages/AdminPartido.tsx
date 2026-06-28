@@ -221,10 +221,14 @@ function ResultadoForm({
   const [ganador, setGanador] = useState<"" | "local" | "visita">(
     partido.ganador_penales ?? ""
   );
+  const [huboAlargue, setHuboAlargue] = useState(partido.alargue_local != null);
+  const [al, setAl] = useState(partido.alargue_local ?? 0);
+  const [av, setAv] = useState(partido.alargue_visita ?? 0);
   const [guardando, setGuardando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const programado = estado === "programado";
+  const esEliminatoria = !partido.grupo;
 
   const guardar = async () => {
     setGuardando(true);
@@ -237,6 +241,8 @@ function ResultadoForm({
       penales_local: ganador ? pl : null,
       penales_visita: ganador ? pv : null,
       ganador_penales: ganador || null,
+      alargue_local: esEliminatoria && huboAlargue ? al : null,
+      alargue_visita: esEliminatoria && huboAlargue ? av : null,
     };
     try {
       await guardarResultado(partido.id, r);
@@ -280,6 +286,27 @@ function ResultadoForm({
         <div className="mb-4">
           <label className="block text-xs text-neutral-400 mb-1">Minuto</label>
           <NumInput valor={min} set={setMin} max={130} />
+        </div>
+      )}
+
+      {esEliminatoria && (
+        <div className="mb-4">
+          <label className="flex items-center gap-2 text-xs text-neutral-400 mb-2">
+            <input
+              type="checkbox"
+              checked={huboAlargue}
+              onChange={(e) => setHuboAlargue(e.target.checked)}
+              className="w-4 h-4 accent-oro"
+            />
+            Hubo alargue (cargar goles SOLO del tiempo extra)
+          </label>
+          {huboAlargue && (
+            <div className="flex items-center justify-center gap-4">
+              <NumBox etiqueta="Alargue local" valor={al} set={setAl} />
+              <span className="text-2xl font-black text-neutral-500 pb-6">-</span>
+              <NumBox etiqueta="Alargue visita" valor={av} set={setAv} />
+            </div>
+          )}
         </div>
       )}
 

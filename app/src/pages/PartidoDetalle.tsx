@@ -9,7 +9,7 @@ import TablaTormentaLive from "../components/TablaTormentaLive";
 import { BallIcon } from "../components/Iconos";
 import TimelinePartido from "../components/TimelinePartido";
 import CanchaAlineaciones from "../components/CanchaAlineaciones";
-import type { Partido, PronosticoVista } from "../lib/types";
+import type { Partido, PronosticoVista, ModoDefinicion } from "../lib/types";
 
 import { fmtMinuto } from "../lib/eventos";
 import { useAsync } from "../lib/useAsync";
@@ -272,8 +272,14 @@ function EditorPronostico({
   onGuardado: () => void;
 }) {
   const abierto = puedePronosticar(partido);
+  const esEliminatoria = !partido.grupo;
   const [local, setLocal] = useState<number>(mio?.pred_local ?? 0);
   const [visita, setVisita] = useState<number>(mio?.pred_visita ?? 0);
+  const [definicion, setDefinicion] = useState<ModoDefinicion | null>(
+    mio?.pred_definicion ?? null
+  );
+  const [defLocal, setDefLocal] = useState<number>(mio?.pred_def_local ?? 0);
+  const [defVisita, setDefVisita] = useState<number>(mio?.pred_def_visita ?? 0);
   const [guardando, setGuardando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -292,6 +298,15 @@ function EditorPronostico({
         ) : (
           <div className="text-sm text-neutral-400">No pronosticaste este partido.</div>
         )}
+        {mio?.pred_definicion && (
+          <div className="mt-2 text-xs text-neutral-300">
+            Si hay empate:{" "}
+            <span className="text-oro font-semibold">
+              {mio.pred_definicion === "alargue" ? "Alargue" : "Penales"}
+            </span>{" "}
+            {mio.pred_def_local} - {mio.pred_def_visita}
+          </div>
+        )}
         <div className="text-xs text-neutral-500 mt-1">Las predicciones estan cerradas.</div>
       </div>
     );
@@ -302,7 +317,15 @@ function EditorPronostico({
     setGuardando(true);
     setMsg(null);
     try {
-      const r = await guardarPronostico(jugadorId, partido.id, local, visita);
+      const r = await guardarPronostico(
+        jugadorId,
+        partido.id,
+        local,
+        visita,
+        esEliminatoria ? definicion : null,
+        esEliminatoria && definicion ? defLocal : null,
+        esEliminatoria && definicion ? defVisita : null
+      );
       if (r === "ok") {
         setMsg("Guardado");
         onGuardado();
@@ -336,6 +359,18 @@ function EditorPronostico({
           set={setVisita}
         />
       </div>
+
+      {esEliminatoria && (
+        <DefinicionEmpate
+          partido={partido}
+          definicion={definicion}
+          setDefinicion={setDefinicion}
+          defLocal={defLocal}
+          setDefLocal={setDefLocal}
+          defVisita={defVisita}
+          setDefVisita={setDefVisita}
+        />
+      )}
       <button
         onClick={guardar}
         disabled={guardando}
@@ -399,6 +434,87 @@ function BotonRedondo({
   );
 }
 
+
+/* ---------- Caja: como se define el empate (solo eliminatoria) ---------- */
+function DefinicionEmpate({
+  partido,
+  definicion,
+  setDefinicion,
+  defLocal,
+  setDefLocal,
+  defVisita,
+  setDefVisita,
+}: {
+  partido: Partido;
+  definicion: ModoDefinicion | null;
+  setDefinicion: (m: ModoDefinicion | null) => void;
+  defLocal: number;
+  setDefLocal: (n: number) => void;
+  defVisita: number;
+  setDefVisita: (n: number) => void;
+}) {
+  // Toggle: si vuelves a tocar el modo activo, lo deseleccionas (apuesta opcional).
+  const elegir = (m: ModoDefinicion) => setDefinicion(definicion === m ? null : m);
+  const etiqueta =
+    definicion === "alargue"
+      ? "Marcador SOLO del alargue"
+      : "Marcador de la tanda de penales";
+
+  return (
+    <div className="mt-4 pt-4 border-t border-borde">
+      <div className="text-xs uppercase tracking-wide text-neutral-400 mb-1 text-center">
+        Si hay empate, como se define?
+      </div>
+      <p className="text-[11px] text-neutral-500 text-center mb-3">
+        Opcional. Aciertas el modo: +2. Aciertas tambien el marcador: +3 mas (max +5).
+      </p>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <OpcionDef activo={definicion === "alargue"} onClick={() => elegir("alargue")}>
+          Alargue
+        </OpcionDef>
+        <OpcionDef activo={definicion === "penales"} onClick={() => elegir("penales")}>
+          Penales
+        </OpcionDef>
+      </div>
+
+      {definicion && (
+        <div>
+          <div className="text-[11px] text-neutral-400 text-center mb-2">{etiqueta}</div>
+          <div className="flex items-center justify-center gap-4">
+            <Stepper etiqueta={partido.equipo_local} valor={defLocal} set={setDefLocal} />
+            <span className="text-2xl font-black text-neutral-500 pb-6">-</span>
+            <Stepper etiqueta={partido.equipo_visita} valor={defVisita} set={setDefVisita} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OpcionDef({
+  activo,
+  onClick,
+  children,
+}: {
+  activo: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={activo}
+      className={`py-2.5 rounded-full border text-sm font-bold transition-colors ${
+        activo
+          ? "bg-oro text-carbon border-oro"
+          : "bg-carbon-soft text-neutral-300 border-borde"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
 /* ---------- Tab 2: pronosticos (oculta ajenos hasta el inicio) ---------- */
 function Pronosticos({
@@ -523,6 +639,21 @@ function Pronosticos({
                   {pr.pred_visita}
                 </span>
               </div>
+
+              {pr.pred_definicion && (
+                <div className="mt-2 pt-2 border-t border-borde text-center text-[11px] text-neutral-400">
+                  Si empata:{" "}
+                  <span className="text-neutral-200 font-semibold">
+                    {pr.pred_definicion === "alargue" ? "Alargue" : "Penales"}{" "}
+                    {pr.pred_def_local}-{pr.pred_def_visita}
+                  </span>
+                  {pr.puntos_definicion > 0 && (
+                    <span className="ml-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold bg-green-500/20 text-green-400">
+                      +{pr.puntos_definicion}
+                    </span>
+                  )}
+                </div>
+              )}
             </li>
           );
         })}

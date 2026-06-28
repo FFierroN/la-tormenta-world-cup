@@ -15,6 +15,7 @@ import type {
   Jugador,
   JugadorAdmin,
 MiPrediccion,
+  ModoDefinicion,
   Partido,
   PrediccionJugada,
   PronosticoVista,
@@ -60,6 +61,8 @@ function aPartido(r: any): Partido {
     penales_local: r.penales_local ?? null,
     penales_visita: r.penales_visita ?? null,
     ganador_penales: r.ganador_penales ?? null,
+    alargue_local: r.alargue_local ?? null,
+    alargue_visita: r.alargue_visita ?? null,
     estado: r.estado,
     estadisticas: r.estadisticas ?? null,
     alineaciones: r.alineaciones ?? null,
@@ -87,6 +90,10 @@ function aPronosticoVista(r: any): PronosticoVista {
     pred_local: r.pred_local,
     pred_visita: r.pred_visita,
     puntos: Number(r.puntos ?? 0),
+    pred_definicion: r.pred_definicion ?? null,
+    pred_def_local: r.pred_def_local ?? null,
+    pred_def_visita: r.pred_def_visita ?? null,
+    puntos_definicion: Number(r.puntos_definicion ?? 0),
   };
 }
 
@@ -198,17 +205,25 @@ export async function pronosticosPartido(
 }
 
 // Guarda/actualiza el pronostico del jugador. Devuelve 'ok'|'cerrado'|'invalido'.
+// La prediccion de definicion del empate (modo + marcador) es opcional y solo
+// aplica en eliminatoria; en grupos el servidor la ignora.
 export async function guardarPronostico(
   jugadorId: string,
   partidoId: string,
   local: number,
-  visita: number
+  visita: number,
+  definicion: ModoDefinicion | null = null,
+  defLocal: number | null = null,
+  defVisita: number | null = null
 ): Promise<string> {
   const { data, error } = await supabase.rpc("guardar_pronostico", {
     p_jugador_id: Number(jugadorId),
     p_partido_id: Number(partidoId),
     p_local: local,
     p_visita: visita,
+    p_definicion: definicion,
+    p_def_local: defLocal,
+    p_def_visita: defVisita,
   });
   lanzarSi(error);
   return String(data);
@@ -422,6 +437,8 @@ export interface ResultadoInput {
   penales_local: number | null;
   penales_visita: number | null;
   ganador_penales: "local" | "visita" | null;
+  alargue_local: number | null; // goles SOLO del alargue (manual)
+  alargue_visita: number | null;
 }
 
 export async function guardarResultado(

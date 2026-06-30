@@ -466,7 +466,8 @@ function DefinicionEmpate({
         Si hay empate, como se define?
       </div>
       <p className="text-[11px] text-neutral-500 text-center mb-3">
-        Opcional. Aciertas el modo: +2. Aciertas tambien el marcador: +3 mas (max +5).
+        Opcional. Aciertas modo + quien clasifica: +2. Aciertas tambien el
+        marcador exacto: +3 mas (max +5).
       </p>
       <div className="grid grid-cols-2 gap-2 mb-3">
         <OpcionDef activo={definicion === "alargue"} onClick={() => elegir("alargue")}>
@@ -485,6 +486,7 @@ function DefinicionEmpate({
             <span className="text-2xl font-black text-neutral-500 pb-6">-</span>
             <Stepper etiqueta={partido.equipo_visita} valor={defVisita} set={setDefVisita} />
           </div>
+          <ClasificaHint partido={partido} defLocal={defLocal} defVisita={defVisita} />
         </div>
       )}
     </div>
@@ -513,6 +515,40 @@ function OpcionDef({
     >
       {children}
     </button>
+  );
+}
+
+// Indicador en vivo de a quien estas eligiendo como clasificado (segun el lado
+// con mas goles/penales del marcador de la definicion). Empate => no define.
+function ClasificaHint({
+  partido,
+  defLocal,
+  defVisita,
+}: {
+  partido: Partido;
+  defLocal: number;
+  defVisita: number;
+}) {
+  if (defLocal === defVisita) {
+    return (
+      <div className="mt-2 text-center text-[11px] text-amber-400">
+        Empate: no define un clasificado (no suma).
+      </div>
+    );
+  }
+  const ganaLocal = defLocal > defVisita;
+  return (
+    <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-neutral-300">
+      <span className="uppercase tracking-wide text-neutral-500">Clasifica:</span>
+      <Flag
+        code={ganaLocal ? partido.pais_local : partido.pais_visita}
+        size={16}
+        nombre={ganaLocal ? partido.equipo_local : partido.equipo_visita}
+      />
+      <span className="font-semibold">
+        {ganaLocal ? partido.equipo_local : partido.equipo_visita}
+      </span>
+    </div>
   );
 }
 

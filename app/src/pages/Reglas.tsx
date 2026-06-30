@@ -98,9 +98,11 @@ export default function Reglas() {
           <p className="text-sm text-neutral-300 mb-3">
             Solo en eliminatoria. Ademas del marcador, predices como se define un
             empate: <b>Alargue</b> o <b>Penales</b> (eliges uno; el otro se
-            bloquea), y pones el marcador de esa instancia. Es una apuesta
-            <b> extra y opcional</b>: solo suma si el partido <b>realmente</b> se
-            va a esa definicion.
+            bloquea), y pones el marcador de esa instancia. El lado con mas
+            goles/penales es el equipo que <b>crees que clasifica</b>. Es una
+            apuesta <b>extra y opcional</b>: solo suma si el partido
+            <b> realmente</b> se va a esa definicion y <b>clasifica el equipo
+            que elegiste por esa via</b>.
           </p>
           <ul className="space-y-1.5">
             {PUNTOS_DEFINICION.map((e) => (
@@ -115,8 +117,8 @@ export default function Reglas() {
           </ul>
           <p className="text-xs text-neutral-500 mt-3">
             El marcador del alargue cuenta <b>solo</b> los goles del tiempo extra;
-            el de penales, la tanda. Si el partido se resuelve en los 90', esta
-            apuesta no suma ni resta.
+            el de penales, la tanda. Si el partido se resuelve en los 90', o si
+            clasifica el equipo contrario al que elegiste, esta apuesta no suma.
           </p>
         </section>
 

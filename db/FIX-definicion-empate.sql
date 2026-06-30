@@ -6,10 +6,12 @@
 -- A) NUEVA prediccion "Si hay empate, como se define?" en partidos de
 --    ELIMINATORIA (fase final). Ademas del marcador de los 90', el jugador
 --    elige Alargue O Penales (excluyentes) y pone el marcador de esa
---    instancia. Puntaje FIJO en toda la copa:
---      +2 si acierta el MODO (alargue/penales) ... y ademas
---      +3 si acierta el MARCADOR exacto de la definicion  -> max +5.
---    Solo suma si el partido REALMENTE se fue a definicion. Si no, +0.
+--    instancia (de ahi se deduce el equipo que cree que clasifica: el lado
+--    con mas goles/penales). Puntaje FIJO en toda la copa:
+--      +2 si acierta el MODO (alargue/penales) Y el EQUIPO que clasifica.
+--      +3 ADICIONAL si ademas acierta el MARCADOR exacto  -> max +5.
+--    NO hay puntos por elegir solo el modo: el equipo elegido debe ganar por
+--    esa via. Solo suma si el partido REALMENTE se fue a definicion. Si no, +0.
 --    Por ahora el marcador real es MANUAL (admin carga penales y/o alargue);
 --    mas adelante se vera si se deriva de la API.
 --
@@ -94,8 +96,9 @@ create or replace function calcular_puntos_definicion(
   pen_l int, pen_v int, alg_l int, alg_v int
 ) returns int as $$
 declare modo_real text; rl int; rv int; pts int := 0;
+        gana_pred int; gana_real int;
 begin
-  if pred_def is null then return 0; end if;
+  if pred_def is null or pred_dl is null or pred_dv is null then return 0; end if;
 
   if pen_l is not null and pen_v is not null then
     modo_real := 'penales'; rl := pen_l; rv := pen_v;
@@ -105,8 +108,13 @@ begin
     return 0; -- el partido no se fue a definicion
   end if;
 
-  if pred_def = modo_real then
-    pts := 2;                                   -- +2 acertar el modo
+  gana_pred := sign(pred_dl - pred_dv); -- equipo que el jugador cree que clasifica
+  gana_real := sign(rl - rv);           -- equipo que realmente clasifico
+
+  -- +2 SOLO si acierta el MODO (alargue/penales) Y el EQUIPO que clasifica.
+  -- (Ya no hay puntos por elegir solo el modo. gana_real=0 => no define.)
+  if pred_def = modo_real and gana_real <> 0 and gana_pred = gana_real then
+    pts := 2;
     if pred_dl = rl and pred_dv = rv then
       pts := pts + 3;                           -- +3 marcador exacto de la definicion
     end if;

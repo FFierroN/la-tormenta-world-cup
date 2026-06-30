@@ -10,11 +10,12 @@ export const PUNTOS_PARTIDO = [
 ];
 
 // Definicion del empate (solo eliminatoria): apuesta extra de como se resuelve
-// un empate. Puntos FIJOS en toda la copa. Fuente: calcular_puntos_definicion.
+// un empate. El +2 exige acertar el MODO y el EQUIPO que clasifica. Puntos
+// FIJOS en toda la copa. Fuente: calcular_puntos_definicion.
 export const PUNTOS_DEFINICION = [
-  { item: "Acertar el modo (alargue o penales)", pts: 2 },
+  { item: "Acertar modo + equipo que clasifica", pts: 2 },
   { item: "Acertar tambien el marcador exacto", pts: 3 },
-  { item: "Acierto total (modo + marcador)", pts: 5 },
+  { item: "Acierto total (modo + clasificado + marcador)", pts: 5 },
 ];
 
 // Especiales tipo PAIS: por cada equipo cobras solo su ronda mas alta lograda.

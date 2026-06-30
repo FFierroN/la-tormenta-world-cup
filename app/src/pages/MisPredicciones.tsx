@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
+import ResumenPredicciones from "../components/ResumenPredicciones";
 import { listarJugadores, misPrediccionesDetalle, prediccionesJugadasTodas } from "../lib/data";
 import { soloCasi, rankingCasi } from "../lib/casi";
 import { useAsync } from "../lib/useAsync";
@@ -37,8 +38,28 @@ type Tab = "lista" | "casi";
 
 export default function MisPredicciones() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { jugadorId: paramId } = useParams();
   const { jugador } = useAuth();
   const [tab, setTab] = useState<Tab>("lista");
+
+  const miId = jugador?.id ?? null;
+  // Si la URL trae un id distinto al mio, estoy mirando a OTRO participante:
+  // vista de solo lectura, solo sus partidos jugados, sin pestana "Casi".
+  const viendoOtro = !!paramId && paramId !== miId;
+  const targetId = paramId ?? miId;
+
+  // Nombre del otro: lo ideal es que llegue por state desde la tabla (sin viaje
+  // extra). Si entras directo por URL/refresh, lo buscamos en la lista.
+  const nombreState = (location.state as { nombre?: string } | null)?.nombre ?? null;
+  const { data: nombreFetched } = useAsync(
+    () =>
+      viendoOtro && !nombreState
+        ? listarJugadores().then((js) => js.find((j) => j.id === paramId)?.nombre ?? null)
+        : Promise.resolve(null),
+    [viendoOtro, nombreState, paramId]
+  );
+  const nombreOtro = nombreState ?? nombreFetched ?? "participante";
 
   return (
     <div className="max-w-md mx-auto pb-10">
@@ -48,25 +69,34 @@ export default function MisPredicciones() {
             <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold">Mis predicciones</h1>
+        <h1 className="text-lg font-bold">
+          {viendoOtro ? `Predicciones de ${nombreOtro}` : "Mis predicciones"}
+        </h1>
       </header>
 
-      {/* Pestanas */}
-      <div className="px-4">
-        <div className="grid grid-cols-2 border-b border-borde">
-          <TabBtn activo={tab === "lista"} onClick={() => setTab("lista")}>
-            Lista
-          </TabBtn>
-          <TabBtn activo={tab === "casi"} onClick={() => setTab("casi")}>
-            Casi
-          </TabBtn>
-        </div>
-      </div>
-
-      {tab === "lista" ? (
-        <ListaTab jugadorId={jugador?.id ?? null} />
+      {viendoOtro ? (
+        // Vista de otro participante: solo lectura, solo jugados.
+        <ListaTab jugadorId={targetId} soloJugados />
       ) : (
-        <CasiTab miId={jugador?.id ?? null} />
+        <>
+          {/* Pestanas (solo en mi propia vista) */}
+          <div className="px-4">
+            <div className="grid grid-cols-2 border-b border-borde">
+              <TabBtn activo={tab === "lista"} onClick={() => setTab("lista")}>
+                Lista
+              </TabBtn>
+              <TabBtn activo={tab === "casi"} onClick={() => setTab("casi")}>
+                Casi
+              </TabBtn>
+            </div>
+          </div>
+
+          {tab === "lista" ? (
+            <ListaTab jugadorId={miId} />
+          ) : (
+            <CasiTab miId={miId} />
+          )}
+        </>
       )}
     </div>
   );
@@ -96,7 +126,13 @@ function TabBtn({
 }
 
 // ---------------------------------------------------------------- Tab "Lista"
-function ListaTab({ jugadorId }: { jugadorId: string | null }) {
+function ListaTab({
+  jugadorId,
+  soloJugados = false,
+}: {
+  jugadorId: string | null;
+  soloJugados?: boolean;
+}) {
   const { data, cargando, error } = useAsync(
     () =>
       jugadorId
@@ -110,24 +146,34 @@ function ListaTab({ jugadorId }: { jugadorId: string | null }) {
   const jugados = todas
     .filter((p) => p.estado === "final")
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const proximos = todas
-    .filter((p) => p.estado !== "final")
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  // Al mirar a otro participante NO mostramos sus pronosticos futuros.
+  const proximos = soloJugados
+    ? []
+    : todas
+        .filter((p) => p.estado !== "final")
+        .sort((a, b) => a.fecha.localeCompare(b.fecha));
+  // El resumen de otro se basa solo en jugados; el propio, en todo.
+  const filasResumen = soloJugados ? jugados : todas;
+  const vacio = soloJugados ? jugados.length === 0 : todas.length === 0;
 
   return (
     <>
       {cargando && (
-        <p className="px-4 mt-3 text-neutral-400 text-sm">Cargando tus predicciones...</p>
+        <p className="px-4 mt-3 text-neutral-400 text-sm">Cargando predicciones...</p>
       )}
       {error && (
         <p className="px-4 mt-3 text-rose-400 text-sm">
-          No se pudieron cargar tus predicciones.
+          No se pudieron cargar las predicciones.
         </p>
       )}
 
-      {!cargando && !error && todas.length === 0 && (
+      {!cargando && !error && <ResumenPredicciones filas={filasResumen} />}
+
+      {!cargando && !error && vacio && (
         <p className="px-4 mt-3 text-neutral-400 text-sm">
-          Aun no has hecho ninguna prediccion.
+          {soloJugados
+            ? "Este participante aun no tiene partidos jugados."
+            : "Aun no has hecho ninguna prediccion."}
         </p>
       )}
 

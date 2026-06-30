@@ -45,7 +45,7 @@ export default function App() {
     location.pathname === "/especiales" ||
     location.pathname === "/especiales-todos" ||
     location.pathname === "/cambiar-pin" ||
-    location.pathname === "/mis-predicciones" ||
+    location.pathname.startsWith("/mis-predicciones") ||
     location.pathname === "/reglas";
 
   return (
@@ -71,6 +71,7 @@ export default function App() {
           <Route path="/cuenta" element={<Privada><MiCuenta /></Privada>} />
           <Route path="/cambiar-pin" element={<Privada><CambiarPin /></Privada>} />
           <Route path="/mis-predicciones" element={<Privada><MisPredicciones /></Privada>} />
+          <Route path="/mis-predicciones/:jugadorId" element={<Privada><MisPredicciones /></Privada>} />
           <Route path="/especiales" element={<Privada><PrediccionesEspeciales /></Privada>} />
           <Route path="/reglas" element={<Privada><Reglas /></Privada>} />
           <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Avatar from "../components/Avatar";
 import IndicadorMovimiento from "../components/IndicadorMovimiento";
 import PrediccionesTodos from "../components/PrediccionesTodos";
@@ -11,6 +12,7 @@ import type { FilaTabla } from "../lib/types";
 type Pestana = "galeria" | "clasica" | "predicciones";
 
 export default function Tabla() {
+  const navigate = useNavigate();
   const [pestana, setPestana] = useState<Pestana>("galeria");
   const { data, cargando, error } = useAsync(obtenerTabla, []);
   const { data: live } = useAsync(obtenerTablaLive, []);
@@ -37,6 +39,13 @@ export default function Tabla() {
     () => setPestana("clasica"),
     () => setPestana("galeria")
   );
+
+  // Tocar un participante abre sus predicciones (solo lectura). El nombre viaja
+  // por state para mostrarlo en el header sin un fetch extra.
+  const irAPredicciones = (f: FilaTabla) =>
+    navigate(`/mis-predicciones/${f.jugador_id}`, {
+      state: { nombre: f.alias ?? f.nombre },
+    });
 
   return (
     <div className="max-w-md mx-auto">
@@ -70,12 +79,12 @@ export default function Tabla() {
 
       {pestana === "galeria" && (
         <div {...swipe}>
-          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} fotoPrimeroOn={fotoPrimeroOn} posLive={posLive} posBase={posBaseMap} />
+          <Galeria filas={filas} total={total} fotoUltimoOn={fotoUltimoOn} fotoPrimeroOn={fotoPrimeroOn} posLive={posLive} posBase={posBaseMap} onSelect={irAPredicciones} />
         </div>
       )}
       {pestana === "clasica" && (
         <div {...swipe}>
-          <Clasica filas={filas} posLive={posLive} posBase={posBaseMap} />
+          <Clasica filas={filas} posLive={posLive} posBase={posBaseMap} onSelect={irAPredicciones} />
         </div>
       )}
       {pestana === "predicciones" && <PrediccionesTodos />}
@@ -125,6 +134,7 @@ function Galeria({
   fotoPrimeroOn,
   posLive,
   posBase,
+  onSelect,
 }: {
   filas: FilaTabla[];
   total: number;
@@ -132,6 +142,7 @@ function Galeria({
   fotoPrimeroOn: boolean;
   posLive: Map<string, number>;
   posBase: Map<string, number>;
+  onSelect: (f: FilaTabla) => void;
 }) {
   return (
     <div className="px-4 py-4 flex flex-col gap-4">
@@ -145,8 +156,18 @@ function Galeria({
         return (
           <article
             key={f.jugador_id}
+            role="button"
+            tabIndex={0}
+            onClick={() => onSelect(f)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect(f);
+              }
+            }}
+            aria-label={`Ver predicciones de ${f.alias ?? f.nombre}`}
             style={conFoto ? { backgroundImage: fondo } : undefined}
-            className={`relative overflow-hidden bg-carbon-card border border-borde rounded-2xl ${
+            className={`relative overflow-hidden bg-carbon-card border border-borde rounded-2xl cursor-pointer active:scale-[0.99] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-oro ${
               conFoto ? "bg-cover bg-center" : ""
             }`}
           >
@@ -192,7 +213,7 @@ function Stat({ label, valor }: { label: string; valor: number }) {
 }
 
 /* ---------- Pestana 2: tabla clasica ---------- */
-function Clasica({ filas, posLive, posBase }: { filas: FilaTabla[]; posLive: Map<string, number>; posBase: Map<string, number> }) {
+function Clasica({ filas, posLive, posBase, onSelect }: { filas: FilaTabla[]; posLive: Map<string, number>; posBase: Map<string, number>; onSelect: (f: FilaTabla) => void }) {
   const total = filas.length;
   return (
     <div className="px-4 py-4">
@@ -220,7 +241,12 @@ function Clasica({ filas, posLive, posBase }: { filas: FilaTabla[]; posLive: Map
                 ? "bg-rose-500/10"
                 : "";
               return (
-                <tr key={f.jugador_id} className={`border-t border-borde ${realce}`}>
+                <tr
+                  key={f.jugador_id}
+                  onClick={() => onSelect(f)}
+                  title={`Ver predicciones de ${f.alias ?? f.nombre}`}
+                  className={`border-t border-borde cursor-pointer active:bg-white/5 ${realce}`}
+                >
                   <td className="py-2.5 px-2 font-bold text-oro">{f.posicion}</td>
                   <td className="py-2.5 px-1 text-center">
                     <IndicadorMovimiento {...movProps(f, posLive, posBase)} />

@@ -9,7 +9,7 @@ import TablaTormentaLive from "../components/TablaTormentaLive";
 import { BallIcon } from "../components/Iconos";
 import TimelinePartido from "../components/TimelinePartido";
 import CanchaAlineaciones from "../components/CanchaAlineaciones";
-import type { Partido, PronosticoVista, ModoDefinicion } from "../lib/types";
+import type { Partido, PronosticoVista, ModoDefinicion, LadoEquipo } from "../lib/types";
 
 import { fmtMinuto } from "../lib/eventos";
 import { useAsync } from "../lib/useAsync";
@@ -275,6 +275,9 @@ function EditorPronostico({
   const esEliminatoria = !partido.grupo;
   const [local, setLocal] = useState<number>(mio?.pred_local ?? 0);
   const [visita, setVisita] = useState<number>(mio?.pred_visita ?? 0);
+  const [clasificado, setClasificado] = useState<LadoEquipo | null>(
+    mio?.pred_clasificado ?? null
+  );
   const [definicion, setDefinicion] = useState<ModoDefinicion | null>(
     mio?.pred_definicion ?? null
   );
@@ -282,6 +285,20 @@ function EditorPronostico({
   const [defVisita, setDefVisita] = useState<number>(mio?.pred_def_visita ?? 0);
   const [guardando, setGuardando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  // Coherencia bandera<->marcador de la definicion. Si elegiste bandera, el
+  // marcador DEBE favorecer a ese lado (no permitimos guardar inconsistencias).
+  // Sin bandera elegida: no hay nada que validar.
+  let incoherencia: string | null = null;
+  if (esEliminatoria && clasificado && definicion) {
+    if (defLocal === defVisita) {
+      incoherencia = "El marcador no puede ser empate si elegiste un clasificado.";
+    } else if (clasificado === "local" && defLocal < defVisita) {
+      incoherencia = `Elegiste a ${partido.equipo_local}, pero tu marcador favorece a ${partido.equipo_visita}.`;
+    } else if (clasificado === "visita" && defVisita < defLocal) {
+      incoherencia = `Elegiste a ${partido.equipo_visita}, pero tu marcador favorece a ${partido.equipo_local}.`;
+    }
+  }
 
   // Si el partido ya cerro (empezo o termino): mostramos lo que pronostico (o
   // que no jugo). Sin fondo azul solido, solo el borde (igual que goleadores).
@@ -298,8 +315,21 @@ function EditorPronostico({
         ) : (
           <div className="text-sm text-neutral-400">No pronosticaste este partido.</div>
         )}
+        {mio?.pred_clasificado && (
+          <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-neutral-300">
+            <span className="uppercase tracking-wide text-neutral-500">Clasifica:</span>
+            <Flag
+              code={mio.pred_clasificado === "local" ? partido.pais_local : partido.pais_visita}
+              size={16}
+              nombre={mio.pred_clasificado === "local" ? partido.equipo_local : partido.equipo_visita}
+            />
+            <span className="font-semibold">
+              {mio.pred_clasificado === "local" ? partido.equipo_local : partido.equipo_visita}
+            </span>
+          </div>
+        )}
         {mio?.pred_definicion && (
-          <div className="mt-2 text-xs text-neutral-300">
+          <div className="mt-1 text-xs text-neutral-300">
             Si hay empate:{" "}
             <span className="text-oro font-semibold">
               {mio.pred_definicion === "alargue" ? "Alargue" : "Penales"}
@@ -313,7 +343,7 @@ function EditorPronostico({
   }
 
   const guardar = async () => {
-    if (!jugadorId) return;
+    if (!jugadorId || incoherencia) return;
     setGuardando(true);
     setMsg(null);
     try {
@@ -324,7 +354,8 @@ function EditorPronostico({
         visita,
         esEliminatoria ? definicion : null,
         esEliminatoria && definicion ? defLocal : null,
-        esEliminatoria && definicion ? defVisita : null
+        esEliminatoria && definicion ? defVisita : null,
+        esEliminatoria ? clasificado : null
       );
       if (r === "ok") {
         setMsg("Guardado");
@@ -342,44 +373,56 @@ function EditorPronostico({
   };
 
   return (
-    <div className="bg-carbon-card border border-borde rounded-2xl p-4">
-      <div className="text-xs uppercase tracking-wide text-neutral-400 mb-3 text-center">
-        Tu pronostico
-      </div>
-      <div className="flex items-center justify-center gap-4">
-        <Stepper
-          etiqueta={partido.equipo_local}
-          valor={local}
-          set={setLocal}
-        />
-        <span className="text-2xl font-black text-neutral-500 pb-6">-</span>
-        <Stepper
-          etiqueta={partido.equipo_visita}
-          valor={visita}
-          set={setVisita}
-        />
+    <div className="space-y-3">
+      {/* Caja 1: pronostico oficial (marcador de 90'). */}
+      <div className="bg-carbon-card border border-borde rounded-2xl p-4">
+        <div className="text-xs uppercase tracking-wide text-neutral-400 mb-3 text-center">
+          Tu pronostico
+        </div>
+        <div className="flex items-center justify-center gap-4">
+          <Stepper etiqueta={partido.equipo_local} valor={local} set={setLocal} />
+          <span className="text-2xl font-black text-neutral-500 pb-6">-</span>
+          <Stepper etiqueta={partido.equipo_visita} valor={visita} set={setVisita} />
+        </div>
       </div>
 
       {esEliminatoria && (
-        <DefinicionEmpate
-          partido={partido}
-          definicion={definicion}
-          setDefinicion={setDefinicion}
-          defLocal={defLocal}
-          setDefLocal={setDefLocal}
-          defVisita={defVisita}
-          setDefVisita={setDefVisita}
-        />
+        <>
+          {/* Caja 2: bandera del equipo que el jugador cree que clasifica. */}
+          <SelectorBandera
+            partido={partido}
+            clasificado={clasificado}
+            setClasificado={setClasificado}
+          />
+
+          {/* Caja 3: modo (alargue/penales) + marcador exacto + nota. */}
+          <DefinicionEmpate
+            partido={partido}
+            definicion={definicion}
+            setDefinicion={setDefinicion}
+            defLocal={defLocal}
+            setDefLocal={setDefLocal}
+            defVisita={defVisita}
+            setDefVisita={setDefVisita}
+          />
+        </>
       )}
+
+      {incoherencia && (
+        <div className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/40 text-center text-xs text-red-300">
+          {incoherencia}
+        </div>
+      )}
+
       <button
         onClick={guardar}
-        disabled={guardando}
-        className="mt-4 w-full py-2.5 rounded-full bg-oro text-carbon font-bold disabled:opacity-50"
+        disabled={guardando || !!incoherencia}
+        className="w-full py-2.5 rounded-full bg-oro text-carbon font-bold disabled:opacity-50"
       >
         {guardando ? "Guardando..." : mio ? "Actualizar pronostico" : "Guardar pronostico"}
       </button>
       {msg && (
-        <div className="mt-2 text-center text-xs text-neutral-300">{msg}</div>
+        <div className="text-center text-xs text-neutral-300">{msg}</div>
       )}
     </div>
   );
@@ -435,7 +478,7 @@ function BotonRedondo({
 }
 
 
-/* ---------- Caja: como se define el empate (solo eliminatoria) ---------- */
+/* ---------- Caja 3: como se define el empate (solo eliminatoria) ---------- */
 function DefinicionEmpate({
   partido,
   definicion,
@@ -455,20 +498,12 @@ function DefinicionEmpate({
 }) {
   // Toggle: si vuelves a tocar el modo activo, lo deseleccionas (apuesta opcional).
   const elegir = (m: ModoDefinicion) => setDefinicion(definicion === m ? null : m);
-  const etiqueta =
-    definicion === "alargue"
-      ? "Marcador SOLO del alargue"
-      : "Marcador de la tanda de penales";
 
   return (
-    <div className="mt-4 pt-4 border-t border-borde">
-      <div className="text-xs uppercase tracking-wide text-neutral-400 mb-1 text-center">
-        Si hay empate, como se define?
+    <div className="bg-carbon-card border border-borde rounded-2xl p-4">
+      <div className="text-sm font-bold text-oro mb-3 text-center">
+        Como se define:
       </div>
-      <p className="text-[11px] text-neutral-500 text-center mb-3">
-        Opcional. Aciertas modo + quien clasifica: +2. Aciertas tambien el
-        marcador exacto: +3 mas (max +5).
-      </p>
       <div className="grid grid-cols-2 gap-2 mb-3">
         <OpcionDef activo={definicion === "alargue"} onClick={() => elegir("alargue")}>
           Alargue
@@ -479,16 +514,16 @@ function DefinicionEmpate({
       </div>
 
       {definicion && (
-        <div>
-          <div className="text-[11px] text-neutral-400 text-center mb-2">{etiqueta}</div>
-          <div className="flex items-center justify-center gap-4">
-            <Stepper etiqueta={partido.equipo_local} valor={defLocal} set={setDefLocal} />
-            <span className="text-2xl font-black text-neutral-500 pb-6">-</span>
-            <Stepper etiqueta={partido.equipo_visita} valor={defVisita} set={setDefVisita} />
-          </div>
-          <ClasificaHint partido={partido} defLocal={defLocal} defVisita={defVisita} />
+        <div className="flex items-center justify-center gap-4">
+          <Stepper etiqueta={partido.equipo_local} valor={defLocal} set={setDefLocal} />
+          <span className="text-2xl font-black text-neutral-500 pb-6">-</span>
+          <Stepper etiqueta={partido.equipo_visita} valor={defVisita} set={setDefVisita} />
         </div>
       )}
+
+      <p className="mt-3 text-[11px] text-neutral-500 italic text-center">
+        El marcador de alargue solo cuenta desde el 90 al 120.
+      </p>
     </div>
   );
 }
@@ -518,37 +553,73 @@ function OpcionDef({
   );
 }
 
-// Indicador en vivo de a quien estas eligiendo como clasificado (segun el lado
-// con mas goles/penales del marcador de la definicion). Empate => no define.
-function ClasificaHint({
+/* ---------- Caja 2: bandera del clasificado (solo eliminatoria) ---------- */
+function SelectorBandera({
   partido,
-  defLocal,
-  defVisita,
+  clasificado,
+  setClasificado,
 }: {
   partido: Partido;
-  defLocal: number;
-  defVisita: number;
+  clasificado: LadoEquipo | null;
+  setClasificado: (l: LadoEquipo | null) => void;
 }) {
-  if (defLocal === defVisita) {
-    return (
-      <div className="mt-2 text-center text-[11px] text-amber-400">
-        Empate: no define un clasificado (no suma).
-      </div>
-    );
-  }
-  const ganaLocal = defLocal > defVisita;
+  // Toggle: si vuelves a tocar la misma bandera, la deseleccionas.
+  const elegir = (l: LadoEquipo) => setClasificado(clasificado === l ? null : l);
   return (
-    <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-neutral-300">
-      <span className="uppercase tracking-wide text-neutral-500">Clasifica:</span>
-      <Flag
-        code={ganaLocal ? partido.pais_local : partido.pais_visita}
-        size={16}
-        nombre={ganaLocal ? partido.equipo_local : partido.equipo_visita}
-      />
-      <span className="font-semibold">
-        {ganaLocal ? partido.equipo_local : partido.equipo_visita}
-      </span>
+    <div className="bg-carbon-card border border-borde rounded-2xl p-4">
+      <div className="text-sm font-bold text-oro mb-3 text-center">
+        Si empatan, quien clasifica?
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <BotonBandera
+          activo={clasificado === "local"}
+          pais={partido.pais_local}
+          equipo={partido.equipo_local}
+          onClick={() => elegir("local")}
+        />
+        <BotonBandera
+          activo={clasificado === "visita"}
+          pais={partido.pais_visita}
+          equipo={partido.equipo_visita}
+          onClick={() => elegir("visita")}
+        />
+      </div>
     </div>
+  );
+}
+
+function BotonBandera({
+  activo,
+  pais,
+  equipo,
+  onClick,
+}: {
+  activo: boolean;
+  pais: string;
+  equipo: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={activo}
+      className={`flex flex-col items-center gap-1.5 py-3 rounded-2xl border-2 transition-colors ${
+        activo
+          ? "bg-oro/15 border-oro"
+          : "bg-carbon-soft border-borde hover:border-neutral-500"
+      }`}
+    >
+      <Flag code={pais} size={44} nombre={equipo} />
+      <span
+        className={`text-xs font-semibold max-w-[8rem] truncate ${
+          activo ? "text-oro" : "text-neutral-300"
+        }`}
+        title={equipo}
+      >
+        {equipo}
+      </span>
+    </button>
   );
 }
 

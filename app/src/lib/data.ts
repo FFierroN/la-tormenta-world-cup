@@ -16,6 +16,7 @@ import type {
   JugadorAdmin,
 MiPrediccion,
   ModoDefinicion,
+  LadoEquipo,
   Partido,
   PrediccionJugada,
   PronosticoVista,
@@ -94,6 +95,7 @@ function aPronosticoVista(r: any): PronosticoVista {
     pred_def_local: r.pred_def_local ?? null,
     pred_def_visita: r.pred_def_visita ?? null,
     puntos_definicion: Number(r.puntos_definicion ?? 0),
+    pred_clasificado: r.pred_clasificado ?? null,
   };
 }
 
@@ -214,7 +216,8 @@ export async function guardarPronostico(
   visita: number,
   definicion: ModoDefinicion | null = null,
   defLocal: number | null = null,
-  defVisita: number | null = null
+  defVisita: number | null = null,
+  clasificado: LadoEquipo | null = null
 ): Promise<string> {
   const { data, error } = await supabase.rpc("guardar_pronostico", {
     p_jugador_id: Number(jugadorId),
@@ -224,6 +227,7 @@ export async function guardarPronostico(
     p_definicion: definicion,
     p_def_local: defLocal,
     p_def_visita: defVisita,
+    p_clasificado: clasificado,
   });
   lanzarSi(error);
   return String(data);

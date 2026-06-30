@@ -116,7 +116,12 @@ export interface PronosticoVista {
   pred_def_local: number | null;
   pred_def_visita: number | null;
   puntos_definicion: number;
+  // Bandera del equipo que el jugador eligio como clasificado.
+  pred_clasificado: LadoEquipo | null;
 }
+
+// 'local' = clasifica el equipo local; 'visita' = clasifica el visitante.
+export type LadoEquipo = "local" | "visita";
 
 // Como cree el jugador que se define un empate en fase final.
 export type ModoDefinicion = "alargue" | "penales";

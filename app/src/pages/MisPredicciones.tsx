@@ -3,12 +3,12 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
 import ResumenPredicciones from "../components/ResumenPredicciones";
-import { listarJugadores, misPrediccionesDetalle, prediccionesJugadasTodas } from "../lib/data";
+import { listarJugadores, listarPartidos, misPrediccionesDetalle, prediccionesJugadasTodas } from "../lib/data";
 import { soloCasi, rankingCasi } from "../lib/casi";
 import { useAsync } from "../lib/useAsync";
 import { useAuth } from "../lib/auth";
 import { fmtHora, fmtDiaLargo } from "../lib/fechas";
-import type { MiPrediccion, ResultadoPrediccion } from "../lib/types";
+import type { MiPrediccion, Partido, ResultadoPrediccion } from "../lib/types";
 
 // Etiqueta + color de cada categoria (mismo criterio cromatico que PanelTormenta).
 const RESULTADO: Record<ResultadoPrediccion, { texto: string; clase: string }> = {
@@ -136,12 +136,15 @@ function ListaTab({
   const { data, cargando, error } = useAsync(
     () =>
       jugadorId
-        ? misPrediccionesDetalle(jugadorId)
-        : Promise.resolve([] as MiPrediccion[]),
+        ? Promise.all([misPrediccionesDetalle(jugadorId), listarPartidos()])
+        : Promise.resolve([[], []] as [MiPrediccion[], Partido[]]),
     [jugadorId]
   );
 
-  const todas = data ?? [];
+  const todas = data?.[0] ?? [];
+  // Total de partidos YA jugados del torneo (denominador justo de efectividad:
+  // los jugados sin pronostico cuentan como oportunidad perdida).
+  const totalJugados = (data?.[1] ?? []).filter((p) => p.estado === "final").length;
   // Jugados (final) mas reciente arriba; luego los proximos ya pronosticados.
   const jugados = todas
     .filter((p) => p.estado === "final")
@@ -167,7 +170,7 @@ function ListaTab({
         </p>
       )}
 
-      {!cargando && !error && <ResumenPredicciones filas={filasResumen} />}
+      {!cargando && !error && <ResumenPredicciones filas={filasResumen} totalJugados={totalJugados} />}
 
       {!cargando && !error && vacio && (
         <p className="px-4 mt-3 text-neutral-400 text-sm">

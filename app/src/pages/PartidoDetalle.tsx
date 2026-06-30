@@ -286,17 +286,22 @@ function EditorPronostico({
   const [guardando, setGuardando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
-  // Coherencia bandera<->marcador de la definicion. Si elegiste bandera, el
-  // marcador DEBE favorecer a ese lado (no permitimos guardar inconsistencias).
-  // Sin bandera elegida: no hay nada que validar.
-  let incoherencia: string | null = null;
-  if (esEliminatoria && clasificado && definicion) {
-    if (defLocal === defVisita) {
-      incoherencia = "El marcador no puede ser empate si elegiste un clasificado.";
+  // Validacion en cascada para eliminatoria. Bandera y definicion (modo +
+  // marcador no-empate + coherencia) son OBLIGATORIAS: si falta algo, el
+  // boton Guardar se deshabilita y mostramos un solo mensaje rojo (el primero
+  // por prioridad), asi el jugador resuelve uno a la vez sin marearse.
+  let error: string | null = null;
+  if (esEliminatoria) {
+    if (!clasificado) {
+      error = "Falta elegir quien clasifica (toca una bandera).";
+    } else if (!definicion) {
+      error = "Falta elegir como se define (alargue o penales).";
+    } else if (defLocal === defVisita) {
+      error = "El marcador de la definicion no puede ser empate.";
     } else if (clasificado === "local" && defLocal < defVisita) {
-      incoherencia = `Elegiste a ${partido.equipo_local}, pero tu marcador favorece a ${partido.equipo_visita}.`;
+      error = `Elegiste a ${partido.equipo_local}, pero tu marcador favorece a ${partido.equipo_visita}.`;
     } else if (clasificado === "visita" && defVisita < defLocal) {
-      incoherencia = `Elegiste a ${partido.equipo_visita}, pero tu marcador favorece a ${partido.equipo_local}.`;
+      error = `Elegiste a ${partido.equipo_visita}, pero tu marcador favorece a ${partido.equipo_local}.`;
     }
   }
 
@@ -343,7 +348,7 @@ function EditorPronostico({
   }
 
   const guardar = async () => {
-    if (!jugadorId || incoherencia) return;
+    if (!jugadorId || error) return;
     setGuardando(true);
     setMsg(null);
     try {
@@ -408,15 +413,15 @@ function EditorPronostico({
         </>
       )}
 
-      {incoherencia && (
+      {error && (
         <div className="px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/40 text-center text-xs text-red-300">
-          {incoherencia}
+          {error}
         </div>
       )}
 
       <button
         onClick={guardar}
-        disabled={guardando || !!incoherencia}
+        disabled={guardando || !!error}
         className="w-full py-2.5 rounded-full bg-oro text-carbon font-bold disabled:opacity-50"
       >
         {guardando ? "Guardando..." : mio ? "Actualizar pronostico" : "Guardar pronostico"}

@@ -96,11 +96,13 @@ export default function Reglas() {
             Si hay empate (fase final)
           </h2>
           <p className="text-sm text-neutral-300 mb-3">
-            Solo en eliminatoria. Tienes 2 apuestas extra opcionales: eliges con
-            la <b>bandera</b> que equipo crees que clasificara si empatan, y eliges
-            <b> como</b> se define (<b>Alargue</b> o <b>Penales</b>) ingresando
-            el marcador de esa instancia. Solo suman si el partido <b>realmente</b>
-            se va a esa definicion y aciertas el equipo que pasa.
+            Solo en eliminatoria. Ademas del marcador, tienes 2 apuestas
+            <b> obligatorias</b>: eliges con la <b>bandera</b> que equipo crees
+            que clasificara si empatan, y eliges <b>como</b> se define (<b>Alargue</b>
+            o <b>Penales</b>) ingresando el marcador de esa instancia. Sin
+            estos datos, la app no te deja guardar el pronostico. Solo suman si
+            el partido <b>realmente</b> se va a esa definicion y aciertas el
+            equipo que pasa.
           </p>
           <ul className="space-y-1.5">
             {PUNTOS_DEFINICION.map((e) => (

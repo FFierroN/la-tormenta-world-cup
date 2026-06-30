@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { PUNTOS_DEFINICION, PUNTOS_DISTINCION, PUNTOS_PAIS, PUNTOS_PARTIDO } from "../lib/reglas";
+import { APP_VERSION } from "../version";
 
 export default function Reglas() {
   const navigate = useNavigate();
@@ -217,6 +218,9 @@ export default function Reglas() {
 
         <p className="text-xs text-neutral-500 text-center">
           El que mas puntos sume al final, gana. Que gane el mejor.
+        </p>
+        <p className="text-[10px] text-neutral-600 text-center mt-2">
+          version {APP_VERSION}
         </p>
       </div>
     </div>

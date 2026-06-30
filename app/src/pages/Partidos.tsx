@@ -74,26 +74,25 @@ function construirTabs(partidos: Partido[]): Tab[] {
     partidos: jugados,
   });
 
-  // 1) Eliminatorias: una pestana por fase (Dieciseisavos..Final).
-  //    REGLA DINAMICA (pedido de Felipe): las fases TODAVIA por jugar van
-  //    primero (en orden), y las fases YA TERMINADAS (todos sus partidos
-  //    'final') se mueven al final -> quedan "a la derecha de Final".
+  // 1) Eliminatorias: una pestana por fase (Dieciseisavos..Final). Cada pestana
+  //    muestra SOLO los partidos AUN NO finalizados de esa fase; al terminar un
+  //    partido sale de aqui y queda unicamente en "Jugados" (desc). Pedido de
+  //    Felipe (2026-06-28). Si una fase tiene TODOS sus partidos 'final', su
+  //    pestana desaparece: ya vive entera en "Jugados".
   const llaves = partidos.filter((p) => !p.grupo);
   const fases = [...new Set(llaves.map((p) => p.fase))].sort(
     (a, b) => ORDEN_FASE.indexOf(a) - ORDEN_FASE.indexOf(b)
   );
-  const faseTerminada = (fase: string) => {
-    const ps = llaves.filter((p) => p.fase === fase);
-    return ps.length > 0 && ps.every((p) => p.estado === "final");
-  };
-  const pendientes = fases.filter((f) => !faseTerminada(f));
-  const terminadas = fases.filter((f) => faseTerminada(f));
-  for (const fase of [...pendientes, ...terminadas]) {
+  for (const fase of fases) {
+    const deFase = llaves
+      .filter((p) => p.fase === fase && p.estado !== "final")
+      .sort(porFecha);
+    if (deFase.length === 0) continue; // fase completa -> solo en "Jugados"
     tabs.push({
       id: `f-${fase}`,
       label: ETIQUETA_FASE[fase] ?? fase,
       mostrarFase: true,
-      partidos: llaves.filter((p) => p.fase === fase).sort(porFecha),
+      partidos: deFase,
     });
   }
 

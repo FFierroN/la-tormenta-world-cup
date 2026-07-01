@@ -41,7 +41,9 @@ export const EQUIPOS = {
 // acentos, sin "the", sin puntos/guiones, espacios colapsados. Asi
 // "Democratic Republic of the Congo", "D.R. Congo" y "DR Congo" caen todas en
 // la misma clave -> dejamos de jugar al topo agregando strings uno por uno.
-const normalizar = (s) =>
+// Exportada: la reusa index.js para el match tolerante por nombre (grafias
+// distintas de un mismo equipo entre la API y la fila de la DB).
+export const normalizar = (s) =>
   (s || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // quita acentos
@@ -69,6 +71,14 @@ export const nuestroNombre = (n) => {
     INDICE_NORM[normalizar(s)] ??
     null
   );
+};
+
+// Compara dos nombres de equipo tolerando tildes, puntos, guiones y espacios.
+// Ambos lados se esperan ya en español (la grafia de la DB vs la canonica).
+export const equiposIguales = (a, b) => {
+  const na = normalizar(a);
+  const nb = normalizar(b);
+  return na !== "" && na === nb;
 };
 
 // ----------------------------------------------------------------- casteos

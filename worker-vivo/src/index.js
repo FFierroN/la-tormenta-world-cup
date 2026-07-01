@@ -18,7 +18,7 @@
  *   TRIGGER_SECRET        -> token para disparar a mano via GET ?key=...
  */
 
-import { comoBool, comoInt, makeSupa, nuestroNombre } from "./comun.js";
+import { comoBool, comoInt, makeSupa, nuestroNombre, equiposIguales } from "./comun.js";
 import { enriquecerPendientes, detectarTramos, hlConfirmaArranque } from "./enriquecer.js";
 import { cargarAlineaciones } from "./alineaciones.js";
 
@@ -174,6 +174,29 @@ async function buscarPartido(supa, m, log) {
     if (apiId !== null) await supa.patch("partidos", { id: `eq.${filas[0].id}` }, { api_fixture_id: apiId });
     return filas[0];
   }
+
+  // Fallback tolerante (2026-07-01): el match exacto fallo. Quizas la fila se
+  // cargo con una grafia distinta ("R.D. Congo" vs "RD Congo") o con el orden
+  // local/visita INVERTIDO respecto a la API. Traemos los partidos del dia y
+  // comparamos normalizado, probando ambos ordenes. Asi no perdemos un partido
+  // por un detalle de escritura (bug Inglaterra vs RD Congo, 2026-07-01).
+  if (fechaApi) {
+    const delDia = await supa.get("partidos", {
+      and: `(fecha.gte.${fechaApi}T00:00:00,fecha.lte.${fechaApi}T23:59:59)`,
+      select: "*",
+    });
+    for (const p of delDia) {
+      const directo = equiposIguales(p.equipo_local, local) && equiposIguales(p.equipo_visita, visita);
+      const invertido = equiposIguales(p.equipo_local, visita) && equiposIguales(p.equipo_visita, local);
+      if (directo || invertido) {
+        if (apiId !== null) await supa.patch("partidos", { id: `eq.${p.id}` }, { api_fixture_id: apiId });
+        log.push(`  match TOLERANTE (${invertido ? "orden invertido" : "grafia distinta"}): API '${home} vs ${away}' -> DB '${p.equipo_local} vs ${p.equipo_visita}'. Revisar la fila.`);
+        return p;
+      }
+    }
+  }
+
+  log.push(`  NO ENCONTRADO en DB: ${home} vs ${away} (${local} vs ${visita}) fecha ${fechaApi ?? "?"} -- revisar fixture`);
   return null;
 }
 

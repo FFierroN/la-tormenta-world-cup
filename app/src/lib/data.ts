@@ -395,18 +395,36 @@ export async function obtenerGoleo(
     .eq("tipo", "gol");
   lanzarSi(error);
 
-  // jugador -> { total, pais }. El pais se fija en la primera aparicion.
-  const goles = new Map<string, { total: number; pais: string | null }>();
-  const asist = new Map<string, { total: number; pais: string | null }>();
-  const sumar = (
-    m: Map<string, { total: number; pais: string | null }>,
-    nombre: string,
-    pais: string | null
-  ) => {
-    const cur = m.get(nombre) ?? { total: 0, pais: null };
+  // Clave canonica: une las dos grafias del MISMO jugador ("K. Mbappé" y
+  // "Kylian Mbappé") agrupando por inicial-del-primer-nombre + apellido, sin
+  // tildes. Asi la tabla no cuenta doble a quien quedo con nombre abreviado en
+  // algun partido no enriquecido por Highlightly. Se muestra la grafia mas
+  // larga vista (la completa). Riesgo de colision (misma inicial+apellido) es
+  // despreciable en un Mundial.
+  const claveCanonica = (nombre: string): string => {
+    const limpio = nombre
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "") // quita tildes
+      .toLowerCase()
+      .replace(/\./g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const partes = limpio.split(" ").filter(Boolean);
+    if (partes.length <= 1) return limpio;
+    return `${partes[0][0]} ${partes[partes.length - 1]}`; // inicial + apellido
+  };
+
+  // clave -> { total, pais, nombre }. pais y nombre se fijan/mejoran al vuelo.
+  type Acum = { total: number; pais: string | null; nombre: string };
+  const goles = new Map<string, Acum>();
+  const asist = new Map<string, Acum>();
+  const sumar = (m: Map<string, Acum>, nombre: string, pais: string | null) => {
+    const clave = claveCanonica(nombre);
+    const cur = m.get(clave) ?? { total: 0, pais: null, nombre };
     cur.total += 1;
     if (!cur.pais && pais) cur.pais = pais;
-    m.set(nombre, cur);
+    if (nombre.length > cur.nombre.length) cur.nombre = nombre; // grafia mas completa
+    m.set(clave, cur);
   };
 
   for (const r of (data ?? []) as any[]) {
@@ -419,11 +437,9 @@ export async function obtenerGoleo(
     if (r.asistencia) sumar(asist, r.asistencia, pais);
   }
 
-  const ordenar = (
-    m: Map<string, { total: number; pais: string | null }>
-  ): FilaGoleo[] =>
-    [...m.entries()]
-      .map(([jugador, v]) => ({ jugador, total: v.total, pais: v.pais }))
+  const ordenar = (m: Map<string, Acum>): FilaGoleo[] =>
+    [...m.values()]
+      .map((v) => ({ jugador: v.nombre, total: v.total, pais: v.pais }))
       .sort((a, b) => b.total - a.total || a.jugador.localeCompare(b.jugador))
       .slice(0, topN);
 

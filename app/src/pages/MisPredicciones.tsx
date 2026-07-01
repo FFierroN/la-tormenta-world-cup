@@ -143,8 +143,11 @@ function ListaTab({
 
   const todas = data?.[0] ?? [];
   // Total de partidos YA jugados del torneo (denominador justo de efectividad:
-  // los jugados sin pronostico cuentan como oportunidad perdida).
-  const totalJugados = (data?.[1] ?? []).filter((p) => p.estado === "final").length;
+  // los jugados sin pronostico cuentan como oportunidad perdida). Se excluyen
+  // los partidos con puntaje anulado: no cuentan para nadie.
+  const totalJugados = (data?.[1] ?? []).filter(
+    (p) => p.estado === "final" && !p.puntaje_anulado
+  ).length;
   // Jugados (final) mas reciente arriba; luego los proximos ya pronosticados.
   const jugados = todas
     .filter((p) => p.estado === "final")

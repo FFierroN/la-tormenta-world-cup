@@ -102,3 +102,57 @@ select jugador_id, partido_id, count(*) as veces
 from pronosticos
 group by jugador_id, partido_id
 having count(*) > 1;
+
+
+-- QUERY F) *** VEREDICTO FINAL: tabla REAL de hoy vs recalculo limpio *** --
+--   Compara lo que la vista tabla_posiciones muestra HOY (lo que ve la gente)
+--   contra el recalculo limpio, separando validos / anulados / ajuste / especiales.
+--   INTERPRETACION:
+--     * correcto_sin_ajuste = validos + especiales   (los anulados NO deben contar)
+--     * si puntos_tabla_hoy  < correcto_sin_ajuste  => la tabla quedo ABAJO
+--       (el -4 es doble descuento: revertir ajuste a 0).
+--     * si puntos_tabla_hoy == correcto_sin_ajuste  => la tabla esta PERFECTA
+--       (tu -4 compenso puntos que la vista todavia estaba sumando: dejalo).
+with recalc as (
+  select
+    j.id, j.nombre, j.ajuste_puntos,
+    coalesce(sum(calcular_puntos_pronostico(
+        pr.pred_local, pr.pred_visita, p.goles_local, p.goles_visita, p.fase,
+        contar_exactos(p.id))) filter (where not p.puntaje_anulado), 0) as validos,
+    coalesce(sum(calcular_puntos_pronostico(
+        pr.pred_local, pr.pred_visita, p.goles_local, p.goles_visita, p.fase,
+        contar_exactos(p.id))) filter (where p.puntaje_anulado), 0) as anulados
+  from jugadores j
+  left join pronosticos pr on pr.jugador_id = j.id
+  left join partidos p     on p.id = pr.partido_id
+                          and p.estado='final' and p.goles_local is not null
+  where j.activo
+  group by j.id, j.nombre, j.ajuste_puntos
+),
+esp as (
+  select jugador_id,
+         puntos_pais+puntos_goleador+puntos_asistidor
+         +puntos_mejor_jugador+puntos_mejor_arquero+puntos_mejor_joven as especiales
+  from predicciones_especiales
+)
+select
+  r.nombre,
+  tp.puntos                                    as puntos_tabla_hoy,
+  r.validos + coalesce(e.especiales,0)         as correcto_sin_ajuste,
+  (tp.puntos) - (r.validos + coalesce(e.especiales,0)) as diferencia,
+  r.validos                                    as recalc_validos,
+  r.anulados                                   as puntos_partido_anulado,
+  coalesce(e.especiales,0)                     as especiales,
+  r.ajuste_puntos                              as ajuste_manual,
+  case
+    when tp.puntos = r.validos + coalesce(e.especiales,0)
+      then 'TABLA OK (el -4 compensa; dejalo)'
+    when tp.puntos < r.validos + coalesce(e.especiales,0)
+      then '>> TABLA ABAJO: doble descuento, revertir ajuste a 0'
+    else '?? TABLA ARRIBA: revisar (suma de mas)'
+  end as veredicto
+from recalc r
+join tabla_posiciones tp on tp.jugador_id = r.id
+left join esp e on e.jugador_id = r.id
+where r.ajuste_puntos <> 0 or r.anulados <> 0
+order by r.nombre;

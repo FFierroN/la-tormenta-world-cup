@@ -49,8 +49,8 @@ order by p.fecha;
 with rec as (
   select
     p.id as partido_id, p.fase,
-    count(*) filter (where e.equipo='local'  and e.minuto <= 90) as gl_90,
-    count(*) filter (where e.equipo='visita' and e.minuto <= 90) as gv_90
+    count(*) filter (where e.equipo='local'  and e.minuto <= 90)::int as gl_90,
+    count(*) filter (where e.equipo='visita' and e.minuto <= 90)::int as gv_90
   from partidos p
   left join partido_eventos e on e.partido_id = p.id and e.tipo='gol'
   where p.id in (/* <IDS> */ -1)

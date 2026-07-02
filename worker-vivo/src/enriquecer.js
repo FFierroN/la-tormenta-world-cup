@@ -75,7 +75,7 @@ function desempacar(d) {
   return null;
 }
 
-async function hlDetalle(env, matchId) {
+export async function hlDetalle(env, matchId) {
   const d = await hlGet(env, `/matches/${matchId}`);
   const obj = desempacar(d);
   return obj && typeof obj === "object" ? obj : null;
@@ -230,6 +230,13 @@ async function enriquecerPartido(env, supa, p, cacheFecha, log) {
     return sinHacer;
   }
 
+  return aplicarEventosYStats(supa, p, detalle, log);
+}
+
+// Escribe eventos (goles/asist/tarjetas/cambios) y estadisticas desde un detalle
+// de HL ya obtenido. Reutilizable por el enriquecido HT/FT Y por el flujo EN VIVO
+// (migracion a solo-HL). No hace requests: recibe el detalle ya traido.
+export async function aplicarEventosYStats(supa, p, detalle, log) {
   let hizoAlgo = false;
 
   // --- Eventos (goles+asist, tarjetas, cambios). HL manda: borra+reinserta. ---

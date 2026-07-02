@@ -19,7 +19,11 @@
  */
 
 import { comoBool, comoInt, makeSupa, nuestroNombre, equiposIguales } from "./comun.js";
-import { enriquecerPendientes, detectarTramos, hlConfirmaArranque, debugHl } from "./enriquecer.js";
+import {
+  enriquecerPendientes, detectarTramos, hlConfirmaArranque, debugHl,
+  hlDetalle, aplicarEventosYStats, buscarMatchId, LimiteDiario,
+} from "./enriquecer.js";
+import { estadoDesdeHl, marcadorDesdeHl } from "./hl-map.js";
 import { cargarAlineaciones } from "./alineaciones.js";
 
 const API_URL = "https://worldcup26.ir/get/games";
@@ -349,23 +353,133 @@ async function sincronizarGoles(supa, p, m, log) {
   log.push(`  ${filas.length} gol(es) sincronizados en ${p.equipo_local} vs ${p.equipo_visita}`);
 }
 
-// ------------------------------------------------------------------------ main
-async function correr(env, log) {
-  const supa = makeSupa(env);
+// ------------------------------------------------------------------ config
+async function leerConfig(supa, clave, porDefecto) {
+  try {
+    const filas = await supa.get("configuracion", { clave: `eq.${clave}`, select: "valor" });
+    return filas.length ? filas[0].valor : porDefecto;
+  } catch {
+    return porDefecto;
+  }
+}
 
-  if (!(await hayTrabajo(supa))) {
-    log.push("No hay partidos en vivo, por empezar ni finalizados hace poco. Sin requests a la API.");
-    return;
+// -------------------------------------------------------------- HL (primario)
+// Aplica estado + marcador desde un detalle de HL, con las MISMAS salvaguardas
+// del flujo viejo: no degradar estado, no pisar valor real con null, sellar
+// finalizado_at una sola vez, y arrancar/etiquetar el tramo. HL SI distingue
+// entretiempo de juego, asi que no hace falta el candado 'mantenerET'.
+// Devuelve el estado aplicado, o null si no se toco (sin certeza / degradaria).
+async function actualizarDesdeHL(supa, p, detalle, log) {
+  const st = detalle.state || {};
+  const nuevoEstado = estadoDesdeHl(st);
+  if (nuevoEstado === null) {
+    log.push(`  HL sin estado claro para ${p.equipo_local} vs ${p.equipo_visita} (no toco)`);
+    return null;
   }
 
+  // Salvaguarda 1: no degradar el estado (delays / ediciones a mano).
+  const prioDb = PRIORIDAD_ESTADO[p.estado || ""] ?? 0;
+  const prioApi = PRIORIDAD_ESTADO[nuevoEstado] ?? 0;
+  if (prioApi < prioDb) {
+    log.push(`  saltado (HL=${nuevoEstado} retrocederia '${p.estado}'): ${p.equipo_local} vs ${p.equipo_visita}`);
+    return null;
+  }
+
+  const { local: home, visita: away } = marcadorDesdeHl(st);
+
+  const body = { estado: nuevoEstado };
+  // Salvaguarda 2: no escribir null encima de un valor real.
+  if (home !== null) body.goles_local = home;
+  if (away !== null) body.goles_visita = away;
+
+  if (nuevoEstado === "final") {
+    body.tramo = null;
+    // Un final siempre tiene marcador: si no hay numero en ningun lado, 0:0.
+    if (home === null && p.goles_local == null) body.goles_local = 0;
+    if (away === null && p.goles_visita == null) body.goles_visita = 0;
+    if (!p.finalizado_at) body.finalizado_at = new Date().toISOString();
+  } else if (nuevoEstado === "entretiempo" && p.tramo !== "ET") {
+    body.tramo = "ET";
+    body.tramo_at = new Date().toISOString();
+  } else if (nuevoEstado === "en_vivo" && !p.tramo) {
+    body.tramo = "1T";
+    body.tramo_at = new Date().toISOString();
+  }
+
+  await supa.patch("partidos", { id: `eq.${p.id}` }, body);
+  // Reflejar en memoria: aplicarEventosYStats usa goles_local/visita para su
+  // guarda anti-pisado-parcial.
+  if (body.goles_local !== undefined) p.goles_local = body.goles_local;
+  if (body.goles_visita !== undefined) p.goles_visita = body.goles_visita;
+  p.estado = nuevoEstado;
+  return nuevoEstado;
+}
+
+// Procesa UN partido contra HL: 1 detalle trae estado + marcador + goles + stats.
+async function procesarPartidoHL(env, supa, p, cacheFecha, log) {
+  const mid = await buscarMatchId(env, supa, p, cacheFecha, log);
+  if (mid === null) {
+    log.push(`  HL sin match id para ${p.equipo_local} vs ${p.equipo_visita}`);
+    return;
+  }
+  const detalle = await hlDetalle(env, mid);
+  if (!detalle) {
+    log.push(`  HL sin detalle match ${mid} (${p.equipo_local} vs ${p.equipo_visita})`);
+    return;
+  }
+  const estado = await actualizarDesdeHL(supa, p, detalle, log);
+  if (estado === null) return;
+  if (ESTADOS_VIVOS.has(estado) || estado === "final") {
+    try {
+      await aplicarEventosYStats(supa, p, detalle, log);
+    } catch (e) {
+      log.push(`  eventos/stats fallaron para partido ${p.id}: ${e.message}`);
+    }
+  }
+  log.push(`  OK ${p.equipo_local} vs ${p.equipo_visita} -> ${estado}`);
+}
+
+// Flujo PRIMARIO: HL. Parte de la DB (que partidos estan en ventana) en vez de
+// la lista de worldcup26. Devuelve true si corrio; false si hay que caer al
+// fallback (sin HL_KEY o cuota agotada).
+async function correrHL(env, supa, cacheFecha, log) {
+  if (!env.HL_KEY) {
+    log.push("HL: sin HL_KEY, no puedo ser primario -> fallback.");
+    return false;
+  }
+  const vivos = await supa.get("partidos", {
+    estado: "in.(en_vivo,entretiempo,alargue,penales)", select: "*",
+  });
+  const ahora = Date.now();
+  const lo = new Date(ahora - 3 * 3600e3).toISOString();
+  const hi = new Date(ahora + 20 * 60e3).toISOString();
+  const proximos = await supa.get("partidos", {
+    estado: "eq.programado", and: `(fecha.gte.${lo},fecha.lte.${hi})`, select: "*",
+  });
+  const partidos = [...vivos, ...proximos];
+  log.push(`HL primario: ${partidos.length} partido(s) en ventana.`);
+
+  let algunLimite = false;
+  for (const p of partidos) {
+    try {
+      await procesarPartidoHL(env, supa, p, cacheFecha, log);
+    } catch (e) {
+      if (e instanceof LimiteDiario) {
+        log.push("  HL: LIMITE DIARIO (100/dia) alcanzado -> fallback si esta habilitado.");
+        algunLimite = true;
+        break;
+      }
+      log.push(`  fallo HL ${p.equipo_local} vs ${p.equipo_visita}: ${e.message}`);
+    }
+  }
+  return !algunLimite;
+}
+
+// Flujo FALLBACK: worldcup26 (el de siempre). Solo se usa si HL no pudo.
+async function correrWorldcup26(env, supa, cacheFecha, log) {
   const todos = await apiGetJuegos();
   const relevantes = todos.filter(relevanteParaHoy);
-  log.push(`Partidos totales: ${todos.length} | relevantes hoy +/-1d: ${relevantes.length}`);
-
-  // Cache de listas de HL por fecha, COMPARTIDO en todo el ciclo: el desempate
-  // de arranque, detectarTramos y enriquecer reusan la misma respuesta -> una
-  // sola llamada a HL por fecha aunque varias funciones la necesiten.
-  const cacheFecha = {};
+  log.push(`FALLBACK worldcup26: totales ${todos.length} | relevantes hoy +/-1d: ${relevantes.length}`);
 
   for (const m of relevantes) {
     let p;
@@ -391,10 +505,56 @@ async function correr(env, log) {
       log.push(`  fallo ${p.equipo_local} vs ${p.equipo_visita}: ${e.message}`);
     }
   }
+}
 
-  // Deteccion de tramo (entretiempo / 2do tiempo) via Highlightly. Se auto-regula:
-  // solo pega a HL si hay un partido en la ventana de descanso (~35-80 min) que
-  // aun no confirmo el 2do tiempo, y solo en minutos pares.
+// ------------------------------------------------------------------------ main
+async function correr(env, log) {
+  const supa = makeSupa(env);
+
+  if (!(await hayTrabajo(supa))) {
+    log.push("No hay partidos en vivo, por empezar ni finalizados hace poco. Sin requests a la API.");
+    return;
+  }
+
+  // Cache de listas de HL por fecha, COMPARTIDO en todo el ciclo.
+  const cacheFecha = {};
+
+  // Throttle de cuota (frecuencia adaptativa): solo pollear HL para el marcador
+  // en vivo si paso el intervalo configurado (hl_intervalo_min) desde el ultimo
+  // poll. Protege la cuota de 100/dia. Si no hay config (=0), pollea siempre.
+  //   16vos: 5  |  8vos/4tos: 3-4  |  semis/3er/final: 2
+  const intervaloMin = parseInt(await leerConfig(supa, "hl_intervalo_min", "0"), 10) || 0;
+  const ultimoPollStr = await leerConfig(supa, "hl_ultimo_poll", "");
+  const ultimoPoll = ultimoPollStr ? new Date(ultimoPollStr).getTime() : 0;
+  const tocaPoll = intervaloMin <= 0 || Date.now() - ultimoPoll >= intervaloMin * 60e3;
+
+  // PRIMARIO: Highlightly. Si no pudo (sin key / cuota), caemos a worldcup26
+  // solo si el flag lo permite (red de seguridad; no borramos worldcup26).
+  let ok = true;
+  if (tocaPoll) {
+    ok = await correrHL(env, supa, cacheFecha, log);
+    try {
+      await supa.patch("configuracion", { clave: "eq.hl_ultimo_poll" }, { valor: new Date().toISOString() });
+    } catch { /* si no existe la fila de config, el throttle degrada a 'siempre' */ }
+  } else {
+    const faltan = Math.ceil((intervaloMin * 60e3 - (Date.now() - ultimoPoll)) / 60e3);
+    log.push(`HL throttle: faltan ~${faltan} min para el proximo poll (intervalo ${intervaloMin} min).`);
+  }
+  if (!ok) {
+    const fallback = (await leerConfig(supa, "fallback_worldcup26", "true")) === "true";
+    if (fallback) {
+      try {
+        await correrWorldcup26(env, supa, cacheFecha, log);
+      } catch (e) {
+        log.push(`FALLBACK worldcup26 FATAL: ${e.message}`);
+      }
+    } else {
+      log.push("HL no pudo y fallback_worldcup26=false -> sin actualizacion este ciclo.");
+    }
+  }
+
+  // Deteccion fina de tramo (1T->ET->2T) via HL. Con HL primario el estado ya
+  // viene preciso; detectarTramos queda como salvaguarda (fallbacks duros).
   try {
     await detectarTramos(supa, env, log, cacheFecha);
   } catch (e) {

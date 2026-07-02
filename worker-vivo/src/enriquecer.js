@@ -81,6 +81,16 @@ async function hlDetalle(env, matchId) {
   return obj && typeof obj === "object" ? obj : null;
 }
 
+// DEBUG TEMPORAL (quitar tras la migracion a solo-HL): devuelve el JSON CRUDO
+// de HL para inspeccionar la estructura real (campos de marcador, estados). Se
+// invoca desde el handler fetch del worker, gateado por TRIGGER_SECRET.
+//   ?debug=lista&date=YYYY-MM-DD   -> /matches?leagueId&season&date
+//   ?debug=detalle&id=<matchId>    -> /matches/{id}
+export async function debugHl(env, tipo, arg) {
+  if (tipo === "detalle") return hlGet(env, `/matches/${arg}`);
+  return hlGet(env, "/matches", { leagueId: LEAGUE_ID, season: SEASON, date: arg });
+}
+
 // ----------------------------------------------------------------- candidatos
 function fechaUtc(p) {
   const iso = String(p.fecha || "").replace("Z", "+00:00");

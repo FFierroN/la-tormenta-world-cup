@@ -19,7 +19,7 @@
  */
 
 import { comoBool, comoInt, makeSupa, nuestroNombre, equiposIguales } from "./comun.js";
-import { enriquecerPendientes, detectarTramos, hlConfirmaArranque } from "./enriquecer.js";
+import { enriquecerPendientes, detectarTramos, hlConfirmaArranque, debugHl } from "./enriquecer.js";
 import { cargarAlineaciones } from "./alineaciones.js";
 
 const API_URL = "https://worldcup26.ir/get/games";
@@ -438,6 +438,22 @@ export default {
     const url = new URL(req.url);
     if (!env.TRIGGER_SECRET || url.searchParams.get("key") !== env.TRIGGER_SECRET) {
       return new Response("No autorizado. Usa ?key=TRIGGER_SECRET", { status: 403 });
+    }
+
+    // DEBUG TEMPORAL: inspeccionar la respuesta CRUDA de HL (migracion a solo-HL).
+    //   ?key=...&debug=lista&date=YYYY-MM-DD
+    //   ?key=...&debug=detalle&id=<matchId>
+    const debug = url.searchParams.get("debug");
+    if (debug) {
+      try {
+        const arg = url.searchParams.get("id") || url.searchParams.get("date") || "";
+        const data = await debugHl(env, debug, arg);
+        return new Response(JSON.stringify(data, null, 2), {
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+        });
+      } catch (e) {
+        return new Response(`debug error: ${e.message}\n`, { status: 500 });
+      }
     }
     const log = [];
     try {

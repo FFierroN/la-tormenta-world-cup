@@ -397,6 +397,7 @@ function EventosForm({
     amarilla: "Amarilla",
     roja: "Roja",
     cambio: "Cambio",
+    penal_tanda: "Penal (tanda)",
   };
 
   return (

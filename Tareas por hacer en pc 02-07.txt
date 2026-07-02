@@ -22,6 +22,36 @@ PASO 1 - EN TU PC: traer el codigo
 [ ] git pull origin main
     (trae worker + app + los .sql, todo junto)
 
+########################################################################
+  ATENCION: SE PUEDE DEPLOYAR SIN PC (desde el celular / navegador)
+########################################################################
+
+ * FRONTEND (app): NO HACE FALTA HACER NADA.
+   La app esta en Cloudflare Pages CONECTADO a GitHub con AUTO-DEPLOY.
+   Cada push a main dispara el build solo. Mis commits de hoy YA lo
+   dispararon. Solo verificar en dash.cloudflare.com > Workers & Pages >
+   la-tormenta-world-cup que el ultimo deploy este VERDE.
+   -> Si el build falla (por algun error de TypeScript), copiame el error
+      del log de Cloudflare Pages y lo arreglo.
+
+ * WORKER (bot): se puede deployar por GitHub Actions (ya deje el
+   workflow listo: .github/workflows/deploy-worker.yml). Pasos UNICA VEZ,
+   todo desde el celular:
+     1) Cloudflare: My Profile > API Tokens > Create Token >
+        template "Edit Cloudflare Workers" > Create > copiar token.
+        Anotar tambien tu Account ID (dashboard, Workers & Pages).
+     2) GitHub: repo > Settings > Secrets and variables > Actions >
+        New repository secret (crear los dos):
+          CLOUDFLARE_API_TOKEN   = el token
+          CLOUDFLARE_ACCOUNT_ID  = tu account id
+     3) GitHub > pestana Actions > "Deploy Worker (tormenta-vivo)" >
+        Run workflow > branch main > Run. Esperar ~1 min a que quede verde.
+   -> Los secretos del worker (SUPABASE_URL, etc.) YA estan en Cloudflare;
+      wrangler deploy NO los borra.
+
+Si preferis el metodo clasico con tu PC, seguí los pasos de abajo.
+########################################################################
+
 ------------------------------------------------------------------------
 PASO 2 - EN TU PC: deploy del WORKER (el bot)
 ------------------------------------------------------------------------

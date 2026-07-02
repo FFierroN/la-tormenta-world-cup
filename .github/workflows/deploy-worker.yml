@@ -1,0 +1,40 @@
+name: Deploy Worker (tormenta-vivo)
+
+# Deploya el worker del bot en vivo SIN tu PC.
+# Requisitos (una sola vez, se pueden hacer desde el celular):
+#   1) En Cloudflare: crear un API Token (template "Edit Cloudflare Workers").
+#   2) En GitHub: repo > Settings > Secrets and variables > Actions > New:
+#        - CLOUDFLARE_API_TOKEN   = el token del paso 1
+#        - CLOUDFLARE_ACCOUNT_ID  = tu Account ID (dashboard de Cloudflare)
+#   3) GitHub > pestana Actions > este workflow > "Run workflow".
+#
+# Los secretos del worker (SUPABASE_URL, SUPABASE_SERVICE_KEY, TRIGGER_SECRET,
+# HL_KEY) YA estan cargados en Cloudflare: 'wrangler deploy' NO los borra.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker-vivo/**"
+      - ".github/workflows/deploy-worker.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Deploy con Wrangler
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker-vivo
+          command: deploy

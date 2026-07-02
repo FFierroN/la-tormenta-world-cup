@@ -507,26 +507,44 @@ async function correrWorldcup26(env, supa, cacheFecha, log) {
   }
 }
 
-// Recuperacion manual: fuerza el reproceso de TODOS los partidos de una fecha
-// desde HL, ignorando la ventana temporal y el throttle. Sirve para rellenar
-// dias que quedaron sin datos (ej. worldcup26 caido el 2026-07-01). Reutiliza
-// procesarPartidoHL (marcador + estado + goles + stats desde HL).
-async function recuperarFecha(env, fechaIso, log) {
+// Recuperacion manual: fuerza el reproceso de TODOS los partidos de un RANGO de
+// fechas desde HL, ignorando la ventana temporal y el throttle. Sirve para (a)
+// rellenar dias sin datos (worldcup26 caido) y (b) corregir nombres corruptos/
+// fragmentados de eventos viejos (worldcup26 transliteraba mal: 'Kvdi Khakpv' ->
+// 'Cody Gakpo'). HL trae los nombres correctos. Respeta la cuota: si se agota
+// (429), corta y avisa desde que fecha reanudar. Reutiliza procesarPartidoHL.
+async function recuperarRango(env, desde, hasta, log) {
   const supa = makeSupa(env);
   const cacheFecha = {};
-  const partidos = await supa.get("partidos", {
-    and: `(fecha.gte.${fechaIso}T00:00:00,fecha.lte.${fechaIso}T23:59:59)`,
-    select: "*",
-  });
-  log.push(`Recuperar ${fechaIso}: ${partidos.length} partido(s) en la DB.`);
-  for (const p of partidos) {
-    try {
-      await procesarPartidoHL(env, supa, p, cacheFecha, log);
-    } catch (e) {
-      log.push(`  fallo ${p.equipo_local} vs ${p.equipo_visita}: ${e.message}`);
+  const d0 = new Date(`${desde}T00:00:00Z`);
+  const d1 = new Date(`${hasta || desde}T00:00:00Z`);
+  if (Number.isNaN(d0.getTime()) || Number.isNaN(d1.getTime())) {
+    log.push("Fecha invalida. Formato: recuperar=YYYY-MM-DD[&hasta=YYYY-MM-DD]");
+    return;
+  }
+  let cortado = false;
+  for (let d = new Date(d0); d <= d1 && !cortado; d.setUTCDate(d.getUTCDate() + 1)) {
+    const iso = d.toISOString().slice(0, 10);
+    const partidos = await supa.get("partidos", {
+      and: `(fecha.gte.${iso}T00:00:00,fecha.lte.${iso}T23:59:59)`,
+      select: "*",
+    });
+    if (!partidos.length) continue;
+    log.push(`== ${iso}: ${partidos.length} partido(s) ==`);
+    for (const p of partidos) {
+      try {
+        await procesarPartidoHL(env, supa, p, cacheFecha, log);
+      } catch (e) {
+        if (e instanceof LimiteDiario) {
+          log.push(`  LIMITE DIARIO (100/dia) alcanzado en ${iso}. Manana reanuda con: recuperar=${iso}`);
+          cortado = true;
+          break;
+        }
+        log.push(`  fallo ${p.equipo_local} vs ${p.equipo_visita}: ${e.message}`);
+      }
     }
   }
-  log.push("Recuperacion lista.");
+  log.push(cortado ? "Recuperacion PARCIAL (corto por cuota)." : "Recuperacion COMPLETA.");
 }
 
 // ------------------------------------------------------------------------ main
@@ -622,13 +640,15 @@ export default {
       return new Response("No autorizado. Usa ?key=TRIGGER_SECRET", { status: 403 });
     }
 
-    // RECUPERACION MANUAL: rellenar una fecha completa desde HL (dia sin datos).
-    //   ?key=...&recuperar=YYYY-MM-DD
+    // RECUPERACION MANUAL: rellenar/corregir un RANGO de fechas desde HL.
+    //   ?key=...&recuperar=YYYY-MM-DD                  (un dia)
+    //   ?key=...&recuperar=YYYY-MM-DD&hasta=YYYY-MM-DD (rango, corrige nombres)
     const recuperar = url.searchParams.get("recuperar");
     if (recuperar) {
+      const hasta = url.searchParams.get("hasta") || recuperar;
       const log = [];
       try {
-        await recuperarFecha(env, recuperar, log);
+        await recuperarRango(env, recuperar, hasta, log);
       } catch (e) {
         log.push(`recuperar FATAL: ${e.message}`);
       }

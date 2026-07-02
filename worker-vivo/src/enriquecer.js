@@ -12,6 +12,7 @@
  */
 
 import { comoInt, nuestroNombre } from "./comun.js";
+import { huboTanda } from "./hl-map.js";
 
 const HL_BASE = "https://soccer.highlightly.net";
 const LEAGUE_ID = 1635;
@@ -143,21 +144,27 @@ export async function buscarMatchId(env, supa, p, cacheFecha, log) {
 }
 
 // ----------------------------------------------------------------- enriquecer
-// Detecta el tipo de evento de HL, marcando autogol cuando corresponde.
+// Clasifica un evento de HL. Distingue penal convertido de FALLADO ("Missed
+// Penalty"), y marca autogol. Devuelve null para tipos que no nos interesan
+// (incluido "VAR Goal Cancelled", que NO debe contar como gol).
+//   { tipo, autogol, penal, fallado }
 function tipoEvento(ev) {
   const raw = String(ev.type || "");
-  if (/own\s*goal/i.test(raw)) return { tipo: "gol", autogol: true, penal: false };
-  if (/penalty/i.test(raw)) return { tipo: "gol", autogol: false, penal: true };
+  if (/own\s*goal/i.test(raw)) return { tipo: "gol", autogol: true, penal: false, fallado: false };
+  // OJO: "Missed Penalty" debe chequearse ANTES que /penalty/ (que lo matchea).
+  if (/missed\s*penalty/i.test(raw)) return { tipo: "gol", autogol: false, penal: true, fallado: true };
+  if (/penalty/i.test(raw)) return { tipo: "gol", autogol: false, penal: true, fallado: false };
   const t = TIPO_HL[ev.type];
   if (!t) return null;
   const og =
     ev.ownGoal === true || ev.own_goal === true ||
     /\(og\)/i.test(String(ev.player || ""));
-  return { tipo: t, autogol: t === "gol" && og, penal: false };
+  return { tipo: t, autogol: t === "gol" && og, penal: false, fallado: false };
 }
 
 export async function eventosDesdeHl(detalle, p, supa) {
   const homeId = comoInt((detalle.homeTeam || {}).id);
+  const conTanda = huboTanda(detalle.state || {});
   const lado = (ev) => {
     const nombre = nuestroNombre((ev.team || {}).name);
     if (nombre && nombre === p.equipo_local) return "local";
@@ -181,10 +188,11 @@ export async function eventosDesdeHl(detalle, p, supa) {
   }
 
   const filas = [];
+  let ordenTanda = 0; // orden global de ejecucion de la tanda (1,2,3...)
   for (const ev of detalle.events || []) {
     const info = tipoEvento(ev);
     if (!info) continue;
-    // HL manda el minuto como string aparte: "9" | "45+5" | "90+2".
+    // HL manda el minuto como string aparte: "9" | "45+5" | "90+2" | "120+1".
     const partesTiempo = String(ev.time ?? "").split("+");
     const minuto = comoInt(partesTiempo[0]) || 0;
     const adicional = partesTiempo.length > 1 ? comoInt(partesTiempo[1]) : null;
@@ -193,6 +201,25 @@ export async function eventosDesdeHl(detalle, p, supa) {
     if (jugador) {
       jugador = jugador.replace(/\(og\)/i, "").replace(/\s{2,}/g, " ").trim() || null;
     }
+
+    // --- PENAL DE TANDA: solo si el partido se definio por penales y el penal
+    //     (convertido o fallado) ocurre en el minuto 120+. NO cuenta como gol
+    //     ni para el goleo: va como tipo 'penal_tanda'. El orden se guarda en
+    //     'minuto' (1,2,3...) para reconstruir la secuencia en el frontend. ---
+    if (conTanda && info.penal && minuto >= 120) {
+      ordenTanda += 1;
+      filas.push({
+        partido_id: p.id, tipo: "penal_tanda", equipo,
+        minuto: ordenTanda, minuto_adicional: null,
+        jugador, asistencia: null,
+        detalle: info.fallado ? "fallado" : "convertido",
+      });
+      continue;
+    }
+
+    // --- Penal FALLADO en juego: no es gol, no cuenta para nada. Se ignora. ---
+    if (info.fallado) continue;
+
     let asistencia = null;
     let det = null;
     if (info.tipo === "gol") {

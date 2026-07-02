@@ -90,6 +90,40 @@ export function PenalIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
+// Penal de TANDA: balon con badge en esquina -> convertido (check verde) o
+// fallado/atajado (X roja). Estilo 365 Scores.
+export function PenalTandaIcon({
+  convertido,
+  className = "w-5 h-5",
+}: {
+  convertido: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`relative inline-flex items-center justify-center ${className}`}
+      aria-label={convertido ? "Penal convertido" : "Penal fallado"}
+    >
+      <BallIcon className="w-5 h-5 text-white" />
+      <span
+        className={`absolute -bottom-1 -right-1 inline-flex items-center justify-center w-3 h-3 rounded-full ${
+          convertido ? "bg-emerald-500" : "bg-rose-600"
+        }`}
+      >
+        {convertido ? (
+          <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <svg className="w-2 h-2" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        )}
+      </span>
+    </span>
+  );
+}
+
 // Porteria con balon: usado para el AUTOGOL (gol en contra) en el timeline.
 export function PorteriaIcon({ className = "w-5 h-5 text-rose-400" }: { className?: string }) {
   return (

@@ -80,7 +80,7 @@ export interface Alineaciones {
   visita: AlineacionEquipo | null;
 }
 
-export type TipoEvento = "gol" | "amarilla" | "roja" | "cambio";
+export type TipoEvento = "gol" | "amarilla" | "roja" | "cambio" | "penal_tanda";
 
 export interface EventoPartido {
   id: string;
@@ -91,7 +91,7 @@ export interface EventoPartido {
   minuto_adicional: number | null; // descuento/anadido (ej. 45+5 -> minuto=45, adicional=5)
   jugador: string | null; // quien hizo el gol / recibio la tarjeta
   asistencia: string | null; // quien asistio (solo goles)
-  detalle: string | null; // 'penal' | 'autogol' | 'normal'
+  detalle: string | null; // 'penal' | 'autogol' | 'normal' | (tanda) 'convertido' | 'fallado'
 }
 
 export interface Pronostico {

@@ -23,7 +23,7 @@ import {
   enriquecerPendientes, detectarTramos, hlConfirmaArranque, debugHl,
   hlDetalle, aplicarEventosYStats, eventosDesdeHl, buscarMatchId, LimiteDiario,
 } from "./enriquecer.js";
-import { estadoDesdeHl, marcadorDesdeHl, paso90, marcador90DesdeFilas } from "./hl-map.js";
+import { estadoDesdeHl, marcadorDesdeHl, paso90, marcador90DesdeFilas, penalesDesdeHl, ganadorPenales } from "./hl-map.js";
 import { cargarAlineaciones } from "./alineaciones.js";
 
 const API_URL = "https://worldcup26.ir/get/games";
@@ -394,12 +394,16 @@ async function actualizarDesdeHL(supa, p, detalle, filas, log) {
   // con el total de HL. Si vienen incompletos, NO tocamos el marcador (mejor no
   // tocar que corromper y disparar un recalculo de puntos erroneo).
   const esEliminatoria = p.fase && p.fase.toLowerCase() !== "grupos";
+  let alargueL = null, alargueV = null; // goles SOLO del tiempo extra (por resta)
   if (esEliminatoria && paso90(st) && home !== null && away !== null) {
     const m = marcador90DesdeFilas(filas);
     if (m.localTotal === home && m.visitaTotal === away) {
       log.push(`  90' derivado (alargue): ${p.equipo_local} vs ${p.equipo_visita} -> ${m.local90}-${m.visita90} (total HL ${home}-${away})`);
       home = m.local90;
       away = m.visita90;
+      // Alargue = total en juego - 90' (los penales de tanda NO son 'gol', no cuentan).
+      alargueL = m.localTotal - m.local90;
+      alargueV = m.visitaTotal - m.visita90;
     } else {
       log.push(`  eliminatoria+alargue con eventos INCOMPLETOS (HL total ${home}-${away} vs recon ${m.localTotal}-${m.visitaTotal}): NO toco el marcador de 90'`);
       home = null;
@@ -418,6 +422,22 @@ async function actualizarDesdeHL(supa, p, detalle, filas, log) {
     if (home === null && p.goles_local == null) body.goles_local = 0;
     if (away === null && p.goles_visita == null) body.goles_visita = 0;
     if (!p.finalizado_at) body.finalizado_at = new Date().toISOString();
+
+    // AUTOMATIZACION alargue/penales (eliminatoria). HL manda: escribimos solo
+    // si el valor CAMBIO (idempotente: no dispara recalculos de puntos al pedo).
+    if (esEliminatoria) {
+      if (alargueL !== null && p.alargue_local !== alargueL) body.alargue_local = alargueL;
+      if (alargueV !== null && p.alargue_visita !== alargueV) body.alargue_visita = alargueV;
+      // Penales y ganador: directo de score.penalties (no dependen de eventos).
+      const pen = penalesDesdeHl(st);
+      if (pen.local !== null && p.penales_local !== pen.local) body.penales_local = pen.local;
+      if (pen.visita !== null && p.penales_visita !== pen.visita) body.penales_visita = pen.visita;
+      const gp = ganadorPenales(st);
+      if (gp !== null && p.ganador_penales !== gp) body.ganador_penales = gp;
+      if (body.alargue_local !== undefined || body.penales_local !== undefined || body.ganador_penales !== undefined) {
+        log.push(`  definicion ${p.equipo_local} vs ${p.equipo_visita}: alargue ${alargueL ?? "-"}-${alargueV ?? "-"}, penales ${body.penales_local ?? p.penales_local ?? "-"}-${body.penales_visita ?? p.penales_visita ?? "-"}, gana ${body.ganador_penales ?? p.ganador_penales ?? "-"}`);
+      }
+    }
   } else if (nuevoEstado === "entretiempo" && p.tramo !== "ET") {
     body.tramo = "ET";
     body.tramo_at = new Date().toISOString();

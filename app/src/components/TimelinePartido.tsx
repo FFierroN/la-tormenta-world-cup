@@ -11,6 +11,7 @@ import {
   FlechasCambio,
   PenalIcon,
   PorteriaIcon,
+  PenalTandaIcon,
 } from "./Iconos";
 import { fmtMinuto } from "../lib/eventos";
 import type { EventoPartido, Partido } from "../lib/types";
@@ -97,6 +98,64 @@ function ChipFase({ texto }: { texto: string }) {
   );
 }
 
+// Bloque de la TANDA DE PENALES (estilo 365 Scores): cabecera "Penales X - Y" y
+// una fila por ronda con el numero al centro, local (izq) y visita (der). Cada
+// penal muestra balon con check verde (convertido) o X roja (fallado).
+function BloqueTanda({
+  penales,
+  marcador,
+}: {
+  penales: EventoPartido[];
+  marcador: string;
+}) {
+  const porOrden = (a: EventoPartido, b: EventoPartido) => a.minuto - b.minuto;
+  const local = penales.filter((e) => e.equipo === "local").sort(porOrden);
+  const visita = penales.filter((e) => e.equipo === "visita").sort(porOrden);
+  const rondas = Math.max(local.length, visita.length);
+
+  const Penal = ({ e, lado }: { e?: EventoPartido; lado: "local" | "visita" }) => {
+    if (!e) return <div />;
+    const conv = e.detalle === "convertido";
+    const align = lado === "local" ? "justify-end text-right" : "justify-start text-left";
+    const nombre = (
+      <span className={conv ? "text-neutral-100" : "text-neutral-500 line-through"}>
+        {e.jugador}
+      </span>
+    );
+    return (
+      <div className={`flex items-center gap-2 min-w-0 ${align}`}>
+        {lado === "local" && nombre}
+        <span className="shrink-0">
+          <PenalTandaIcon convertido={conv} />
+        </span>
+        {lado === "visita" && nombre}
+      </div>
+    );
+  };
+
+  const filas: React.ReactNode[] = [];
+  for (let i = rondas - 1; i >= 0; i--) {
+    filas.push(
+      <li key={`t${i}`} className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-2 py-2">
+        <Penal e={local[i]} lado="local" />
+        <div className="relative z-10 flex justify-center">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-oro text-sm font-bold text-black tabular-nums">
+            {i + 1}
+          </span>
+        </div>
+        <Penal e={visita[i]} lado="visita" />
+      </li>
+    );
+  }
+
+  return (
+    <>
+      <ChipFase texto={`Penales ${marcador}`} />
+      {filas}
+    </>
+  );
+}
+
 export default function TimelinePartido({
   partido,
   eventos,
@@ -114,29 +173,57 @@ export default function TimelinePartido({
     );
   }
 
-  // Marcador final: autoritativo desde el partido.
+  // Marcador final: autoritativo desde el partido (goles_local/visita = 90').
   const gl = partido.goles_local ?? 0;
   const gv = partido.goles_visita ?? 0;
 
+  // Separar la tanda de penales del flujo normal de eventos.
+  const tanda = eventos.filter((e) => e.tipo === "penal_tanda");
+  const normales = eventos.filter((e) => e.tipo !== "penal_tanda");
+
   // Marcador al entretiempo: goles del primer tiempo (minuto <= 45) por lado
   // acreditado (e.equipo ya viene como el lado que sumo, incluido autogol).
-  const primerTiempo = eventos.filter((e) => e.tipo === "gol" && e.minuto <= 45);
+  const primerTiempo = normales.filter((e) => e.tipo === "gol" && e.minuto <= 45);
   const htL = primerTiempo.filter((e) => e.equipo === "local").length;
   const htV = primerTiempo.filter((e) => e.equipo === "visita").length;
 
-  const hayPrimera = eventos.some((e) => e.minuto <= 45);
-  const haySegunda = eventos.some((e) => e.minuto > 45);
+  const hayPrimera = normales.some((e) => e.minuto <= 45);
+  const haySegunda = normales.some((e) => e.minuto > 45);
   const mostrarHT =
     hayPrimera &&
     (haySegunda || partido.estado === "final" || partido.estado === "entretiempo");
 
+  // Definicion de eliminatoria: hubo alargue y/o tanda de penales.
+  const huboDefinicion =
+    tanda.length > 0 ||
+    partido.penales_local != null ||
+    partido.alargue_local != null ||
+    partido.alargue_visita != null;
+  // Marcador acumulado tras el suplementario (90' + alargue).
+  const supL = gl + (partido.alargue_local ?? 0);
+  const supV = gv + (partido.alargue_visita ?? 0);
+  const marcadorTanda = `${partido.penales_local ?? 0} - ${partido.penales_visita ?? 0}`;
+
   // Eventos visibles segun la sub-pestana, ordenados (lo mas tarde, arriba).
-  const visibles = (tab === "destacado" ? eventos.filter(esClave) : eventos).sort(
+  const visibles = (tab === "destacado" ? normales.filter(esClave) : normales).sort(
     (a, b) => efectivo(b) - efectivo(a)
   );
 
-  // Interleaved: chip Final arriba; chip Entretiempo antes del 1er evento del 1T.
+  // Interleaved (de arriba hacia abajo, lo mas reciente primero):
+  //   tanda -> suplementario -> fin de 90 -> eventos (con Entretiempo).
   const items: { key: string; node: React.ReactNode }[] = [];
+  if (tanda.length > 0) {
+    items.push({
+      key: "tanda",
+      node: <BloqueTanda penales={tanda} marcador={marcadorTanda} />,
+    });
+  }
+  if (huboDefinicion) {
+    items.push({
+      key: "sup",
+      node: <ChipFase texto={`Suplementario ${supL} - ${supV}`} />,
+    });
+  }
   if (partido.estado === "final") {
     items.push({
       key: "final",
@@ -175,7 +262,7 @@ export default function TimelinePartido({
         </SubBtn>
       </div>
 
-      {visibles.length === 0 ? (
+      {visibles.length === 0 && tanda.length === 0 ? (
         <div className="text-center text-neutral-400 py-10">
           Sin goles ni expulsiones.
         </div>

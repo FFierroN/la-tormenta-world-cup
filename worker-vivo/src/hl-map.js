@@ -66,6 +66,21 @@ export function penalesDesdeHl(state) {
   return { local: comoInt(partes[0]), visita: comoInt(partes[1]) };
 }
 
+// Ganador de la tanda de penales a partir de score.penalties. null si no hubo
+// tanda o empataron (no deberia pasar en una tanda terminada).
+export function ganadorPenales(state) {
+  const { local, visita } = penalesDesdeHl(state);
+  if (local === null || visita === null || local === visita) return null;
+  return local > visita ? "local" : "visita";
+}
+
+// ¿El partido se definio por tanda de penales? (para separar los penales de
+// tanda de los penales en juego). true si score.penalties tiene datos.
+export function huboTanda(state) {
+  const { local, visita } = penalesDesdeHl(state);
+  return local !== null && visita !== null;
+}
+
 // Estado: mapea state.description (+ clock) a nuestros estados.
 // Valores de HL confirmados: "In Progress", "Half time", "Finished",
 // "Finished after extra time". El resto se infiere de forma defensiva.

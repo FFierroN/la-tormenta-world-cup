@@ -507,6 +507,28 @@ async function correrWorldcup26(env, supa, cacheFecha, log) {
   }
 }
 
+// Recuperacion manual: fuerza el reproceso de TODOS los partidos de una fecha
+// desde HL, ignorando la ventana temporal y el throttle. Sirve para rellenar
+// dias que quedaron sin datos (ej. worldcup26 caido el 2026-07-01). Reutiliza
+// procesarPartidoHL (marcador + estado + goles + stats desde HL).
+async function recuperarFecha(env, fechaIso, log) {
+  const supa = makeSupa(env);
+  const cacheFecha = {};
+  const partidos = await supa.get("partidos", {
+    and: `(fecha.gte.${fechaIso}T00:00:00,fecha.lte.${fechaIso}T23:59:59)`,
+    select: "*",
+  });
+  log.push(`Recuperar ${fechaIso}: ${partidos.length} partido(s) en la DB.`);
+  for (const p of partidos) {
+    try {
+      await procesarPartidoHL(env, supa, p, cacheFecha, log);
+    } catch (e) {
+      log.push(`  fallo ${p.equipo_local} vs ${p.equipo_visita}: ${e.message}`);
+    }
+  }
+  log.push("Recuperacion lista.");
+}
+
 // ------------------------------------------------------------------------ main
 async function correr(env, log) {
   const supa = makeSupa(env);
@@ -598,6 +620,21 @@ export default {
     const url = new URL(req.url);
     if (!env.TRIGGER_SECRET || url.searchParams.get("key") !== env.TRIGGER_SECRET) {
       return new Response("No autorizado. Usa ?key=TRIGGER_SECRET", { status: 403 });
+    }
+
+    // RECUPERACION MANUAL: rellenar una fecha completa desde HL (dia sin datos).
+    //   ?key=...&recuperar=YYYY-MM-DD
+    const recuperar = url.searchParams.get("recuperar");
+    if (recuperar) {
+      const log = [];
+      try {
+        await recuperarFecha(env, recuperar, log);
+      } catch (e) {
+        log.push(`recuperar FATAL: ${e.message}`);
+      }
+      return new Response(log.join("\n") + "\n", {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
     }
 
     // DEBUG TEMPORAL: inspeccionar la respuesta CRUDA de HL (migracion a solo-HL).

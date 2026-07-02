@@ -21,9 +21,9 @@
 import { comoBool, comoInt, makeSupa, nuestroNombre, equiposIguales } from "./comun.js";
 import {
   enriquecerPendientes, detectarTramos, hlConfirmaArranque, debugHl,
-  hlDetalle, aplicarEventosYStats, buscarMatchId, LimiteDiario,
+  hlDetalle, aplicarEventosYStats, eventosDesdeHl, buscarMatchId, LimiteDiario,
 } from "./enriquecer.js";
-import { estadoDesdeHl, marcadorDesdeHl } from "./hl-map.js";
+import { estadoDesdeHl, marcadorDesdeHl, paso90, marcador90DesdeFilas } from "./hl-map.js";
 import { cargarAlineaciones } from "./alineaciones.js";
 
 const API_URL = "https://worldcup26.ir/get/games";
@@ -369,7 +369,7 @@ async function leerConfig(supa, clave, porDefecto) {
 // finalizado_at una sola vez, y arrancar/etiquetar el tramo. HL SI distingue
 // entretiempo de juego, asi que no hace falta el candado 'mantenerET'.
 // Devuelve el estado aplicado, o null si no se toco (sin certeza / degradaria).
-async function actualizarDesdeHL(supa, p, detalle, log) {
+async function actualizarDesdeHL(supa, p, detalle, filas, log) {
   const st = detalle.state || {};
   const nuevoEstado = estadoDesdeHl(st);
   if (nuevoEstado === null) {
@@ -385,7 +385,27 @@ async function actualizarDesdeHL(supa, p, detalle, log) {
     return null;
   }
 
-  const { local: home, visita: away } = marcadorDesdeHl(st);
+  let { local: home, visita: away } = marcadorDesdeHl(st);
+
+  // FIX ELIMINATORIA + ALARGUE (bug puntos 2026-07-02): score.current de HL
+  // incluye los goles del alargue. En eliminatoria, goles_local/visita deben ser
+  // el marcador REGLAMENTARIO de 90'. Si el partido paso del 90', derivamos el 90'
+  // de los eventos (goles minuto<=90) -- pero SOLO si los eventos son consistentes
+  // con el total de HL. Si vienen incompletos, NO tocamos el marcador (mejor no
+  // tocar que corromper y disparar un recalculo de puntos erroneo).
+  const esEliminatoria = p.fase && p.fase.toLowerCase() !== "grupos";
+  if (esEliminatoria && paso90(st) && home !== null && away !== null) {
+    const m = marcador90DesdeFilas(filas);
+    if (m.localTotal === home && m.visitaTotal === away) {
+      log.push(`  90' derivado (alargue): ${p.equipo_local} vs ${p.equipo_visita} -> ${m.local90}-${m.visita90} (total HL ${home}-${away})`);
+      home = m.local90;
+      away = m.visita90;
+    } else {
+      log.push(`  eliminatoria+alargue con eventos INCOMPLETOS (HL total ${home}-${away} vs recon ${m.localTotal}-${m.visitaTotal}): NO toco el marcador de 90'`);
+      home = null;
+      away = null;
+    }
+  }
 
   const body = { estado: nuevoEstado };
   // Salvaguarda 2: no escribir null encima de un valor real.
@@ -427,11 +447,14 @@ async function procesarPartidoHL(env, supa, p, cacheFecha, log) {
     log.push(`  HL sin detalle match ${mid} (${p.equipo_local} vs ${p.equipo_visita})`);
     return;
   }
-  const estado = await actualizarDesdeHL(supa, p, detalle, log);
+  // Parseamos los eventos UNA vez y los compartimos: actualizarDesdeHL los usa
+  // para derivar el 90' (eliminatoria+alargue) y aplicarEventosYStats para escribir.
+  const filas = await eventosDesdeHl(detalle, p, supa);
+  const estado = await actualizarDesdeHL(supa, p, detalle, filas, log);
   if (estado === null) return;
   if (ESTADOS_VIVOS.has(estado) || estado === "final") {
     try {
-      await aplicarEventosYStats(supa, p, detalle, log);
+      await aplicarEventosYStats(supa, p, detalle, filas, log);
     } catch (e) {
       log.push(`  eventos/stats fallaron para partido ${p.id}: ${e.message}`);
     }

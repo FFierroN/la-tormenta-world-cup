@@ -156,7 +156,7 @@ function tipoEvento(ev) {
   return { tipo: t, autogol: t === "gol" && og, penal: false };
 }
 
-async function eventosDesdeHl(detalle, p, supa) {
+export async function eventosDesdeHl(detalle, p, supa) {
   const homeId = comoInt((detalle.homeTeam || {}).id);
   const lado = (ev) => {
     const nombre = nuestroNombre((ev.team || {}).name);
@@ -249,13 +249,15 @@ async function enriquecerPartido(env, supa, p, cacheFecha, log) {
     return sinHacer;
   }
 
-  return aplicarEventosYStats(supa, p, detalle, log);
+  const filas = await eventosDesdeHl(detalle, p, supa);
+  return aplicarEventosYStats(supa, p, detalle, filas, log);
 }
 
 // Escribe eventos (goles/asist/tarjetas/cambios) y estadisticas desde un detalle
-// de HL ya obtenido. Reutilizable por el enriquecido HT/FT Y por el flujo EN VIVO
-// (migracion a solo-HL). No hace requests: recibe el detalle ya traido.
-export async function aplicarEventosYStats(supa, p, detalle, log) {
+// de HL ya obtenido. Recibe las FILAS ya parseadas (eventosDesdeHl) para no
+// re-parsear: las comparte con actualizarDesdeHL (derivacion del 90'). Reutilizable
+// por el enriquecido HT/FT Y por el flujo EN VIVO (migracion a solo-HL).
+export async function aplicarEventosYStats(supa, p, detalle, filas, log) {
   let hizoAlgo = false;
 
   // --- Eventos (goles+asist, tarjetas, cambios). HL manda: borra+reinserta. ---
@@ -264,7 +266,6 @@ export async function aplicarEventosYStats(supa, p, detalle, log) {
   // stats listas pero timeline aun incompleto), NO pisamos los del feed en vivo y
   // dejamos el partido sin marcar para reintentar. Asi no perdemos goles ni se
   // congelan nombres abreviados (bug Mbappe 2026: K. Mbappe vs Kylian Mbappe).
-  const filas = await eventosDesdeHl(detalle, p, supa);
   const golesHl = filas.filter((f) => f.tipo === "gol").length;
   const golesReales = (p.goles_local ?? 0) + (p.goles_visita ?? 0);
   const eventosCompletos = golesHl >= golesReales;

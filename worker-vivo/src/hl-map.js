@@ -27,6 +27,36 @@ export function marcadorDesdeHl(state) {
   return { local: comoInt(partes[0]), visita: comoInt(partes[1]) };
 }
 
+// ¿El partido paso del minuto 90? (alargue o penales). En ese caso score.current
+// de HL incluye los goles del alargue, asi que NO sirve como marcador de 90'.
+export function paso90(state) {
+  const desc = String((state || {}).description || "").toLowerCase();
+  if (desc.includes("extra") || desc.includes("penalt") || desc.includes("shootout")) {
+    return true;
+  }
+  const clock = comoInt((state || {}).clock);
+  return clock !== null && clock > 90;
+}
+
+// Reconstruye el marcador REGLAMENTARIO (<=90') y el TOTAL a partir de las FILAS
+// de eventos ya parseadas por eventosDesdeHl (tipo/equipo/minuto/detalle). Maneja
+// autogoles: un autogol lo mete un jugador pero SUMA al equipo rival. Se usa para
+// separar el 90' del alargue en eliminatoria (score.current mezcla ambos).
+// El TOTAL permite verificar consistencia: si no coincide con score.current, los
+// eventos estan incompletos y NO hay que confiar en el 90' derivado.
+export function marcador90DesdeFilas(filas) {
+  let l90 = 0, v90 = 0, lTot = 0, vTot = 0;
+  for (const f of filas || []) {
+    if (f.tipo !== "gol") continue;
+    const esAutogol = f.detalle === "autogol";
+    // gol normal suma a f.equipo; autogol suma al rival.
+    const paraLocal = esAutogol ? f.equipo === "visita" : f.equipo === "local";
+    if (paraLocal) { lTot += 1; if ((f.minuto ?? 0) <= 90) l90 += 1; }
+    else { vTot += 1; if ((f.minuto ?? 0) <= 90) v90 += 1; }
+  }
+  return { local90: l90, visita90: v90, localTotal: lTot, visitaTotal: vTot };
+}
+
 // Penales: state.score.penalties (ej. "4 - 3") o null si no hubo.
 export function penalesDesdeHl(state) {
   const pen = ((state || {}).score || {}).penalties;

@@ -1,0 +1,98 @@
+========================================================================
+  TAREAS POR HACER EN PC - 02-07
+  La Tormenta World Cup
+========================================================================
+Todo el codigo YA esta en main (GitHub). Aca solo faltan los pasos que
+necesitan TU PC (deploy) o Supabase (SQL). Orden recomendado abajo.
+
+------------------------------------------------------------------------
+PASO 0 - YA PODES HACERLO AHORA (sin PC, solo Supabase)
+------------------------------------------------------------------------
+[ ] Correr en Supabase (SQL Editor):  db/FIX-marcador-90-alargue.sql
+    -> Corrige Belgica-Senegal (81): marcador 90' de 3-2 a 2-2.
+    -> Te devuelve tus 2 puntos. Revisar las 3 fotos y dejar 'commit;'.
+
+[ ] Correr en Supabase:  db/FIX-penales-invertidos-75.sql
+    -> Corrige Alemania-Paraguay (75): penales 4-3 -> 3-4, gano Paraguay.
+    -> Recalcula los puntos de definicion. Idempotente.
+
+------------------------------------------------------------------------
+PASO 1 - EN TU PC: traer el codigo
+------------------------------------------------------------------------
+[ ] git pull origin main
+    (trae worker + app + los .sql, todo junto)
+
+------------------------------------------------------------------------
+PASO 2 - EN TU PC: deploy del WORKER (el bot)
+------------------------------------------------------------------------
+[ ] cd worker-vivo
+[ ] wrangler deploy
+    -> Esto NO gasta cuota de HL (solo Cloudflare).
+    -> Con esto quedan activos:
+         * Fix marcador 90' en eliminatoria con alargue (no corrompe puntos).
+         * Fix goleadores (ya no cuenta penales fallados ni de tanda como gol).
+         * Automatico: alargue, penales y ganador desde HL.
+
+------------------------------------------------------------------------
+PASO 3 - EN TU PC: build + deploy de la APP (frontend)
+------------------------------------------------------------------------
+[ ] cd app
+[ ] npm run build
+    -> OJO: si TypeScript (tsc) tira algun error, copialo y pasamelo.
+       No pude correr tsc aca (no hay node en mi shell), valide a mano.
+[ ] Deploy de la app como siempre (Netlify / donde la tengas).
+    -> Con esto queda la UI nueva:
+         * Bloque de tanda de penales estilo 365 Scores (pelota verde/roja).
+         * Chip 'Suplementario' del alargue.
+
+------------------------------------------------------------------------
+PASO 4 - DESPUES DEL DEPLOY: traer los penales individuales a la UI
+------------------------------------------------------------------------
+[ ] Abrir en el navegador (reemplazar TU_SECRETO):
+    https://tormenta-vivo.felipeeduardofn.workers.dev/?key=TU_SECRETO&recuperar=2026-06-29&hasta=2026-06-30
+    -> Trae los eventos 'penal_tanda' del 75 y 76 (las pelotitas de la UI).
+    -> Gasta ~4 llamadas de cuota HL.
+
+[ ] Si HOY (02-07) hubo algun partido que fue a alargue/penales, recuperar
+    tambien su fecha para corregir marcador 90' + goleadores + tanda:
+    https://tormenta-vivo.felipeeduardofn.workers.dev/?key=TU_SECRETO&recuperar=2026-07-02
+    -> (ver nota de 'PARTIDOS DE HOY' abajo).
+
+------------------------------------------------------------------------
+PASO 5 - VERIFICACION FINAL
+------------------------------------------------------------------------
+[ ] Abrir el detalle de un partido a penales (75 o 76) en la app y
+    confirmar que se ve el bloque 'Penales X - Y' con las pelotitas
+    verde (convertido) / roja tachada (fallado).
+[ ] Revisar la tabla de goleadores: que no haya nombres raros ni penales
+    de tanda contados como goles.
+[ ] Revisar la tabla de posiciones: puntos correctos (81 y 75 arreglados).
+
+========================================================================
+  NOTA IMPORTANTE - PARTIDOS DE HOY (02-07) MIENTRAS NO HAYA DEPLOY
+========================================================================
+El worker que esta corriendo AHORA es la version VIEJA (con los bugs).
+Mientras no deployes:
+
+ * Partidos NORMALES (que se definen en los 90'):  TODO BIEN.
+   El bot actualiza marcador/estado/goles/goleadores sin problema.
+
+ * Partidos que van a ALARGUE con goles / PENALES:  se van a ver mal
+   TEMPORALMENTE:
+     - El marcador de 90' se corrompe (escribe el total con alargue).
+     - Los puntos de ese partido pueden bailar.
+     - Los penales fallados y de tanda cuentan como goles (goleadores
+       inflados con nombres raros).
+
+ * El alargue y los penales NO se cargan solos (version vieja). Si queres
+   que se vean, los cargas a mano en el Admin (pero OJO: el bot viejo
+   puede volver a pisar el marcador de 90').
+
+COMO SE ARREGLA TODO: cuando deployes (PASO 2) y corras ?recuperar= sobre
+la fecha de hoy (PASO 4), el codigo nuevo REESCRIBE todo bien de un saque:
+marcador 90' correcto, alargue, penales, ganador y goleadores limpios.
+
+RESUMEN: lo de hoy que se defina en 90' esta perfecto. Lo que vaya a
+alargue/penales se vera mal un rato, pero se corrige solo al deployar +
+recuperar la fecha. No se pierde nada.
+========================================================================

@@ -86,8 +86,27 @@ export async function hlDetalle(env, matchId) {
 // invoca desde el handler fetch del worker, gateado por TRIGGER_SECRET.
 //   ?debug=lista&date=YYYY-MM-DD   -> /matches?leagueId&season&date
 //   ?debug=detalle&id=<matchId>    -> /matches/{id}
+//   ?debug=cuota                   -> headers de rate-limit (cuanto queda/reset)
+// Consulta cuota: hace 1 llamada minima y devuelve status + TODOS los headers
+// de rate-limit que exponga HL/RapidAPI (limit, remaining, reset). El header
+// 'reset' revela si el reinicio es por calendario (timestamp fijo) o rolling.
+export async function hlCuota(env) {
+  const r = await fetch(
+    `${HL_BASE}/matches?leagueId=${LEAGUE_ID}&season=${SEASON}&date=2026-07-01`,
+    { headers: { "x-rapidapi-key": env.HL_KEY } }
+  );
+  const rate = {};
+  const todos = {};
+  for (const [k, v] of r.headers) {
+    todos[k] = v;
+    if (/limit|remaining|reset|quota|rate/i.test(k)) rate[k] = v;
+  }
+  return { status: r.status, ahora_iso: new Date().toISOString(), rate_limit: rate, todos_headers: todos };
+}
+
 export async function debugHl(env, tipo, arg) {
   if (tipo === "detalle") return hlGet(env, `/matches/${arg}`);
+  if (tipo === "cuota") return hlCuota(env);
   return hlGet(env, "/matches", { leagueId: LEAGUE_ID, season: SEASON, date: arg });
 }
 

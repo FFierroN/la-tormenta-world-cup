@@ -260,6 +260,29 @@ $$;
 drop function if exists calcular_puntos_definicion(text,text,int,int,int,int,int,int);
 
 -- ---------------------------------------------------------------------
+-- 6.b) REFRESCAR la columna guardada pronosticos.puntos_definicion (y de
+--   paso pronosticos.puntos) para TODOS los partidos ya finalizados.
+--   Motivo: el trigger solo reescribe estas columnas cuando el partido pasa
+--   a 'final'. Los partidos que ya terminaron (ej. Belgica-Senegal, def. por
+--   alargue con 2 aciertos) tienen el valor VIEJO (+5) congelado. Nada visible
+--   lo lee -vistas y RPC recalculan con la funcion nueva- pero lo dejamos
+--   coherente en fisico. Efecto: Belgica-Senegal pasa de +5 a +4 tambien aqui.
+-- ---------------------------------------------------------------------
+update pronosticos pr
+   set puntos = calcular_puntos_pronostico(
+         pr.pred_local, pr.pred_visita, p.goles_local, p.goles_visita, p.fase,
+         contar_exactos(p.id)),
+       puntos_definicion = calcular_puntos_definicion(
+         pr.pred_definicion, pr.pred_clasificado, pr.pred_def_local, pr.pred_def_visita,
+         p.penales_local, p.penales_visita, p.alargue_local, p.alargue_visita,
+         contar_exactos_definicion(p.id)),
+       updated_at = now()
+  from partidos p
+ where p.id = pr.partido_id
+   and p.estado = 'final'
+   and p.goles_local is not null and p.goles_visita is not null;
+
+-- ---------------------------------------------------------------------
 -- 7) Permisos sobre las firmas NUEVAS.
 -- ---------------------------------------------------------------------
 grant execute on function contar_exactos_definicion(int)                                        to anon, authenticated;
@@ -284,4 +307,9 @@ notify pgrst, 'reload schema';
 --   -- clasifica el otro equipo: 0
 --   select calcular_puntos_definicion('penales','local',4,3, 3,4, null,null, 1);  -- 0
 --   select * from tabla_posiciones order by posicion;
+--   -- Belgica-Senegal (def. por alargue, 2 aciertos): los que clavaron el
+--   -- marcador exacto deben mostrar puntos_definicion = 4 (antes 5):
+--   select jugador_id, pred_definicion, pred_clasificado, pred_def_local,
+--          pred_def_visita, puntos_definicion
+--   from pronosticos where partido_id = 81 order by puntos_definicion desc;
 -- ---------------------------------------------------------------------

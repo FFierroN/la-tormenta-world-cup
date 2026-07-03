@@ -120,6 +120,11 @@ export default function Reglas() {
             El marcador del alargue cuenta <b>solo</b> los goles del tiempo extra;
             el de penales, la tanda. Si el partido se resuelve en los 90', o si
             clasifica el equipo contrario al que elegiste, esta apuesta no suma.
+            El bonus por clavar el <b>marcador exacto</b> de la definicion vale
+            mas si <b>pocos</b> lo aciertan (<span className="text-oro">unico</span>,{" "}
+            <span className="text-oro">x2</span> o{" "}
+            <span className="text-oro">x3+</span>), igual que en un partido normal.
+            El +2 de modo + equipo que clasifica siempre es fijo.
           </p>
         </section>
 

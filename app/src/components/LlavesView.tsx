@@ -16,12 +16,12 @@ import BracketFinal from "./BracketFinal";
 import { fmtFechaHora } from "../lib/fechas";
 import { listarPartidos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
-import { construirLlaves, slotsPorFase, type SlotLlave } from "../lib/bracket";
+import { construirLlaves, dieciseisavosEnOrden, type SlotLlave } from "../lib/bracket";
 
 type SubTab = "dieciseisavos" | "final";
 
 export default function LlavesView() {
-  const [sub, setSub] = useState<SubTab>("dieciseisavos");
+  const [sub, setSub] = useState<SubTab>("final");
   const { data, cargando, error } = useAsync(listarPartidos, []);
   const slots = construirLlaves(data ?? []);
 
@@ -48,7 +48,7 @@ export default function LlavesView() {
 
       {!cargando && !error && (
         sub === "dieciseisavos" ? (
-          <ListaDieciseisavos slots={slotsPorFase(slots, "Dieciseisavos")} />
+          <ListaDieciseisavos slots={dieciseisavosEnOrden(slots)} />
         ) : (
           <BracketFinal slots={slots} />
         )

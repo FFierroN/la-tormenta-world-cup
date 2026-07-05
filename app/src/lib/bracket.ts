@@ -108,8 +108,33 @@ export function construirLlaves(partidos: Partido[]): SlotLlave[] {
   return partidos.filter((p) => !p.grupo).map(partidoASlot);
 }
 
-export function slotsPorFase(slots: SlotLlave[], fase: FaseLlave): SlotLlave[] {
+// Orden de LLAVE (espejo del cuadro Fase Final) para los dieciseisavos. En vez
+// de listarlos por fecha, siguen el FLUJO del bracket: agrupados por el octavo
+// al que alimentan, de arriba hacia abajo (mismo orden visual que BracketFinal:
+// octavos P89 P90 P93 P94 arriba | P91 P92 P95 P96 abajo). Cada octavo aporta
+// sus dos alimentadores en orden [local, visita]:
+//   P89=GP74,GP77 · P90=GP73,GP75 · P93=GP83,GP84 · P94=GP81,GP82
+//   P91=GP76,GP78 · P92=GP79,GP80 · P95=GP86,GP88 · P96=GP85,GP87
+export const ORDEN_LLAVE_DIECISEISAVOS: string[] = [
+  "P74", "P77", // -> P89
+  "P73", "P75", // -> P90
+  "P83", "P84", // -> P93
+  "P81", "P82", // -> P94
+  "P76", "P78", // -> P91
+  "P79", "P80", // -> P92
+  "P86", "P88", // -> P95
+  "P85", "P87", // -> P96
+];
+
+// Dieciseisavos ordenados por LLAVE (espejo del cuadro), no por fecha. Cualquier
+// slot desconocido cae al final, desempatando por fecha para quedar estable.
+export function dieciseisavosEnOrden(slots: SlotLlave[]): SlotLlave[] {
+  const rank = new Map(ORDEN_LLAVE_DIECISEISAVOS.map((s, i) => [s, i] as const));
   return slots
-    .filter((s) => s.fase === fase)
-    .sort((a, b) => a.fecha.localeCompare(b.fecha));
+    .filter((s) => s.fase === "Dieciseisavos")
+    .sort((a, b) => {
+      const ra = rank.get(a.slot) ?? Number.MAX_SAFE_INTEGER;
+      const rb = rank.get(b.slot) ?? Number.MAX_SAFE_INTEGER;
+      return ra !== rb ? ra - rb : a.fecha.localeCompare(b.fecha);
+    });
 }

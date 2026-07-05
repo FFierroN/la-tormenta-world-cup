@@ -47,6 +47,8 @@ export default function TablaGrupos() {
           Aun no hay equipos definidos en los grupos.
         </p>
       )}
+      {!cargando && !error && grupos.length > 0 && <TablaGoleo />}
+
       {grupos.map((g) => (
         <TablaGrupo
           key={g}
@@ -56,8 +58,6 @@ export default function TablaGrupos() {
           posBase={posBaseMap}
         />
       ))}
-
-      {!cargando && !error && grupos.length > 0 && <TablaGoleo />}
     </div>
   );
 }

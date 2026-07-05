@@ -550,12 +550,23 @@ async function correrWorldcup26(env, supa, cacheFecha, log) {
   }
 }
 
+// Tope de partidos por INVOCACION del worker. Cloudflare Free corta a las ~50
+// subrequests por request HTTP y cada partido gasta ~5-7 (HL eventos + HL stats
+// + varias escrituras a Supabase). 6 partidos (~40 subrequests) entra con margen.
+// El fixture tiene como maximo 6 partidos/dia, asi que cortamos SOLO en el borde
+// de un dia (nunca a mitad) para garantizar avance y no caer en loop.
+const MAX_PARTIDOS_RECUP = 6;
+
 // Recuperacion manual: fuerza el reproceso de TODOS los partidos de un RANGO de
 // fechas desde HL, ignorando la ventana temporal y el throttle. Sirve para (a)
 // rellenar dias sin datos (worldcup26 caido) y (b) corregir nombres corruptos/
 // fragmentados de eventos viejos (worldcup26 transliteraba mal: 'Kvdi Khakpv' ->
-// 'Cody Gakpo'). HL trae los nombres correctos. Respeta la cuota: si se agota
-// (429), corta y avisa desde que fecha reanudar. Reutiliza procesarPartidoHL.
+// 'Cody Gakpo'). HL trae los nombres correctos.
+// Dos cortes con reanude:
+//   - CUOTA HL (429, 100/dia): corta y avisa desde que fecha reanudar.
+//   - SUBREQUESTS Cloudflare (limite por invocacion): corta al terminar un dia
+//     si ya proceso >= MAX_PARTIDOS_RECUP, y avisa el dia siguiente para reanudar.
+// El token 'REANUDAR=YYYY-MM-DD' en el log permite automatizar el reintento.
 async function recuperarRango(env, desde, hasta, log) {
   const supa = makeSupa(env);
   const cacheFecha = {};
@@ -566,6 +577,8 @@ async function recuperarRango(env, desde, hasta, log) {
     return;
   }
   let cortado = false;
+  let reanudar = null;
+  let hechos = 0;
   for (let d = new Date(d0); d <= d1 && !cortado; d.setUTCDate(d.getUTCDate() + 1)) {
     const iso = d.toISOString().slice(0, 10);
     const partidos = await supa.get("partidos", {
@@ -573,21 +586,41 @@ async function recuperarRango(env, desde, hasta, log) {
       select: "*",
     });
     if (!partidos.length) continue;
+
+    // Corte por SUBREQUESTS: si ya hicimos algo y sumar este dia nos pasaria del
+    // tope, cortamos ANTES de empezarlo (asi nunca partimos un dia a la mitad).
+    // El primer dia de la invocacion siempre corre (hechos==0), y como un dia
+    // tiene <= 6 partidos, entra solo bajo el limite de Cloudflare.
+    if (hechos > 0 && hechos + partidos.length > MAX_PARTIDOS_RECUP) {
+      log.push(`  TOPE por invocacion (subrequests Cloudflare) alcanzado. Reanuda desde este dia.`);
+      log.push(`  REANUDAR=${iso}`);
+      cortado = true;
+      reanudar = iso;
+      break;
+    }
+
     log.push(`== ${iso}: ${partidos.length} partido(s) ==`);
     for (const p of partidos) {
       try {
         await procesarPartidoHL(env, supa, p, cacheFecha, log);
       } catch (e) {
         if (e instanceof LimiteDiario) {
-          log.push(`  LIMITE DIARIO (100/dia) alcanzado en ${iso}. Manana reanuda con: recuperar=${iso}`);
+          log.push(`  LIMITE DIARIO HL (100/dia) alcanzado en ${iso}. Reanuda con cuota fresca.`);
+          log.push(`  REANUDAR=${iso}`);
           cortado = true;
+          reanudar = iso;
           break;
         }
         log.push(`  fallo ${p.equipo_local} vs ${p.equipo_visita}: ${e.message}`);
       }
     }
+    hechos += partidos.length;
   }
-  log.push(cortado ? "Recuperacion PARCIAL (corto por cuota)." : "Recuperacion COMPLETA.");
+  if (cortado) {
+    log.push(`Recuperacion PARCIAL. Reanuda con: recuperar=${reanudar}&hasta=${hasta || desde}`);
+  } else {
+    log.push("Recuperacion COMPLETA.");
+  }
 }
 
 // ------------------------------------------------------------------------ main

@@ -50,9 +50,9 @@ while ($true) {
   }
 
   $siguiente = $m.Groups[1].Value
-  if ($body -match "LIMITE DIARIO HL") {
+if ($body -match "LIMITE DIARIO HL") {
     Write-Host "`n>>> Corto por CUOTA de HL (100/dia). Manana reanuda con:" -ForegroundColor Yellow
-    Write-Host "    .\recuperar-todo.ps1 -Key `"$Key`" -Desde $siguiente -Hasta $Hasta" -ForegroundColor Yellow
+    Write-Host "    .\recuperar-todo.ps1 -Key `"<TU_TRIGGER_SECRET>`" -Desde $siguiente -Hasta $Hasta" -ForegroundColor Yellow
     break
   }
 

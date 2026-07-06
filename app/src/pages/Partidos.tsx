@@ -3,12 +3,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
 import TramoVivo from "../components/TramoVivo";
+import { CheckIcon } from "../components/Iconos";
 import { listarPartidos, misPronosticos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { useScrollRestore, guardarScroll } from "../lib/useScrollRestore";
 import { useAuth } from "../lib/auth";
 import { useSwipe } from "../lib/useSwipe";
 import { fmtHora, fmtDiaLargo, claveDia } from "../lib/fechas";
+import { ganadorPartido } from "../lib/estados";
 import type { Partido } from "../lib/types";
 
 // Orden de las fases de eliminacion (para mostrarlas en secuencia).
@@ -344,6 +346,7 @@ function PartidoCard({
   const puedePronosticar = esPronosticable(p);
   const jugado = p.estado === "final";
   const enJuego = p.estado === "en_vivo" || p.estado === "entretiempo";
+  const gana = ganadorPartido(p); // 'local' | 'visita' | null (empate/no jugado)
   return (
     <li>
       <button
@@ -395,18 +398,56 @@ function PartidoCard({
           </div>
         )}
         <div className="flex items-center justify-between gap-2">
-          <Equipo code={p.pais_local} nombre={p.equipo_local} />
+          <Equipo
+            code={p.pais_local}
+            nombre={p.equipo_local}
+            gano={gana === "local"}
+            reservar={jugado}
+          />
           <Marcador p={p} />
-          <Equipo code={p.pais_visita} nombre={p.equipo_visita} />
+          <Equipo
+            code={p.pais_visita}
+            nombre={p.equipo_visita}
+            gano={gana === "visita"}
+            reservar={jugado}
+          />
         </div>
+
+        {/* Definicion de eliminatoria (debajo del marcador):
+            - por PENALES -> muestra como salio la tanda.
+            - por ALARGUE -> leyenda "Definicion por alargue". */}
+        {p.penales_local != null && p.penales_visita != null ? (
+          <div className="mt-2 text-center text-xs font-bold text-oro">
+            Definición por penales · {p.penales_local} - {p.penales_visita}
+          </div>
+        ) : p.alargue_local != null || p.alargue_visita != null ? (
+          <div className="mt-2 text-center text-xs font-bold text-oro">
+            Definición por alargue
+          </div>
+        ) : null}
       </button>
     </li>
   );
 }
 
-function Equipo({ code, nombre }: { code: string; nombre: string }) {
+function Equipo({
+  code,
+  nombre,
+  gano,
+  reservar,
+}: {
+  code: string;
+  nombre: string;
+  gano?: boolean; // este lado gano el partido
+  reservar?: boolean; // reservar el hueco del check (partido final) para no descuadrar
+}) {
   return (
     <div className="flex flex-col items-center gap-1.5 w-24">
+      {reservar && (
+        <div className="h-4 flex items-center justify-center">
+          {gano && <CheckIcon className="w-4 h-4 text-green-400" />}
+        </div>
+      )}
       <Flag code={code} size={44} nombre={nombre} />
       <span className="text-xs text-center font-medium leading-tight">{nombre}</span>
     </div>

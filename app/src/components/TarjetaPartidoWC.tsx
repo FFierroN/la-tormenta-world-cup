@@ -16,20 +16,8 @@ import EstadoBadge from "./EstadoBadge";
 import { CheckIcon } from "./Iconos";
 import { fmtHora } from "../lib/fechas";
 import { temaPartido } from "../lib/temaWC";
+import { ganadorPartido } from "../lib/estados";
 import type { Partido } from "../lib/types";
-
-// Ganador de un partido JUGADO (final). Prioridad: penales -> total con
-// alargue -> 90'. Devuelve null en empate (solo posible en grupos) o si el
-// partido no termino. Fuente unica para el check sobre la bandera.
-function ganadorPartido(p: Partido): "local" | "visita" | null {
-  if (p.estado !== "final") return null;
-  if (p.ganador_penales) return p.ganador_penales;
-  const gl = (p.goles_local ?? 0) + (p.alargue_local ?? 0);
-  const gv = (p.goles_visita ?? 0) + (p.alargue_visita ?? 0);
-  if (gl > gv) return "local";
-  if (gv > gl) return "visita";
-  return null;
-}
 
 // Etiqueta corta (grupo o fase en mayusculas) para el costado vertical.
 function etiquetaBadge(p: Partido): string {

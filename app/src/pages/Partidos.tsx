@@ -392,6 +392,17 @@ function PartidoCard({
             Partido Finalizado
           </div>
         )}
+        {/* Definicion de eliminatoria: leyenda JUSTO debajo de "Partido
+            Finalizado". El marcador de la tanda va aparte, bajo el marcador. */}
+        {p.penales_local != null && p.penales_visita != null ? (
+          <div className="text-center text-xs font-bold text-oro mb-2">
+            Definición por penales
+          </div>
+        ) : p.alargue_local != null || p.alargue_visita != null ? (
+          <div className="text-center text-xs font-bold text-oro mb-2">
+            Definición por alargue
+          </div>
+        ) : null}
         {p.puntaje_anulado && (
           <div className="text-center text-xs font-bold text-amber-400 mb-2">
             Puntaje anulado · no suma puntos
@@ -402,29 +413,16 @@ function PartidoCard({
             code={p.pais_local}
             nombre={p.equipo_local}
             gano={gana === "local"}
-            reservar={jugado}
+            lado="local"
           />
           <Marcador p={p} />
           <Equipo
             code={p.pais_visita}
             nombre={p.equipo_visita}
             gano={gana === "visita"}
-            reservar={jugado}
+            lado="visita"
           />
         </div>
-
-        {/* Definicion de eliminatoria (debajo del marcador):
-            - por PENALES -> muestra como salio la tanda.
-            - por ALARGUE -> leyenda "Definicion por alargue". */}
-        {p.penales_local != null && p.penales_visita != null ? (
-          <div className="mt-2 text-center text-xs font-bold text-oro">
-            Definición por penales · {p.penales_local} - {p.penales_visita}
-          </div>
-        ) : p.alargue_local != null || p.alargue_visita != null ? (
-          <div className="mt-2 text-center text-xs font-bold text-oro">
-            Definición por alargue
-          </div>
-        ) : null}
       </button>
     </li>
   );
@@ -434,21 +432,30 @@ function Equipo({
   code,
   nombre,
   gano,
-  reservar,
+  lado,
 }: {
   code: string;
   nombre: string;
   gano?: boolean; // este lado gano el partido
-  reservar?: boolean; // reservar el hueco del check (partido final) para no descuadrar
+  lado: "local" | "visita"; // local -> bandera a la izquierda; visita -> derecha
 }) {
+  // El check se monta en la esquina superior EXTERIOR de la bandera (izquierda
+  // para el local, derecha para el visita), mitad dentro/mitad fuera. Circulo
+  // oscuro detras para que se vea sobre cualquier color de bandera.
+  const esquina = lado === "local" ? "-left-1.5" : "-right-1.5";
   return (
     <div className="flex flex-col items-center gap-1.5 w-24">
-      {reservar && (
-        <div className="h-4 flex items-center justify-center">
-          {gano && <CheckIcon className="w-4 h-4 text-green-400" />}
-        </div>
-      )}
-      <Flag code={code} size={44} nombre={nombre} />
+      <div className="relative">
+        <Flag code={code} size={44} nombre={nombre} />
+        {gano && (
+          <span
+            className={`absolute -top-1.5 ${esquina} grid place-items-center rounded-full bg-carbon p-px shadow`}
+            aria-label="Ganador"
+          >
+            <CheckIcon className="w-4 h-4 text-green-400" />
+          </span>
+        )}
+      </div>
       <span className="text-xs text-center font-medium leading-tight">{nombre}</span>
     </div>
   );
@@ -458,9 +465,18 @@ function Marcador({ p }: { p: Partido }) {
   if (p.estado === "programado") {
     return <div className="text-sm font-semibold text-neutral-500">VS</div>;
   }
+  const hayPenales = p.penales_local != null && p.penales_visita != null;
   return (
-    <div className="text-2xl font-black tabular-nums">
-      {p.goles_local ?? 0} - {p.goles_visita ?? 0}
+    <div className="flex flex-col items-center">
+      <div className="text-2xl font-black tabular-nums">
+        {p.goles_local ?? 0} - {p.goles_visita ?? 0}
+      </div>
+      {/* Tanda de penales bajo el marcador global, entre parentesis, en blanco. */}
+      {hayPenales && (
+        <div className="text-sm font-bold tabular-nums text-white">
+          ({p.penales_local}) - ({p.penales_visita})
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@
 // se muestra el placeholder derivado del 'origen' (1A, 3C/D/F/G/H,
 // "Gan. P73", etc). DRY: una sola fuente para la UI.
 import type { Partido } from "./types";
+import { ganadorPartido } from "./estados";
 
 export type FaseLlave =
   | "Dieciseisavos"
@@ -33,6 +34,7 @@ export interface SlotLlave {
   paisLocal: string | null;
   equipoVisita: string | null;
   paisVisita: string | null;
+  ganador: "local" | "visita" | null; // lado que gano (partido final); null si no jugado/empate
 }
 
 // Orden canonico de las fases (de la mas temprana a la final).
@@ -92,6 +94,7 @@ export function partidoASlot(p: Partido): SlotLlave {
     paisLocal: esDefinido(p.equipo_local) ? p.pais_local : null,
     equipoVisita: esDefinido(p.equipo_visita) ? p.equipo_visita : null,
     paisVisita: esDefinido(p.equipo_visita) ? p.pais_visita : null,
+    ganador: ganadorPartido(p),
   };
 }
 

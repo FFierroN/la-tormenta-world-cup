@@ -13,6 +13,7 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import Flag from "./Flag";
 import BracketFinal from "./BracketFinal";
+import { CheckIcon } from "./Iconos";
 import { fmtFechaHora } from "../lib/fechas";
 import { listarPartidos } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
@@ -91,9 +92,11 @@ function ListaDieciseisavos({ slots }: { slots: SlotLlave[] }) {
   }
   return (
     <ul className="px-4 flex flex-col gap-3">
-      {slots.map((s) => (
+      {slots.map((s, i) => (
         <li key={s.slot}>
-          <CardCruce s={s} />
+          {/* Patron de borde 2 doradas / 2 blancas: cada 2 cruces consecutivos
+              (que alimentan el mismo octavo) comparten color de llave. */}
+          <CardCruce s={s} dorado={Math.floor(i / 2) % 2 === 0} />
         </li>
       ))}
     </ul>
@@ -102,12 +105,14 @@ function ListaDieciseisavos({ slots }: { slots: SlotLlave[] }) {
 
 // Tarjeta horizontal: [equipo local] — fecha/hora — [equipo visita].
 // Toda la tarjeta es un boton -> abre el detalle/pronostico del partido.
-function CardCruce({ s }: { s: SlotLlave }) {
+// 'dorado' pinta el borde de la llave (patron 2 doradas / 2 blancas).
+function CardCruce({ s, dorado }: { s: SlotLlave; dorado: boolean }) {
   const navigate = useNavigate();
+  const borde = dorado ? "border-2 border-oro" : "border-2 border-white/80";
   return (
     <button
       onClick={() => navigate(`/partido/${s.id}`)}
-      className="w-full text-left bg-carbon-card border border-borde rounded-2xl p-4 active:scale-[0.99] transition-transform"
+      className={`w-full text-left bg-carbon-card ${borde} rounded-2xl p-4 active:scale-[0.99] transition-transform`}
     >
       <div className="flex items-center justify-between gap-2">
         <LadoEquipo
@@ -115,6 +120,7 @@ function CardCruce({ s }: { s: SlotLlave }) {
           pais={s.paisLocal}
           placeholder={s.local}
           alinear="start"
+          gano={s.ganador === "local"}
         />
         <div className="shrink-0 text-center px-1">
           <div className="text-[11px] text-neutral-400 tabular-nums leading-tight">
@@ -131,6 +137,7 @@ function CardCruce({ s }: { s: SlotLlave }) {
           pais={s.paisVisita}
           placeholder={s.visita}
           alinear="end"
+          gano={s.ganador === "visita"}
         />
       </div>
     </button>
@@ -144,18 +151,31 @@ function LadoEquipo({
   pais,
   placeholder,
   alinear,
+  gano,
 }: {
   nombre?: string | null;
   pais?: string | null;
   placeholder: string;
   alinear: "start" | "end";
+  gano?: boolean; // este lado gano -> check en la esquina exterior de la bandera
 }) {
   const definido = !!nombre;
   const lado = alinear === "start" ? "flex-row" : "flex-row-reverse";
   const texto = alinear === "start" ? "text-left" : "text-right";
+  const esquina = alinear === "start" ? "-left-1.5" : "-right-1.5";
   return (
     <div className={`flex-1 min-w-0 flex items-center gap-2 ${lado}`}>
-      <Flag code={pais ?? "XX"} size={32} nombre={nombre ?? placeholder} />
+      <div className="relative shrink-0">
+        <Flag code={pais ?? "XX"} size={32} nombre={nombre ?? placeholder} />
+        {gano && (
+          <span
+            className={`absolute -top-1.5 ${esquina} grid place-items-center rounded-full bg-carbon p-px shadow`}
+            aria-label="Ganador"
+          >
+            <CheckIcon className="w-3.5 h-3.5 text-green-400" />
+          </span>
+        )}
+      </div>
       <span
         className={`min-w-0 truncate text-sm leading-tight ${texto} ${
           definido ? "font-semibold" : "text-neutral-500"

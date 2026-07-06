@@ -90,29 +90,33 @@ function ListaDieciseisavos({ slots }: { slots: SlotLlave[] }) {
       </p>
     );
   }
+  // Agrupados de a 2: cada par alimenta el mismo octavo, asi que van casi
+  // juntos (gap chico) y separados del siguiente par por un espacio mayor.
+  const pares: SlotLlave[][] = [];
+  for (let i = 0; i < slots.length; i += 2) pares.push(slots.slice(i, i + 2));
+
   return (
-    <ul className="px-4 flex flex-col gap-3">
-      {slots.map((s, i) => (
-        <li key={s.slot}>
-          {/* Patron de borde 2 doradas / 2 blancas: cada 2 cruces consecutivos
-              (que alimentan el mismo octavo) comparten color de llave. */}
-          <CardCruce s={s} dorado={Math.floor(i / 2) % 2 === 0} />
-        </li>
+    <div className="px-4 flex flex-col gap-6">
+      {pares.map((par, gi) => (
+        <div key={gi} className="flex flex-col gap-1.5">
+          {par.map((s) => (
+            <CardCruce key={s.slot} s={s} />
+          ))}
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
 
 // Tarjeta horizontal: [equipo local] — fecha/hora — [equipo visita].
 // Toda la tarjeta es un boton -> abre el detalle/pronostico del partido.
-// 'dorado' pinta el borde de la llave (patron 2 doradas / 2 blancas).
-function CardCruce({ s, dorado }: { s: SlotLlave; dorado: boolean }) {
+// Sin borde: los pares se distinguen por el agrupamiento (espaciado).
+function CardCruce({ s }: { s: SlotLlave }) {
   const navigate = useNavigate();
-  const borde = dorado ? "border-2 border-oro" : "border-2 border-white/80";
   return (
     <button
       onClick={() => navigate(`/partido/${s.id}`)}
-      className={`w-full text-left bg-carbon-card ${borde} rounded-2xl p-4 active:scale-[0.99] transition-transform`}
+      className="w-full text-left bg-carbon-card rounded-2xl p-4 active:scale-[0.99] transition-transform"
     >
       <div className="flex items-center justify-between gap-2">
         <LadoEquipo

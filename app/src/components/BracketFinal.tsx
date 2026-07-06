@@ -12,6 +12,7 @@
 import Flag from "./Flag";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { CheckIcon } from "./Iconos";
 import { fmtHora, fmtDiaMes } from "../lib/fechas";
 import { indexarPorSlot, type SlotLlave } from "../lib/bracket";
 
@@ -111,9 +112,9 @@ function Card({ s, big }: { s?: SlotLlave; big?: boolean }) {
         className="block w-full rounded-2xl border border-oro/50 bg-oro/10 px-4 py-3 max-w-[300px] mx-auto active:scale-[0.99] transition-transform"
       >
         <div className="flex items-center justify-between gap-2">
-          <Equipo nombre={s.equipoLocal} pais={s.paisLocal} corto={s.localCorto} size={40} />
+          <Equipo nombre={s.equipoLocal} pais={s.paisLocal} corto={s.localCorto} size={40} gano={s.ganador === "local"} />
           <span className="text-2xl leading-none">{"\u{1F3C6}"}</span>
-          <Equipo nombre={s.equipoVisita} pais={s.paisVisita} corto={s.visitaCorto} size={40} />
+          <Equipo nombre={s.equipoVisita} pais={s.paisVisita} corto={s.visitaCorto} size={40} gano={s.ganador === "visita"} />
         </div>
         <div className="text-center mt-1">
           <div className="text-lg font-bold tabular-nums leading-tight">{fmtHora(s.fecha)}</div>
@@ -132,8 +133,8 @@ function Card({ s, big }: { s?: SlotLlave; big?: boolean }) {
         {fmtHora(s.fecha)}
       </div>
       <div className="flex items-start justify-center gap-1">
-        <Equipo nombre={s.equipoLocal} pais={s.paisLocal} corto={s.localCorto} size={22} />
-        <Equipo nombre={s.equipoVisita} pais={s.paisVisita} corto={s.visitaCorto} size={22} />
+        <Equipo nombre={s.equipoLocal} pais={s.paisLocal} corto={s.localCorto} size={22} gano={s.ganador === "local"} />
+        <Equipo nombre={s.equipoVisita} pais={s.paisVisita} corto={s.visitaCorto} size={22} gano={s.ganador === "visita"} />
       </div>
       <div className="text-[9px] text-neutral-500 text-center tabular-nums leading-none mt-1">
         {fmtDiaMes(s.fecha)}
@@ -143,21 +144,35 @@ function Card({ s, big }: { s?: SlotLlave; big?: boolean }) {
 }
 
 // Un equipo dentro de la tarjeta: bandera arriba, codigo/nombre abajo.
+// 'gano' pinta un check verde en la esquina de la bandera (mismo criterio
+// que la lista de Dieciseisavos).
 function Equipo({
   nombre,
   pais,
   corto,
   size,
+  gano,
 }: {
   nombre: string | null;
   pais: string | null;
   corto: string;
   size: number;
+  gano?: boolean;
 }) {
   const definido = !!nombre;
   return (
     <div className="flex flex-col items-center gap-0.5 min-w-0 flex-1">
-      <Flag code={pais ?? "XX"} size={size} nombre={nombre ?? corto} />
+      <div className="relative shrink-0">
+        <Flag code={pais ?? "XX"} size={size} nombre={nombre ?? corto} />
+        {gano && (
+          <span
+            className="absolute -top-1.5 -right-1.5 grid place-items-center rounded-full bg-carbon p-px shadow"
+            aria-label="Ganador"
+          >
+            <CheckIcon className="w-3 h-3 text-green-400" />
+          </span>
+        )}
+      </div>
       <span
         className={`text-[9px] leading-none text-center truncate max-w-full ${
           definido ? "font-semibold text-neutral-100" : "text-neutral-400"

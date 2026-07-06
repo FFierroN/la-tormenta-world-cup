@@ -13,9 +13,23 @@
 import { useNavigate } from "react-router-dom";
 import Flag from "./Flag";
 import EstadoBadge from "./EstadoBadge";
+import { CheckIcon } from "./Iconos";
 import { fmtHora } from "../lib/fechas";
 import { temaPartido } from "../lib/temaWC";
 import type { Partido } from "../lib/types";
+
+// Ganador de un partido JUGADO (final). Prioridad: penales -> total con
+// alargue -> 90'. Devuelve null en empate (solo posible en grupos) o si el
+// partido no termino. Fuente unica para el check sobre la bandera.
+function ganadorPartido(p: Partido): "local" | "visita" | null {
+  if (p.estado !== "final") return null;
+  if (p.ganador_penales) return p.ganador_penales;
+  const gl = (p.goles_local ?? 0) + (p.alargue_local ?? 0);
+  const gv = (p.goles_visita ?? 0) + (p.alargue_visita ?? 0);
+  if (gl > gv) return "local";
+  if (gv > gl) return "visita";
+  return null;
+}
 
 // Etiqueta corta (grupo o fase en mayusculas) para el costado vertical.
 function etiquetaBadge(p: Partido): string {
@@ -47,6 +61,8 @@ export default function TarjetaPartidoWC({
   const programado = p.estado === "programado";
   const conMarcador = !programado; // en vivo / final / etc -> cajas menta
   const pendiente = esPronosticable(p);
+  const esFinal = p.estado === "final";
+  const gana = ganadorPartido(p); // 'local' | 'visita' | null (empate/no jugado)
 
   return (
     <li>
@@ -67,7 +83,12 @@ export default function TarjetaPartidoWC({
 
           {/* Fila central: bandera | (V o marcador menta) | bandera | etiqueta */}
           <div className="flex items-center gap-2">
-            <Equipo code={p.pais_local} nombre={p.equipo_local} />
+            <Equipo
+              code={p.pais_local}
+              nombre={p.equipo_local}
+              gano={gana === "local"}
+              reservar={esFinal}
+            />
 
             <div className="shrink-0">
               {conMarcador ? (
@@ -77,17 +98,28 @@ export default function TarjetaPartidoWC({
               )}
             </div>
 
-            <Equipo code={p.pais_visita} nombre={p.equipo_visita} />
+            <Equipo
+              code={p.pais_visita}
+              nombre={p.equipo_visita}
+              gano={gana === "visita"}
+              reservar={esFinal}
+            />
 
             <EtiquetaVertical texto={etiquetaBadge(p)} />
           </div>
 
-          {/* Penales (llaves): se muestra debajo del marcador si los hay. */}
-          {p.penales_local != null && p.penales_visita != null && (
+          {/* Definicion de eliminatoria (debajo del marcador):
+              - por PENALES  -> muestra como salio la tanda.
+              - por ALARGUE  -> leyenda "Definicion por alargue". */}
+          {p.penales_local != null && p.penales_visita != null ? (
             <div className="mt-2 text-center text-[11px] font-bold text-neon-menta">
-              Penales {p.penales_local} - {p.penales_visita}
+              Definición por penales · {p.penales_local} - {p.penales_visita}
             </div>
-          )}
+          ) : p.alargue_local != null || p.alargue_visita != null ? (
+            <div className="mt-2 text-center text-[11px] font-bold text-neon-menta">
+              Definición por alargue
+            </div>
+          ) : null}
 
           {/* Etiqueta de pronostico (solo si aun se puede pronosticar). */}
           {pendiente && (
@@ -137,9 +169,24 @@ function TopEstado({ p }: { p: Partido }) {
   return <EstadoBadge estado={p.estado} className="text-[11px]" />;
 }
 
-function Equipo({ code, nombre }: { code: string; nombre: string }) {
+function Equipo({
+  code,
+  nombre,
+  gano,
+  reservar,
+}: {
+  code: string;
+  nombre: string;
+  gano?: boolean; // este lado gano el partido
+  reservar?: boolean; // reservar el hueco del check (partido final) para no descuadrar
+}) {
   return (
     <div className="flex-1 min-w-0 flex flex-col items-center gap-1.5">
+      {reservar && (
+        <div className="h-4 flex items-center justify-center">
+          {gano && <CheckIcon className="w-4 h-4 text-neon-menta" />}
+        </div>
+      )}
       <Flag code={code} size={54} nombre={nombre} rect />
       <span className="text-[11px] text-center font-semibold leading-tight text-neutral-200 line-clamp-2">
         {nombre}

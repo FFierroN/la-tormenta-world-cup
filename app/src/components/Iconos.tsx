@@ -142,3 +142,17 @@ export function EventoIcono({ tipo }: { tipo: TipoEvento }) {
   if (tipo === "cambio") return <SubIcon />;
   return <RedCard />;
 }
+
+// Check (tilde): marca al equipo GANADOR arriba de su bandera en partidos
+// jugados. Circulo relleno con el tilde recortado para que se vea nitido.
+export function CheckIcon({ className = "w-4 h-4 text-neon-menta" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-label="Ganador">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12 2a10 10 0 100 20 10 10 0 000-20zm4.7 7.7a1 1 0 00-1.4-1.4l-4.8 4.8-2.1-2.1a1 1 0 10-1.4 1.4l2.8 2.8a1 1 0 001.4 0l5.5-5.5z"
+      />
+    </svg>
+  );
+}

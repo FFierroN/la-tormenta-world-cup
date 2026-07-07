@@ -1,13 +1,14 @@
 // Tabla de posiciones de cada GRUPO del Mundial (pestana "Grupos" dentro de Copa).
 // Extraido de la antigua pantalla Grupos para reusarlo (DRY).
+// Nota: las tablas de goleadores/asistidores vivian aca hasta 2026-07-07;
+// ahora estan en la pestana "Estadisticas" junto a las otras 4 tablas nuevas
+// (goles+asist, amarillas, rojas, penales). Ver components/PanelEstadisticas.
 import { useNavigate } from "react-router-dom";
-import type { ReactNode } from "react";
 import Flag from "./Flag";
 import IndicadorMovimiento from "./IndicadorMovimiento";
-import { BallIcon, ShoeIcon } from "./Iconos";
-import { obtenerTablaGrupos, obtenerTablaGruposLive, obtenerPosicionesGruposBase, obtenerGoleo } from "../lib/data";
+import { obtenerTablaGrupos, obtenerTablaGruposLive, obtenerPosicionesGruposBase } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
-import type { FilaGoleo, FilaGrupo } from "../lib/types";
+import type { FilaGrupo } from "../lib/types";
 
 // Color por posicion dentro del grupo: 1-2 clasifican (verde), 3 repechaje
 // como mejor tercero (amarillo), 4 eliminado (blanco). Se reusa en # y Pts.
@@ -47,7 +48,6 @@ export default function TablaGrupos() {
           Aun no hay equipos definidos en los grupos.
         </p>
       )}
-      {!cargando && !error && grupos.length > 0 && <TablaGoleo />}
 
       {grupos.map((g) => (
         <TablaGrupo
@@ -138,78 +138,4 @@ function TablaGrupo({
   );
 }
 
-// Tabla con el Top 5 de goleadores y de asistidores del torneo.
-function TablaGoleo() {
-  const { data, cargando, error } = useAsync(() => obtenerGoleo(5), []);
-  const goleadores = data?.goleadores ?? [];
-  const asistidores = data?.asistidores ?? [];
 
-  if (cargando || error) return null; // silencioso: es informacion secundaria
-  if (goleadores.length === 0 && asistidores.length === 0) return null;
-
-  return (
-    <section className="flex flex-col gap-4">
-      <ListaGoleo
-        titulo="Goleadores"
-        filas={goleadores}
-        icono={<BallIcon className="w-4 h-4 text-white" />}
-        sufijo="goles"
-      />
-      <ListaGoleo
-        titulo="Asistidores"
-        filas={asistidores}
-        icono={<ShoeIcon className="w-4 h-4 text-emerald-400" />}
-        sufijo="asist."
-      />
-    </section>
-  );
-}
-
-function ListaGoleo({
-  titulo,
-  filas,
-  icono,
-  sufijo,
-}: {
-  titulo: string;
-  filas: FilaGoleo[];
-  icono: ReactNode;
-  sufijo: string;
-}) {
-  return (
-    <div>
-      <h3 className="mb-2 flex items-center gap-2 text-sm font-bold text-oro uppercase tracking-wide">
-        {icono}
-        {titulo}
-      </h3>
-      <div className="border border-borde rounded-2xl overflow-hidden">
-        {filas.length === 0 ? (
-          <p className="text-xs text-neutral-500 px-4 py-3">Aun sin registros.</p>
-        ) : (
-          <ul>
-            {filas.map((f, i) => (
-              <li
-                key={f.jugador}
-                className="flex items-center gap-3 px-4 py-2.5 border-b border-borde/50 last:border-0"
-              >
-                <span className="w-5 text-center text-xs font-bold tabular-nums text-neutral-400">
-                  {i + 1}
-                </span>
-                {f.pais && (
-                  <Flag code={f.pais} size={20} nombre={f.jugador} />
-                )}
-                <span className="flex-1 text-sm leading-tight truncate" title={f.jugador}>
-                  {f.jugador}
-                </span>
-                <span className="text-sm font-bold tabular-nums text-oro">
-                  {f.total}
-                </span>
-                <span className="text-[11px] text-neutral-500 w-10">{sufijo}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}

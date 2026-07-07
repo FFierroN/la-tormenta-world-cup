@@ -212,6 +212,17 @@ export interface FilaGoleo {
   pais: string | null; // codigo ISO-2 del pais del jugador (para la bandera)
 }
 
+// Rankings de la pestana "Estadisticas" (Copa). Todos usan la misma forma
+// FilaGoleo. La UI decide cuantas filas mostrar (top 5 colapsado + expandir).
+export interface Estadisticas {
+  goleadores: FilaGoleo[];
+  asistidores: FilaGoleo[];
+  golesYAsist: FilaGoleo[]; // suma goles + asistencias por jugador
+  amarillas: FilaGoleo[];
+  rojas: FilaGoleo[];
+  penales: FilaGoleo[]; // goles de penal en juego (excluye tandas)
+}
+
 // Desglose de pronosticos de un miembro (pestana LaTormenta). Las 4 categorias
 // suman 'total' (pronosticos de partidos ya finalizados).
 export interface FilaTormenta {

@@ -7,6 +7,7 @@ import type {
   EstadoPartido,
   Especiales,
   EspecialesConJugador,
+  Estadisticas,
   EventoPartido,
   FilaGoleo,
   FilaGrupo,
@@ -381,18 +382,28 @@ export async function obtenerTablaGruposLive(): Promise<FilaGrupo[]> {
   return (data ?? []).map(aFilaGrupo);
 }
 
-// Top goleadores y asistidores, agregados desde partido_eventos en el cliente
-// (son ~pocos cientos de eventos en todo el Mundial; no amerita una vista SQL).
-// Goles: cuenta por 'jugador' excluyendo autogoles. Asist.: cuenta por 'asistencia'.
-export async function obtenerGoleo(
-  topN = 5
-): Promise<{ goleadores: FilaGoleo[]; asistidores: FilaGoleo[] }> {
+// Estadisticas individuales del torneo (pestana "Estadisticas" dentro de Copa),
+// agregadas desde partido_eventos en el cliente (son ~pocos cientos de eventos
+// en todo el Mundial; no amerita una vista SQL).
+//
+// Devuelve los rankings COMPLETOS (sin cortar) para que la UI decida cuantos
+// mostrar (top 5 colapsado + "ver lista completa").
+//
+// Reglas de conteo:
+//   - goleadores:  tipo=gol, excluye autogoles.
+//   - asistidores: tipo=gol, cuenta por 'asistencia'.
+//   - golesYAsist: goleadores + asistidores fusionados por jugador.
+//   - amarillas / rojas: tipo=amarilla / tipo=roja, cuenta por jugador.
+//   - penales:     tipo=gol AND detalle=penal (los de tanda son tipo=penal_tanda
+//                  y quedan fuera solos por el filtro).
+export async function obtenerEstadisticas(): Promise<Estadisticas> {
   // Traemos tambien el lado (equipo) y el pais de cada lado del partido, para
   // poder pintar la bandera del jugador. partido_eventos -> partidos es FK.
+  // Filtramos por los 3 tipos que alimentan tablas (cambios y penal_tanda no).
   const { data, error } = await supabase
     .from("partido_eventos")
-    .select("jugador, asistencia, detalle, equipo, partidos(pais_local, pais_visita)")
-    .eq("tipo", "gol");
+    .select("tipo, jugador, asistencia, detalle, equipo, partidos(pais_local, pais_visita)")
+    .in("tipo", ["gol", "amarilla", "roja"]);
   lanzarSi(error);
 
   // Clave canonica: une las dos grafias del MISMO jugador ("K. Mbappé" y
@@ -416,8 +427,14 @@ export async function obtenerGoleo(
 
   // clave -> { total, pais, nombre }. pais y nombre se fijan/mejoran al vuelo.
   type Acum = { total: number; pais: string | null; nombre: string };
-  const goles = new Map<string, Acum>();
-  const asist = new Map<string, Acum>();
+  const nuevoMapa = () => new Map<string, Acum>();
+  const goles = nuevoMapa();
+  const asist = nuevoMapa();
+  const combo = nuevoMapa();
+  const amarillas = nuevoMapa();
+  const rojas = nuevoMapa();
+  const penales = nuevoMapa();
+
   const sumar = (m: Map<string, Acum>, nombre: string, pais: string | null) => {
     const clave = claveCanonica(nombre);
     const cur = m.get(clave) ?? { total: 0, pais: null, nombre };
@@ -433,17 +450,38 @@ export async function obtenerGoleo(
       r.equipo === "local"
         ? part?.pais_local ?? null
         : part?.pais_visita ?? null;
-    if (r.jugador && r.detalle !== "autogol") sumar(goles, r.jugador, pais);
-    if (r.asistencia) sumar(asist, r.asistencia, pais);
+    if (r.tipo === "gol") {
+      if (r.jugador && r.detalle !== "autogol") {
+        sumar(goles, r.jugador, pais);
+        sumar(combo, r.jugador, pais);
+      }
+      if (r.asistencia) {
+        sumar(asist, r.asistencia, pais);
+        sumar(combo, r.asistencia, pais);
+      }
+      if (r.jugador && r.detalle === "penal") {
+        sumar(penales, r.jugador, pais);
+      }
+    } else if (r.tipo === "amarilla" && r.jugador) {
+      sumar(amarillas, r.jugador, pais);
+    } else if (r.tipo === "roja" && r.jugador) {
+      sumar(rojas, r.jugador, pais);
+    }
   }
 
   const ordenar = (m: Map<string, Acum>): FilaGoleo[] =>
     [...m.values()]
       .map((v) => ({ jugador: v.nombre, total: v.total, pais: v.pais }))
-      .sort((a, b) => b.total - a.total || a.jugador.localeCompare(b.jugador))
-      .slice(0, topN);
+      .sort((a, b) => b.total - a.total || a.jugador.localeCompare(b.jugador));
 
-  return { goleadores: ordenar(goles), asistidores: ordenar(asist) };
+  return {
+    goleadores: ordenar(goles),
+    asistidores: ordenar(asist),
+    golesYAsist: ordenar(combo),
+    amarillas: ordenar(amarillas),
+    rojas: ordenar(rojas),
+    penales: ordenar(penales),
+  };
 }
 
 // ---------- ADMIN: cargar resultados y eventos ----------

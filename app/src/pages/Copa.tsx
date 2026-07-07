@@ -1,9 +1,12 @@
-// Pantalla COPA: dos pestanas -> "Grupos" (tabla de posiciones) y
-// "Llaves" (cuadro de eliminacion, Opcion B). El cuadro por fase ya no vive
-// aqui en pestanas separadas: todo el bracket esta dentro de "Llaves".
+// Pantalla COPA: tres pestanas -> "Llaves" (cuadro de eliminacion, por defecto),
+// "Grupos" (tabla de posiciones) y "Estadisticas" (rankings individuales del
+// torneo: goleadores, asist., goles+asist., amarillas, rojas, penales).
+// El cuadro por fase ya no vive aqui en pestanas separadas: todo el bracket
+// esta dentro de "Llaves".
 import { useEffect, useState } from "react";
 import LlavesView from "../components/LlavesView";
 import TablaGrupos from "../components/TablaGrupos";
+import PanelEstadisticas from "../components/PanelEstadisticas";
 import { useSwipe } from "../lib/useSwipe";
 import { TABS_COPA } from "../lib/llaves";
 
@@ -53,7 +56,13 @@ export default function Copa() {
       </div>
 
       <div {...swipe} className="min-h-[60vh]">
-        {tabKey === "grupos" ? <TablaGrupos /> : <LlavesView />}
+        {tabKey === "grupos" ? (
+          <TablaGrupos />
+        ) : tabKey === "estadisticas" ? (
+          <PanelEstadisticas />
+        ) : (
+          <LlavesView />
+        )}
       </div>
     </div>
   );

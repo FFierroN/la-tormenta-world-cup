@@ -1,0 +1,150 @@
+========================================================================
+  PENDIENTES 07-07  (para atacar mañana 08-07-2026)
+========================================================================
+Escrito la tarde del 07-jul-2026 despues del drama de Argentina-Egipto.
+Cuota HL de HOY: 8 llamadas restantes (~92% quemado).
+MANANA (08-jul): NO HAY PARTIDOS -> cuota fresca 100/dia sin competencia.
+
+
+========================================================================
+  REGLA DE ORO PARA EL RESTO DE HOY
+========================================================================
+  NO tocar el worker. NO correr ningun trigger manual mas.
+
+Por que:
+- Colombia vs Suiza sigue (o esta cerrando).
+- Puede consumir 5-8 polls hasta FT + 1-2 de enriquecimiento HT/FT + 1 de
+  alineaciones. Si va a alargue/penales, se disparan 3-5 llamadas mas.
+- 8 llamadas es AJUSTADO. Cualquier trigger manual te puede dejar seco
+  antes de que HL confirme el resultado.
+
+Plan B si se queda sin cuota:
+- Si NO aparece el marcador final en la app 10 min despues del pitazo
+  real -> lo lleno a mano en Supabase (como se hizo con Argentina-Egipto).
+
+
+========================================================================
+  MANANA (08-07-2026)  ·  DIA DE RECUPERACION MASIVA
+========================================================================
+Cuota fresca resetea a las 20:00 hora Chile de HOY (medianoche UTC).
+Pero mejor esperar a manana para tener CERO partidos que compitan.
+
+Hora sugerida: cualquiera del dia. No hay urgencia.
+
+
+------------------------------------------------------------------------
+  FASE 1 - Recuperacion de 16avos  (Pendiente (a), prioridad MAXIMA)
+------------------------------------------------------------------------
+Rango: 2026-06-23 -> 2026-07-03
+Estimado: ~44 llamadas HL
+Sobrante despues: ~56 llamadas de cuota
+
+OPCION A (RECOMENDADA) - Desde PC personal con PowerShell:
+
+    cd C:\Users\Felip\Documents\la-tormenta-world-cup\worker-vivo
+    .\recuperar-todo.ps1 -Key "TU_TRIGGER_SECRET" -Desde 2026-06-23 -Hasta 2026-07-03
+
+El script se auto-reanuda cada vez que el worker corta por MAX_PARTIDOS_RECUP
+(6 por invocacion). Dejalo corriendo, tomate un cafe, ~5-10 min total.
+
+
+OPCION B - Desde el celu (si no hay PC):
+
+URL base (reemplaza TU_SECRET por el trigger real):
+
+    https://tormenta-vivo.felipeeduardofn.workers.dev/?key=TU_SECRET&recuperar=2026-06-23&hasta=2026-07-03
+
+Cada vez que el log diga "REANUDAR=YYYY-MM-DD", cambia el parametro
+"recuperar=" por esa fecha y volves a pegar el URL. Repetir ~8 veces
+hasta que el log diga "Recuperacion COMPLETA."
+
+
+------------------------------------------------------------------------
+  FASE 2 - Verificacion visual  (sin gasto de cuota)
+------------------------------------------------------------------------
+Abrir la app -> Copa -> Estadisticas. Verificar:
+
+  [ ] Goleadores muestran nombres reales (ej. "L. Messi", no "L. M...")
+  [ ] Asistidores muestran nombres reales
+  [ ] Cantidad total de goles/tarjetas es coherente
+  [ ] Ningun jugador aparece duplicado por variantes de nombre
+
+Si algo se ve raro -> tomar screenshot y avisar a Kira.
+
+
+------------------------------------------------------------------------
+  FASE 3 - Re-enriquecer partidos del 07-jul  (bonus, ~2 llamadas)
+------------------------------------------------------------------------
+Ya se corrio hoy pero conviene un refresco final una vez terminado todo:
+
+    https://tormenta-vivo.felipeeduardofn.workers.dev/?key=TU_SECRET&recuperar=2026-07-07
+
+Corrige por si HL no tenia todos los datos cuando se corrio hoy en caliente.
+
+
+========================================================================
+  MATH DE CUOTA MANANA
+========================================================================
+  Fase 1 (16avos):           ~44 llamadas
+  Fase 2 (verificacion):        0
+  Fase 3 (re-enriquecer 07):  ~2
+  ----------------------------------
+  TOTAL GASTO ESTIMADO:      ~46 llamadas
+  SOBRANTE:                  ~54 llamadas de cuota
+
+Sobra margen para re-correr si algo sale raro.
+
+
+========================================================================
+  BONUS OPCIONAL (si sobra tiempo Y ganas, cero gasto HL)
+========================================================================
+Todos son puro codigo, no consumen cuota. Ordenados por impacto:
+
+  (f) HEARTBEAT / ALERTA "bot no procesa partido en ventana"
+      - MAS IMPACTANTE. Habria evitado el drama de Argentina-Egipto hoy.
+      - Si un partido esta en [ahora-2h, ahora+20min] y el bot no le
+        pega a HL durante >N min consecutivos -> bandera en Admin.
+      - Estimado: ~30 lineas + un flag en configuracion visible en Admin.
+      - Tiempo: ~30-45 min.
+
+  (e) AUTO-FILL DE BRACKETS al finalizar cada ronda
+      - Elimina el llenado manual y el riesgo de error humano
+        (como el de hoy: "Egipto en cuartos" en vez de Argentina).
+      - Cuando un partido pasa a estado=final, actualizar el siguiente
+        cruce siguiendo origen_local='GP<id>' / origen_visita='PP<id>'.
+      - Los datos ya estan cargados desde CARGA-TEMPLATE-LLAVES.sql.
+      - Estimado: ~50 lineas en worker-vivo/src/index.js.
+      - Tiempo: ~30-45 min.
+
+  (d) LIMPIEZA de debug endpoints del worker
+      - Quitar ?debug=lista, ?debug=detalle, ?debug=cuota (codigo muerto).
+      - Riesgo silencioso: si alguien los llama, quema cuota HL sin control.
+      - Estimado: ~5-10 min.
+
+
+========================================================================
+  RECORDATORIOS FINALES
+========================================================================
+- TRIGGER_SECRET: es el que rotaste hace poco. Buscalo en tu gestor de
+  contrasenas / notas / historial de PowerShell. Kira NO lo tiene.
+- URL del worker: https://tormenta-vivo.felipeeduardofn.workers.dev
+- Antes de la Fase 1, dale una vuelta rapida por Kira (o iniciate un
+  chat nuevo) para verificar que el worker este sano.
+- Cuando termine todo, actualizar version.ts si se cambio el worker.
+- Guardar el TRIGGER_SECRET en tu gestor de contrasenas ESTA VEZ SI.
+
+
+========================================================================
+  ESTADO ACTUAL DEL PROYECTO (07-jul tarde, main = 4673cbe..7e60dbe)
+========================================================================
+- App version: 2026.07.07-7 (todos los cambios de hoy pusheados a main).
+- Cambios de UI: nueva pestana Estadisticas, iconos rediseñados (balon
+  Tabler + botin dorado con mask), foto Ignacio Gonzalez actualizada.
+- Bot en vivo: funcionando. Colombia vs Suiza procesandose normal.
+- Argentina vs Egipto: recuperado desde HL, datos completos.
+- Bug de cuartos (Egipto en vez de Argentina): corregido a mano.
+
+
+========================================================================
+  A DORMIR TRANQUILO. MANANA LO CERRAMOS TODO.  //
+========================================================================

@@ -29,23 +29,33 @@ export function BallIcon({ className = "w-4 h-4 text-neutral-200" }: { className
   );
 }
 
-// Botin de futbol (glyph filled, silueta lateral con tapones). Reemplazo de
-// la bota generica anterior (2026-07-07): incluye los 5 tachones colgando
-// debajo de la suela, distintivo del botin de futbol vs zapato comun. Usa
-// fill=currentColor asi mantiene el coloring con Tailwind (text-emerald-400).
+// Botin de futbol: usa el PNG /iconos/botin.png que subio Felipe como MASCARA
+// via CSS mask-image, con currentColor de fondo. Asi la imagen se ve identica
+// al glyph original (silueta detallada de botin con cordones + costura + 5
+// tapones) PERO el color viene de Tailwind (text-emerald-400 default, pero
+// se puede sobreescribir con cualquier text-*, igual que un SVG con
+// currentColor). Mejor de los dos mundos.
+//
+// Nota: el PNG es negro sobre transparente. mask-image toma la ALPHA del PNG
+// para mostrar el bg-color (que es currentColor via bg-current). Los pixeles
+// transparentes del PNG NO se pintan; los negros SI. Zero perdida de detalle.
 export function ShoeIcon({ className = "w-3.5 h-3.5 text-emerald-400" }: { className?: string }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
+    <span
+      className={`inline-block bg-current ${className}`}
+      style={{
+        WebkitMaskImage: "url(/iconos/botin.png)",
+        maskImage: "url(/iconos/botin.png)",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+      }}
+      role="img"
       aria-label="Asistencia"
-    >
-      {/* Cuerpo del botin: talon a la izquierda, punta a la derecha */}
-      <path d="M2.2 14.8c0-.9.6-1.7 1.5-1.9l.7-.2.9-2.4c.3-.9 1.2-1.5 2.1-1.4l2.4.3c.6.1 1.2.4 1.5.9l1.8 2.4 5.9 1.7c1.3.4 2.2 1.6 2.2 2.9v.5c0 .6-.4 1-1 1H3.1c-.6 0-1-.4-1-1v-.8z" />
-      {/* 5 tachones/tapones colgando debajo de la suela */}
-      <path d="M4 17.6l.7 1.4h.3l.7-1.4zM7.8 17.6l.7 1.4h.3l.7-1.4zM11.6 17.6l.7 1.4h.3l.7-1.4zM15.4 17.6l.7 1.4h.3l.7-1.4zM19.2 17.6l.7 1.4h.3l.7-1.4z" />
-    </svg>
+    />
   );
 }
 

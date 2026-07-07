@@ -2,20 +2,49 @@
 // partido y el panel de admin. El tamano se controla con la prop className.
 import type { TipoEvento } from "../lib/types";
 
+// Balon de futbol (Tabler Icons "ball-football", outline). Reemplazo del
+// balon geometrico anterior (2026-07-07): tiene el detalle del pentagono
+// central + los rayos hacia los laterales, mucho mas reconocible como balon
+// de futbol. Usa stroke=currentColor asi mantiene el coloring con Tailwind
+// (text-white, text-oro, etc.).
 export function BallIcon({ className = "w-4 h-4 text-neutral-200" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7l3 2.2-1.2 3.6h-3.6L9 9.2 12 7z" fill="currentColor" stroke="none" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-label="Gol"
+    >
+      {/* Circulo exterior del balon */}
+      <path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />
+      {/* Pentagono central */}
+      <path d="M12 7l4.76 3.45l-1.76 5.55h-6l-1.76 -5.55l4.76 -3.45" />
+      {/* 5 rayos que salen del pentagono hacia el borde */}
+      <path d="M12 7v-4m3 13l2.5 3m-.74 -8.55l3.74 -1.45m-11.44 7.05l-2.56 2.95m.74 -8.55l-3.74 -1.45" />
     </svg>
   );
 }
 
-// Bota / zapato de futbol: marca quien dio la asistencia.
+// Botin de futbol (glyph filled, silueta lateral con tapones). Reemplazo de
+// la bota generica anterior (2026-07-07): incluye los 5 tachones colgando
+// debajo de la suela, distintivo del botin de futbol vs zapato comun. Usa
+// fill=currentColor asi mantiene el coloring con Tailwind (text-emerald-400).
 export function ShoeIcon({ className = "w-3.5 h-3.5 text-emerald-400" }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-label="Asistencia">
-      <path d="M2 15.5c0-.8.6-1.4 1.4-1.4h1.1l1.2-3.3c.3-.9 1.2-1.5 2.1-1.4l2.5.2c.6 0 1.1.3 1.5.8l2.3 3 6.2 1.8c.9.3 1.5 1.1 1.5 2v.9c0 .7-.6 1.3-1.3 1.3H3.6c-.9 0-1.6-.7-1.6-1.6v-1.3z" />
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-label="Asistencia"
+    >
+      {/* Cuerpo del botin: talon a la izquierda, punta a la derecha */}
+      <path d="M2.2 14.8c0-.9.6-1.7 1.5-1.9l.7-.2.9-2.4c.3-.9 1.2-1.5 2.1-1.4l2.4.3c.6.1 1.2.4 1.5.9l1.8 2.4 5.9 1.7c1.3.4 2.2 1.6 2.2 2.9v.5c0 .6-.4 1-1 1H3.1c-.6 0-1-.4-1-1v-.8z" />
+      {/* 5 tachones/tapones colgando debajo de la suela */}
+      <path d="M4 17.6l.7 1.4h.3l.7-1.4zM7.8 17.6l.7 1.4h.3l.7-1.4zM11.6 17.6l.7 1.4h.3l.7-1.4zM15.4 17.6l.7 1.4h.3l.7-1.4zM19.2 17.6l.7 1.4h.3l.7-1.4z" />
     </svg>
   );
 }

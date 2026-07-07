@@ -32,14 +32,14 @@ export function BallIcon({ className = "w-4 h-4 text-neutral-200" }: { className
 // Botin de futbol: usa el PNG /iconos/botin.png que subio Felipe como MASCARA
 // via CSS mask-image, con currentColor de fondo. Asi la imagen se ve identica
 // al glyph original (silueta detallada de botin con cordones + costura + 5
-// tapones) PERO el color viene de Tailwind (text-emerald-400 default, pero
+// tapones) PERO el color viene de Tailwind (text-oro default, pero
 // se puede sobreescribir con cualquier text-*, igual que un SVG con
 // currentColor). Mejor de los dos mundos.
 //
 // Nota: el PNG es negro sobre transparente. mask-image toma la ALPHA del PNG
 // para mostrar el bg-color (que es currentColor via bg-current). Los pixeles
 // transparentes del PNG NO se pintan; los negros SI. Zero perdida de detalle.
-export function ShoeIcon({ className = "w-3.5 h-3.5 text-emerald-400" }: { className?: string }) {
+export function ShoeIcon({ className = "w-3.5 h-3.5 text-oro" }: { className?: string }) {
   return (
     <span
       className={`inline-block bg-current ${className}`}

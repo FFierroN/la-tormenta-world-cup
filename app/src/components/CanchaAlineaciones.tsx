@@ -71,8 +71,8 @@ function IconosActividad({
       )}
       {act.autogoles > 0 && <PorteriaIcon className="w-3 h-3 text-rose-400" />}
       {act.asistencias > 0 && (
-        <span className="flex items-center text-emerald-400">
-          <ShoeIcon className="w-3 h-3 text-emerald-400" />
+        <span className="flex items-center text-oro">
+          <ShoeIcon className="w-3 h-3 text-oro" />
           {act.asistencias > 1 && <span className="text-[9px] font-bold ml-px">x{act.asistencias}</span>}
         </span>
       )}

@@ -23,7 +23,7 @@ function IconoGolAsist() {
     <span className="inline-flex items-center gap-1">
       <BallIcon className="w-4 h-4 text-white" />
       <span className="text-oro/60 text-xs font-bold">+</span>
-      <ShoeIcon className="w-3.5 h-3.5 text-emerald-400" />
+      <ShoeIcon className="w-3.5 h-3.5 text-oro" />
     </span>
   );
 }
@@ -41,7 +41,7 @@ export const TIPOS_ESTADISTICA: TipoEstadistica[] = [
     key: "asistidores",
     label: "Asistidores",
     sufijo: "asist.",
-    icono: <ShoeIcon className="w-4 h-4 text-emerald-400" />,
+    icono: <ShoeIcon className="w-4 h-4 text-oro" />,
     extraer: (d) => d.asistidores,
   },
   {

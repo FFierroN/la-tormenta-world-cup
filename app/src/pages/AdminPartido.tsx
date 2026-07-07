@@ -424,7 +424,7 @@ function EventosForm({
                 {e.asistencia && (
                   <span className="text-xs text-neutral-400">
                     {" "}
-                    <ShoeIcon className="inline w-3 h-3 text-emerald-400 align-text-bottom" />{" "}
+                    <ShoeIcon className="inline w-3 h-3 text-oro align-text-bottom" />{" "}
                     {e.asistencia}
                   </span>
                 )}
@@ -490,7 +490,7 @@ function EventosForm({
       {tipo === "gol" && (
         <div className="mb-3">
           <label className="flex items-center gap-1.5 text-[11px] text-neutral-400 mb-1">
-            <ShoeIcon className="w-3.5 h-3.5 text-emerald-400" />
+            <ShoeIcon className="w-3.5 h-3.5 text-oro" />
             Asistidor (opcional)
           </label>
           <input

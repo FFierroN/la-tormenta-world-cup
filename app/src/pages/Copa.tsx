@@ -8,7 +8,7 @@ import LlavesView from "../components/LlavesView";
 import TablaGrupos from "../components/TablaGrupos";
 import PanelEstadisticas from "../components/PanelEstadisticas";
 import { useSwipe } from "../lib/useSwipe";
-import { TABS_COPA } from "../lib/llaves";
+import { TABS_COPA, TAB_COPA_DEFAULT } from "../lib/llaves";
 
 // Arranque del Mundial: 11/06/2026 15:00 hora de Chile (UTC-4).
 // La cuenta regresiva apunta aqui y desaparece cuando se cumple.
@@ -18,10 +18,12 @@ export default function Copa() {
   // Persistimos la pestana activa en sessionStorage: si el user entra a
   // /copa/estadisticas/:tipo (pantalla de detalle) y vuelve con back, cae de
   // nuevo en la pestana "Estadisticas", no en la default "Llaves".
+  // Ojo: default es TAB_COPA_DEFAULT ("llaves"), NO el primer elemento del
+  // array. Asi puedo reordenar el array visual sin cambiar la default.
   const [tabKey, setTabKey] = useState(() => {
     const guardado = typeof window !== "undefined" ? sessionStorage.getItem("copa:tab") : null;
     const valido = TABS_COPA.some((t) => t.key === guardado);
-    return valido ? (guardado as string) : TABS_COPA[0].key;
+    return valido ? (guardado as string) : TAB_COPA_DEFAULT;
   });
 
   useEffect(() => {

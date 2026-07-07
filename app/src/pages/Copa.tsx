@@ -15,7 +15,18 @@ import { TABS_COPA } from "../lib/llaves";
 const INICIO_MUNDIAL = new Date("2026-06-11T15:00:00-04:00").getTime();
 
 export default function Copa() {
-  const [tabKey, setTabKey] = useState(TABS_COPA[0].key);
+  // Persistimos la pestana activa en sessionStorage: si el user entra a
+  // /copa/estadisticas/:tipo (pantalla de detalle) y vuelve con back, cae de
+  // nuevo en la pestana "Estadisticas", no en la default "Llaves".
+  const [tabKey, setTabKey] = useState(() => {
+    const guardado = typeof window !== "undefined" ? sessionStorage.getItem("copa:tab") : null;
+    const valido = TABS_COPA.some((t) => t.key === guardado);
+    return valido ? (guardado as string) : TABS_COPA[0].key;
+  });
+
+  useEffect(() => {
+    sessionStorage.setItem("copa:tab", tabKey);
+  }, [tabKey]);
 
   // Swipe: desliza a los lados para cambiar de pestana (con tope en extremos).
   const irRelativo = (delta: number) => {

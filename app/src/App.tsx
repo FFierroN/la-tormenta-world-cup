@@ -7,6 +7,7 @@ import EspecialesWC from "./pages/EspecialesWC";
 import PartidoDetalle from "./pages/PartidoDetalle";
 import Tabla from "./pages/Tabla";
 import Copa from "./pages/Copa";
+import EstadisticaDetalle from "./pages/EstadisticaDetalle";
 import MiCuenta from "./pages/MiCuenta";
 import CambiarPin from "./pages/CambiarPin";
 import MisPredicciones from "./pages/MisPredicciones";
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/partido/:id" element={<Privada><PartidoDetalle /></Privada>} />
           <Route path="/tabla" element={<Privada><Tabla /></Privada>} />
           <Route path="/copa" element={<Privada><Copa /></Privada>} />
+            <Route path="/copa/estadisticas/:tipo" element={<Privada><EstadisticaDetalle /></Privada>} />
           <Route path="/grupos" element={<Navigate to="/copa" replace />} />
           <Route path="/cuenta" element={<Privada><MiCuenta /></Privada>} />
           <Route path="/cambiar-pin" element={<Privada><CambiarPin /></Privada>} />

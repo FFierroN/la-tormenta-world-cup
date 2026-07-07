@@ -1,24 +1,35 @@
 // Lista rankeada de jugadores (goleadores, asistidores, tarjetas, penales...).
-// Fuente unica (DRY): la reusan la pestana Grupos (antes) y ahora Estadisticas.
-// Colapsada muestra 'topInicial' filas (default 5); un click al pie expande a
-// la lista completa. Si hay menos filas que topInicial, no muestra el toggle.
-import { useState } from "react";
+// Fuente unica (DRY): la usan la pestana Estadisticas (top 5 con link al
+// detalle) y la pantalla EstadisticaDetalle (lista completa, sin link).
+//
+// Comportamiento:
+//   - Si viene 'href': la tabla es clickeable y navega a esa ruta. Muestra
+//     'topInicial' filas (default 5) + pie "Ver todos (N)" cuando hay mas.
+//   - Si NO viene 'href': muestra la lista completa (o el slice indicado en
+//     topInicial), sin link ni pie.
+import { useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import Flag from "./Flag";
 import type { FilaGoleo } from "../lib/types";
 
 interface Props {
   titulo: string;
-  filas: FilaGoleo[]; // lista COMPLETA (ya ordenada); el componente corta.
+  filas: FilaGoleo[]; // lista COMPLETA (ya ordenada); el componente decide slice.
   icono: ReactNode;
   sufijo: string; // "goles", "asist.", "g+a", "amar.", "rojas", "penales"
-  topInicial?: number; // default 5
+  topInicial?: number; // default 5. Ignorado si !href (muestra todo).
+  href?: string; // si viene, la tabla lleva a esta ruta al clickearla.
 }
 
-export default function ListaGoleo({ titulo, filas, icono, sufijo, topInicial = 5 }: Props) {
-  const [expandido, setExpandido] = useState(false);
-  const hayMas = filas.length > topInicial;
-  const mostrar = expandido ? filas : filas.slice(0, topInicial);
+export default function ListaGoleo({ titulo, filas, icono, sufijo, topInicial = 5, href }: Props) {
+  const navigate = useNavigate();
+  const mostrar = href ? filas.slice(0, topInicial) : filas;
+  const hayMas = href && filas.length > topInicial;
+  const clickeable = !!href;
+
+  const irADetalle = () => {
+    if (href) navigate(href);
+  };
 
   return (
     <div>
@@ -26,7 +37,25 @@ export default function ListaGoleo({ titulo, filas, icono, sufijo, topInicial = 
         {icono}
         {titulo}
       </h3>
-      <div className="border border-borde rounded-2xl overflow-hidden">
+      <div
+        className={`border border-borde rounded-2xl overflow-hidden ${
+          clickeable ? "cursor-pointer active:bg-white/5 transition-colors" : ""
+        }`}
+        onClick={clickeable ? irADetalle : undefined}
+        role={clickeable ? "button" : undefined}
+        tabIndex={clickeable ? 0 : undefined}
+        onKeyDown={
+          clickeable
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  irADetalle();
+                }
+              }
+            : undefined
+        }
+        aria-label={clickeable ? `Ver ranking completo de ${titulo}` : undefined}
+      >
         {filas.length === 0 ? (
           <p className="text-xs text-neutral-500 px-4 py-3">Aun sin registros.</p>
         ) : (
@@ -50,15 +79,9 @@ export default function ListaGoleo({ titulo, filas, icono, sufijo, topInicial = 
               ))}
             </ul>
             {hayMas && (
-              <button
-                type="button"
-                onClick={() => setExpandido((v) => !v)}
-                className="w-full px-4 py-2 text-xs font-semibold text-oro uppercase tracking-wide border-t border-borde/70 hover:bg-white/5 active:bg-white/10 transition-colors"
-              >
-                {expandido
-                  ? "Ver menos"
-                  : `Ver lista completa (${filas.length})`}
-              </button>
+              <div className="px-4 py-2 text-xs font-semibold text-oro uppercase tracking-wide border-t border-borde/70 text-center">
+                Ver todos ({filas.length}) ›
+              </div>
             )}
           </>
         )}

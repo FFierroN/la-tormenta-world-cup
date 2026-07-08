@@ -6,8 +6,8 @@
 // cajita de "pais mas elegido por todos" con barras de porcentaje.
 // Lo unico que se sincroniza con Supabase es el CAMPEON del jugador.
 import { useEffect, useState } from "react";
-import Flag from "./Flag";
-import BracketPronostico from "./BracketPronostico";
+import Flag from "../components/Flag";
+import BracketPronostico from "../components/BracketPronostico";
 import { useAuth } from "../lib/auth";
 import { useAsync } from "../lib/useAsync";
 import {

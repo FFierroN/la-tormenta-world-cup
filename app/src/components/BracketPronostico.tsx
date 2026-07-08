@@ -52,7 +52,7 @@ export default function BracketPronostico({ slots, picks, onPick }: Props) {
         <VLine />
 
         {/* Centro: FINAL */}
-        <Label dorado>Final</Label>
+        <Label neon>Final</Label>
         {card(SLOT_FINAL, true)}
         <VLine />
 
@@ -114,7 +114,7 @@ function SandboxCard({
 
   const size = big ? 40 : 22;
   const wrap = big
-    ? "rounded-2xl border border-oro/50 bg-oro/10 px-4 py-3 max-w-[300px] mx-auto"
+    ? "rounded-2xl border border-neon-menta/50 bg-neon-menta/10 px-4 py-3 max-w-[300px] mx-auto"
     : "rounded-xl border border-borde bg-carbon-card px-1 py-2 max-w-[92px] mx-auto";
 
   return (
@@ -166,6 +166,7 @@ function LadoElegible({
       size={size}
       gano={elegido}
       esquinaIzq={esquinaIzq}
+      checkClase="text-neon-menta"
     />
   );
 
@@ -179,7 +180,7 @@ function LadoElegible({
       aria-pressed={elegido}
       aria-label={`Elegir a ${equipo?.nombre ?? corto}`}
       className={`flex-1 min-w-0 rounded-lg p-0.5 transition-all active:scale-95 ${
-        elegido ? "bg-green-500/15 ring-1 ring-green-400/50" : "opacity-70 hover:opacity-100"
+        elegido ? "bg-neon-menta/15 ring-1 ring-neon-menta/50" : "opacity-70 hover:opacity-100"
       }`}
     >
       {contenido}

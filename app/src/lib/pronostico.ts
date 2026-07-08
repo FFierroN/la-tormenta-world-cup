@@ -125,12 +125,30 @@ export function aplicarPick(
   return nuevo;
 }
 
-// Campeon actual del sandbox (ganador del partido Final), o null si incompleto.
-export function campeonActual(
+// Podio completo del sandbox: campeon (gana la final), subcampeon (pierde la
+// final) y tercero (gana el partido por el 3er puesto). Cada uno puede ser
+// null si ese cruce aun no esta resuelto.
+export interface Podio {
+  campeon: EquipoResuelto | null;
+  subcampeon: EquipoResuelto | null;
+  tercero: EquipoResuelto | null;
+}
+
+export function podioActual(
   ix: Record<string, SlotLlave>,
   picks: Picks
-): EquipoResuelto | null {
-  return ganadorResuelto(SLOT_FINAL, ix, picks);
+): Podio {
+  const pickFinal = picks[SLOT_FINAL];
+  const subLado: Lado | null = pickFinal
+    ? pickFinal === "local"
+      ? "visita"
+      : "local"
+    : null;
+  return {
+    campeon: ganadorResuelto(SLOT_FINAL, ix, picks),
+    subcampeon: subLado ? resolverLado(SLOT_FINAL, subLado, ix, picks) : null,
+    tercero: ganadorResuelto(SLOT_TERCERO, ix, picks),
+  };
 }
 
 // ------------------------------------------------------------ localStorage

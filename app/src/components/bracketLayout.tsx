@@ -8,16 +8,20 @@ import type { ReactNode } from "react";
 import Flag from "./Flag";
 import { CheckIcon } from "./Iconos";
 
-// Titulo de una ronda (Octavos / Cuartos / ...). 'dorado' resalta la Final.
-export function Label({ children, dorado }: { children: ReactNode; dorado?: boolean }) {
+// Titulo de una ronda (Octavos / Cuartos / ...). 'dorado' resalta la Final de
+// la fase real; 'neon' hace lo mismo pero en menta (sandbox), para diferenciar.
+export function Label({
+  children,
+  dorado,
+  neon,
+}: {
+  children: ReactNode;
+  dorado?: boolean;
+  neon?: boolean;
+}) {
+  const color = neon ? "text-neon-menta" : dorado ? "text-oro" : "text-neutral-300";
   return (
-    <h3
-      className={`text-center text-xs font-bold my-2 ${
-        dorado ? "text-oro" : "text-neutral-300"
-      }`}
-    >
-      {children}
-    </h3>
+    <h3 className={`text-center text-xs font-bold my-2 ${color}`}>{children}</h3>
   );
 }
 
@@ -59,8 +63,9 @@ export function MergeUp({ pares }: { pares: number }) {
 }
 
 // Un equipo dentro de una tarjeta: bandera arriba, codigo/nombre abajo.
-// 'gano' pinta un check verde en la esquina de la bandera (ganador real o
-// elegido en el sandbox). 'esquinaIzq' pone el check a la izquierda.
+// 'gano' pinta un check en la esquina de la bandera (ganador real o elegido en
+// el sandbox). 'esquinaIzq' lo pone a la izquierda. 'checkClase' controla el
+// color del check (default verde; el sandbox usa menta).
 export function Equipo({
   nombre,
   pais,
@@ -68,6 +73,7 @@ export function Equipo({
   size,
   gano,
   esquinaIzq,
+  checkClase = "text-green-400",
 }: {
   nombre: string | null;
   pais: string | null;
@@ -75,6 +81,7 @@ export function Equipo({
   size: number;
   gano?: boolean;
   esquinaIzq?: boolean;
+  checkClase?: string;
 }) {
   const definido = !!nombre;
   const esquina = esquinaIzq ? "-left-1.5" : "-right-1.5";
@@ -87,7 +94,7 @@ export function Equipo({
             className={`absolute -top-1.5 ${esquina} grid place-items-center rounded-full bg-carbon p-px shadow`}
             aria-label="Ganador"
           >
-            <CheckIcon className="w-3 h-3 text-green-400" />
+            <CheckIcon className={`w-3 h-3 ${checkClase}`} />
           </span>
         )}
       </div>

@@ -872,37 +872,55 @@ export async function setAjustePuntos(
 
 // ---------- PRONOSTICO SANDBOX ("que pasaria si") ----------
 
-// Guarda (o resetea, si campeon es null) el campeon elegido por el jugador en
-// el sandbox. Solo esto se persiste en Supabase; el resto del cuadro vive en
-// localStorage. Alimenta la cajita de "pais mas elegido por todos".
-export async function guardarSandboxCampeon(
+// Podio elegido por un jugador en el sandbox (nombre + codigo ISO por puesto).
+export interface PodioSandbox {
+  campeon: string | null;
+  campeonPais: string | null;
+  subcampeon: string | null;
+  subcampeonPais: string | null;
+  tercero: string | null;
+  terceroPais: string | null;
+}
+
+// Guarda (o resetea, si campeon es null) el PODIO elegido por el jugador en el
+// sandbox. Solo esto se persiste en Supabase; el resto del cuadro vive en
+// localStorage. Alimenta las 3 cajitas de "mas elegido por todos".
+export async function guardarSandboxPodio(
   jugadorId: string,
-  campeon: string | null,
-  campeonPais: string | null
+  p: PodioSandbox
 ): Promise<void> {
-  const { error } = await supabase.rpc("guardar_sandbox_campeon", {
+  const { error } = await supabase.rpc("guardar_sandbox_podio", {
     p_jugador_id: Number(jugadorId),
-    p_campeon: campeon,
-    p_campeon_pais: campeonPais,
+    p_campeon: p.campeon,
+    p_campeon_pais: p.campeonPais,
+    p_subcampeon: p.subcampeon,
+    p_subcampeon_pais: p.subcampeonPais,
+    p_tercero: p.tercero,
+    p_tercero_pais: p.terceroPais,
   });
   lanzarSi(error);
 }
 
-// Una fila del agregado de campeones del sandbox (para las barras de %).
-export interface VotoCampeon {
-  campeon: string;
-  pais: string | null;
+// Posiciones del podio del sandbox (para las barras de %).
+export type PosicionPodio = "campeon" | "subcampeon" | "tercero";
+
+// Una fila del agregado: cuantos eligieron cada pais en cada posicion.
+export interface VotoPodio {
+  posicion: PosicionPodio;
+  pais: string;
+  iso: string | null;
   votos: number;
 }
 
-// Cuantos jugadores eligieron cada pais como campeon en su sandbox, de mas a
-// menos votado. El % lo calcula la UI sobre la suma total.
-export async function obtenerSandboxCampeones(): Promise<VotoCampeon[]> {
-  const { data, error } = await supabase.rpc("sandbox_campeones_agg");
+// Cuantos jugadores eligieron cada pais en cada puesto del podio, de mas a
+// menos votado. El % lo calcula la UI sobre el total de cada posicion.
+export async function obtenerSandboxPodio(): Promise<VotoPodio[]> {
+  const { data, error } = await supabase.rpc("sandbox_podio_agg");
   lanzarSi(error);
   return ((data ?? []) as any[]).map((r) => ({
-    campeon: r.campeon,
-    pais: r.campeon_pais ?? null,
+    posicion: r.posicion as PosicionPodio,
+    pais: r.pais_nombre,
+    iso: r.pais_iso ?? null,
     votos: Number(r.votos),
   }));
 }

@@ -406,6 +406,39 @@ export async function obtenerEstadisticas(): Promise<Estadisticas> {
     .in("tipo", ["gol", "amarilla", "roja"]);
   lanzarSi(error);
 
+  // Desempate por "hasta donde llego la seleccion del jugador": traemos la fase
+  // de cada partido junto con los paises que la disputaron y nos quedamos, por
+  // pais, con la fase MAS AVANZADA en la que aparece. Rank mayor = llego mas
+  // lejos en el torneo. En eliminatorias el pais solo esta cargado si clasifico
+  // a esa ronda, asi que "aparece en fase X" == "llego a la fase X".
+  const RANK_FASE: Record<string, number> = {
+    "Grupos": 1,
+    "Dieciseisavos": 2,
+    "Octavos": 3,
+    "Cuartos": 4,
+    "Semifinales": 5,
+    "Tercer Puesto": 5, // jugar el 3er puesto == haber llegado a semifinales
+    "Final": 6,
+  };
+  const { data: parts, error: errParts } = await supabase
+    .from("partidos")
+    .select("fase, pais_local, pais_visita");
+  lanzarSi(errParts);
+
+  // pais ISO -> rank de la fase mas avanzada donde aparece esa seleccion.
+  const faseMaxPais = new Map<string, number>();
+  const registrarFase = (pais: string | null, fase: string) => {
+    if (!pais) return;
+    const rank = RANK_FASE[fase] ?? 0;
+    if (rank > (faseMaxPais.get(pais) ?? 0)) faseMaxPais.set(pais, rank);
+  };
+  for (const p of (parts ?? []) as any[]) {
+    registrarFase(p.pais_local, p.fase);
+    registrarFase(p.pais_visita, p.fase);
+  }
+  const faseDe = (pais: string | null): number =>
+    pais ? faseMaxPais.get(pais) ?? 0 : 0;
+
   // Clave canonica: une las dos grafias del MISMO jugador ("K. Mbappé" y
   // "Kylian Mbappé") agrupando por inicial-del-primer-nombre + apellido, sin
   // tildes. Asi la tabla no cuenta doble a quien quedo con nombre abreviado en
@@ -469,10 +502,17 @@ export async function obtenerEstadisticas(): Promise<Estadisticas> {
     }
   }
 
+  // Orden: 1) mas eventos (goles/asist/etc), 2) DESEMPATE: la seleccion que
+  // llego mas lejos en el torneo va primero, 3) alfabetico (ultimo recurso).
   const ordenar = (m: Map<string, Acum>): FilaGoleo[] =>
     [...m.values()]
       .map((v) => ({ jugador: v.nombre, total: v.total, pais: v.pais }))
-      .sort((a, b) => b.total - a.total || a.jugador.localeCompare(b.jugador));
+      .sort(
+        (a, b) =>
+          b.total - a.total ||
+          faseDe(b.pais) - faseDe(a.pais) ||
+          a.jugador.localeCompare(b.jugador)
+      );
 
   return {
     goleadores: ordenar(goles),

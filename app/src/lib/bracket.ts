@@ -35,6 +35,8 @@ export interface SlotLlave {
   equipoVisita: string | null;
   paisVisita: string | null;
   ganador: "local" | "visita" | null; // lado que gano (partido final); null si no jugado/empate
+  origenLocal: string | null; // origen crudo del local ('GP97'/'PP101'/'1A'...) para derivar el arbol
+  origenVisita: string | null; // origen crudo del visitante
 }
 
 // Orden canonico de las fases (de la mas temprana a la final).
@@ -95,6 +97,8 @@ export function partidoASlot(p: Partido): SlotLlave {
     equipoVisita: esDefinido(p.equipo_visita) ? p.equipo_visita : null,
     paisVisita: esDefinido(p.equipo_visita) ? p.pais_visita : null,
     ganador: ganadorPartido(p),
+    origenLocal: p.origen_local,
+    origenVisita: p.origen_visita,
   };
 }
 

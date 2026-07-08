@@ -9,12 +9,10 @@
 // conectores usan columnas flex-1 iguales. Asi el centro de cada tarjeta
 // cae en (i+0.5)/N del ancho, y cada conector dibuja sus lineas en 25% /
 // 50% / 75% de su celda -> siempre calzan, sin importar el ancho real.
-import Flag from "./Flag";
-import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { CheckIcon } from "./Iconos";
 import { fmtHora, fmtDiaMes } from "../lib/fechas";
 import { indexarPorSlot, type SlotLlave } from "../lib/bracket";
+import { Label, VLine, MergeDown, MergeUp, Equipo } from "./bracketLayout";
 
 export default function BracketFinal({ slots }: { slots: SlotLlave[] }) {
   const ix = indexarPorSlot(slots);
@@ -86,18 +84,6 @@ function Banda({ slots }: { slots: (SlotLlave | undefined)[] }) {
   );
 }
 
-function Label({ children, dorado }: { children: ReactNode; dorado?: boolean }) {
-  return (
-    <h3
-      className={`text-center text-xs font-bold my-2 ${
-        dorado ? "text-oro" : "text-neutral-300"
-      }`}
-    >
-      {children}
-    </h3>
-  );
-}
-
 // -------------------------------------------------------------- Tarjeta
 // Toda la tarjeta es un boton -> abre el detalle/pronostico del partido.
 function Card({ s, big }: { s?: SlotLlave; big?: boolean }) {
@@ -143,82 +129,3 @@ function Card({ s, big }: { s?: SlotLlave; big?: boolean }) {
   );
 }
 
-// Un equipo dentro de la tarjeta: bandera arriba, codigo/nombre abajo.
-// 'gano' pinta un check verde en la esquina de la bandera (mismo criterio
-// que la lista de Dieciseisavos).
-function Equipo({
-  nombre,
-  pais,
-  corto,
-  size,
-  gano,
-}: {
-  nombre: string | null;
-  pais: string | null;
-  corto: string;
-  size: number;
-  gano?: boolean;
-}) {
-  const definido = !!nombre;
-  return (
-    <div className="flex flex-col items-center gap-0.5 min-w-0 flex-1">
-      <div className="relative shrink-0">
-        <Flag code={pais ?? "XX"} size={size} nombre={nombre ?? corto} />
-        {gano && (
-          <span
-            className="absolute -top-1.5 -right-1.5 grid place-items-center rounded-full bg-carbon p-px shadow"
-            aria-label="Ganador"
-          >
-            <CheckIcon className="w-3 h-3 text-green-400" />
-          </span>
-        )}
-      </div>
-      <span
-        className={`text-[9px] leading-none text-center truncate max-w-full ${
-          definido ? "font-semibold text-neutral-100" : "text-neutral-400"
-        }`}
-        title={nombre ?? corto}
-      >
-        {definido ? nombre : corto}
-      </span>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------ Conectores
-// Linea vertical simple (Semis<->Final).
-function VLine() {
-  return <div className="h-5 w-px bg-borde mx-auto" aria-hidden="true" />;
-}
-
-// Une 2 hijos (arriba) en 1 padre (abajo). 'pares' = nro de padres.
-function MergeDown({ pares }: { pares: number }) {
-  return (
-    <div className="flex" aria-hidden="true">
-      {Array.from({ length: pares }).map((_, i) => (
-        <div key={i} className="relative flex-1 h-5">
-          <span className="absolute top-0 h-2.5 w-px bg-borde" style={{ left: "25%" }} />
-          <span className="absolute top-0 h-2.5 w-px bg-borde" style={{ left: "75%" }} />
-          <span className="absolute top-2.5 h-px bg-borde" style={{ left: "25%", right: "25%" }} />
-          <span className="absolute top-2.5 h-2.5 w-px bg-borde" style={{ left: "50%" }} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Une 1 padre (arriba) en 2 hijos (abajo). 'pares' = nro de padres.
-function MergeUp({ pares }: { pares: number }) {
-  return (
-    <div className="flex" aria-hidden="true">
-      {Array.from({ length: pares }).map((_, i) => (
-        <div key={i} className="relative flex-1 h-5">
-          <span className="absolute top-0 h-2.5 w-px bg-borde" style={{ left: "50%" }} />
-          <span className="absolute top-2.5 h-px bg-borde" style={{ left: "25%", right: "25%" }} />
-          <span className="absolute top-2.5 h-2.5 w-px bg-borde" style={{ left: "25%" }} />
-          <span className="absolute top-2.5 h-2.5 w-px bg-borde" style={{ left: "75%" }} />
-        </div>
-      ))}
-    </div>
-  );
-}

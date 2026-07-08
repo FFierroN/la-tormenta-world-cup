@@ -19,7 +19,7 @@ import {
 interface Props {
   slots: SlotLlave[];
   picks: Picks;
-  onPick: (slotCode: string, lado: Lado) => void;
+  onPick?: (slotCode: string, lado: Lado) => void; // ausente => solo lectura
 }
 
 export default function BracketPronostico({ slots, picks, onPick }: Props) {
@@ -102,7 +102,7 @@ function SandboxCard({
   code: string;
   ix: Record<string, SlotLlave>;
   picks: Picks;
-  onPick: (slotCode: string, lado: Lado) => void;
+  onPick?: (slotCode: string, lado: Lado) => void;
   big?: boolean;
 }) {
   const s = ix[code];
@@ -111,6 +111,7 @@ function SandboxCard({
   const local = resolverLado(code, "local", ix, picks);
   const visita = resolverLado(code, "visita", ix, picks);
   const pick = picks[code];
+  const editable = !!onPick && !!local && !!visita;
 
   const size = big ? 40 : 22;
   const wrap = big
@@ -125,7 +126,7 @@ function SandboxCard({
           corto={s.localCorto}
           size={size}
           elegido={pick === "local"}
-          onClick={local && visita ? () => onPick(code, "local") : undefined}
+          onClick={editable ? () => onPick!(code, "local") : undefined}
           esquinaIzq
         />
         {big && <span className="self-center text-2xl leading-none">{"\u{1F3C6}"}</span>}
@@ -134,7 +135,7 @@ function SandboxCard({
           corto={s.visitaCorto}
           size={size}
           elegido={pick === "visita"}
-          onClick={local && visita ? () => onPick(code, "visita") : undefined}
+          onClick={editable ? () => onPick!(code, "visita") : undefined}
         />
       </div>
     </div>

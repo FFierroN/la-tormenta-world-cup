@@ -21,6 +21,5 @@ export const TAB_COPA_DEFAULT = "llaves";
 export const TABS_COPA: TabCopa[] = [
   { key: "estadisticas", label: "Estadisticas" },
   { key: "llaves", label: "Llaves" },
-  { key: "pronostico", label: "Pronostico" },
   { key: "grupos", label: "Grupos" },
 ];

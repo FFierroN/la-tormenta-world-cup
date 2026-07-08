@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Avatar from "../components/Avatar";
 import IndicadorMovimiento from "../components/IndicadorMovimiento";
-import PrediccionesTodos from "../components/PrediccionesTodos";
+import PrediccionesView from "../components/PrediccionesView";
 import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
 import { obtenerTabla, obtenerTablaLive, obtenerPosicionesBase, fotoUltimoHabilitada, fotoPrimeroHabilitada } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
@@ -87,7 +87,7 @@ export default function Tabla() {
           <Clasica filas={filas} posLive={posLive} posBase={posBaseMap} onSelect={irAPredicciones} />
         </div>
       )}
-      {pestana === "predicciones" && <PrediccionesTodos />}
+      {pestana === "predicciones" && <PrediccionesView />}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import EstadisticaDetalle from "./pages/EstadisticaDetalle";
 import MiCuenta from "./pages/MiCuenta";
 import CambiarPin from "./pages/CambiarPin";
 import MisPredicciones from "./pages/MisPredicciones";
+import SandboxJugador from "./pages/SandboxJugador";
 import Admin from "./pages/Admin";
 import AdminPartido from "./pages/AdminPartido";
 import AdminEspeciales from "./pages/AdminEspeciales";
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/mis-predicciones" element={<Privada><MisPredicciones /></Privada>} />
           <Route path="/mis-predicciones/:jugadorId" element={<Privada><MisPredicciones /></Privada>} />
           <Route path="/especiales" element={<Privada><PrediccionesEspeciales /></Privada>} />
+        <Route path="/sandbox/:jugadorId" element={<Privada><SandboxJugador /></Privada>} />
           <Route path="/reglas" element={<Privada><Reglas /></Privada>} />
           <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />
           <Route path="/admin/especiales" element={<SoloAdmin><AdminEspeciales /></SoloAdmin>} />

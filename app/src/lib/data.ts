@@ -870,7 +870,7 @@ export async function setAjustePuntos(
   lanzarSi(error);
 }
 
-// ---------- PRONOSTICO SANDBOX ("que pasaria si") ----------
+// ---------- PRONOSTICO SANDBOX ("que pasaria si" / Llaves) ----------
 
 // Podio elegido por un jugador en el sandbox (nombre + codigo ISO por puesto).
 export interface PodioSandbox {
@@ -882,14 +882,15 @@ export interface PodioSandbox {
   terceroPais: string | null;
 }
 
-// Guarda (o resetea, si campeon es null) el PODIO elegido por el jugador en el
-// sandbox. Solo esto se persiste en Supabase; el resto del cuadro vive en
-// localStorage. Alimenta las 3 cajitas de "mas elegido por todos".
-export async function guardarSandboxPodio(
+// Guarda (o resetea, si picks es vacio) el sandbox del jugador: bracket
+// completo (picks) + podio. 1 fila por jugador (upsert). Alimenta la lista de
+// participantes, la vista de cada cuadro y las 3 cajitas del podio.
+export async function guardarSandbox(
   jugadorId: string,
-  p: PodioSandbox
+  p: PodioSandbox,
+  picks: Record<string, string>
 ): Promise<void> {
-  const { error } = await supabase.rpc("guardar_sandbox_podio", {
+  const { error } = await supabase.rpc("guardar_sandbox", {
     p_jugador_id: Number(jugadorId),
     p_campeon: p.campeon,
     p_campeon_pais: p.campeonPais,
@@ -897,8 +898,37 @@ export async function guardarSandboxPodio(
     p_subcampeon_pais: p.subcampeonPais,
     p_tercero: p.tercero,
     p_tercero_pais: p.terceroPais,
+    p_picks: picks,
   });
   lanzarSi(error);
+}
+
+// Un participante que ya definio campeon en su sandbox (para la lista Llaves).
+export interface ParticipanteSandbox {
+  jugadorId: string;
+  campeon: string;
+  campeonPais: string | null;
+}
+
+export async function sandboxParticipantes(): Promise<ParticipanteSandbox[]> {
+  const { data, error } = await supabase.rpc("sandbox_participantes");
+  lanzarSi(error);
+  return ((data ?? []) as any[]).map((r) => ({
+    jugadorId: String(r.jugador_id),
+    campeon: r.campeon,
+    campeonPais: r.campeon_pais ?? null,
+  }));
+}
+
+// Bracket (picks) de un jugador para reconstruir su cuadro. {} si no tiene.
+export async function sandboxDeJugador(
+  jugadorId: string
+): Promise<Record<string, string>> {
+  const { data, error } = await supabase.rpc("sandbox_de_jugador", {
+    p_jugador_id: Number(jugadorId),
+  });
+  lanzarSi(error);
+  return (data ?? {}) as Record<string, string>;
 }
 
 // Posiciones del podio del sandbox (para las barras de %).

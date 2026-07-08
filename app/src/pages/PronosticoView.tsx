@@ -133,11 +133,6 @@ export default function PronosticoView() {
         )}
       </div>
 
-      <p className="px-4 pb-1 text-xs text-neutral-500">
-        Juego libre: no suma puntos ni cambia la tabla. Toca un equipo para
-        elegir quien avanza.
-      </p>
-
       {cargando && (
         <p className="px-4 py-6 text-neutral-400 text-sm">Cargando cuadro…</p>
       )}

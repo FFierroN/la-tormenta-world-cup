@@ -17,7 +17,7 @@ export default function PrediccionesView() {
 
   return (
     <div className="pt-3">
-      <div className="flex gap-2 px-4 pb-3">
+      <div className="px-4 mt-1 mb-3 flex flex-wrap gap-2">
         <Chip activo={sub === "especiales"} onClick={() => setSub("especiales")}>
           Especiales
         </Chip>
@@ -43,10 +43,10 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-colors ${
+      className={`px-4 py-2 text-sm font-semibold rounded-full border transition-colors ${
         activo
-          ? "bg-oro text-carbon"
-          : "bg-carbon-card text-neutral-300 border border-borde active:bg-carbon-soft"
+          ? "bg-oro text-carbon border-oro"
+          : "bg-carbon-soft text-neutral-300 border-borde"
       }`}
     >
       {children}

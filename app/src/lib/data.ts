@@ -869,3 +869,40 @@ export async function setAjustePuntos(
   });
   lanzarSi(error);
 }
+
+// ---------- PRONOSTICO SANDBOX ("que pasaria si") ----------
+
+// Guarda (o resetea, si campeon es null) el campeon elegido por el jugador en
+// el sandbox. Solo esto se persiste en Supabase; el resto del cuadro vive en
+// localStorage. Alimenta la cajita de "pais mas elegido por todos".
+export async function guardarSandboxCampeon(
+  jugadorId: string,
+  campeon: string | null,
+  campeonPais: string | null
+): Promise<void> {
+  const { error } = await supabase.rpc("guardar_sandbox_campeon", {
+    p_jugador_id: Number(jugadorId),
+    p_campeon: campeon,
+    p_campeon_pais: campeonPais,
+  });
+  lanzarSi(error);
+}
+
+// Una fila del agregado de campeones del sandbox (para las barras de %).
+export interface VotoCampeon {
+  campeon: string;
+  pais: string | null;
+  votos: number;
+}
+
+// Cuantos jugadores eligieron cada pais como campeon en su sandbox, de mas a
+// menos votado. El % lo calcula la UI sobre la suma total.
+export async function obtenerSandboxCampeones(): Promise<VotoCampeon[]> {
+  const { data, error } = await supabase.rpc("sandbox_campeones_agg");
+  lanzarSi(error);
+  return ((data ?? []) as any[]).map((r) => ({
+    campeon: r.campeon,
+    pais: r.campeon_pais ?? null,
+    votos: Number(r.votos),
+  }));
+}

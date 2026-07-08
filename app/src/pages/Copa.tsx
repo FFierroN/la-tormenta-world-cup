@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import LlavesView from "../components/LlavesView";
 import TablaGrupos from "../components/TablaGrupos";
 import PanelEstadisticas from "../components/PanelEstadisticas";
+import PronosticoView from "./PronosticoView";
 import { useSwipe } from "../lib/useSwipe";
 import { TABS_COPA, TAB_COPA_DEFAULT } from "../lib/llaves";
 
@@ -73,6 +74,8 @@ export default function Copa() {
           <TablaGrupos />
         ) : tabKey === "estadisticas" ? (
           <PanelEstadisticas />
+        ) : tabKey === "pronostico" ? (
+          <PronosticoView />
         ) : (
           <LlavesView />
         )}

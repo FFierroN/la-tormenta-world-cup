@@ -17,13 +17,15 @@ export default function PrediccionesView() {
 
   return (
     <div className="pt-3">
-      <div className="px-4 mt-1 mb-3 flex flex-wrap gap-2">
-        <Chip activo={sub === "especiales"} onClick={() => setSub("especiales")}>
-          Especiales
-        </Chip>
-        <Chip activo={sub === "llaves"} onClick={() => setSub("llaves")}>
-          Llaves
-        </Chip>
+      <div className="px-4">
+        <div className="grid grid-cols-2 mb-2 border-b border-borde">
+          <SubBtn activo={sub === "especiales"} onClick={() => setSub("especiales")}>
+            Especiales
+          </SubBtn>
+          <SubBtn activo={sub === "llaves"} onClick={() => setSub("llaves")}>
+            Llaves
+          </SubBtn>
+        </div>
       </div>
 
       {sub === "especiales" ? <PrediccionesTodos /> : <LlavesPredicciones />}
@@ -31,7 +33,7 @@ export default function PrediccionesView() {
   );
 }
 
-function Chip({
+function SubBtn({
   activo,
   onClick,
   children,
@@ -43,10 +45,10 @@ function Chip({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 text-sm font-semibold rounded-full border transition-colors ${
+      className={`pb-2 text-center text-sm font-semibold transition-colors ${
         activo
-          ? "bg-oro text-carbon border-oro"
-          : "bg-carbon-soft text-neutral-300 border-borde"
+          ? "text-white border-b-2 border-oro"
+          : "text-neutral-400 border-b-2 border-transparent"
       }`}
     >
       {children}

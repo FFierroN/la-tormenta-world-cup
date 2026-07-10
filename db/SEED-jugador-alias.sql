@@ -2,29 +2,31 @@
 -- SEED-jugador-alias.sql
 -- =====================================================================
 -- Mapa curado: lo que escribieron los participantes (goleador/asistidor) ->
--- nombre oficial Highlightly (HL). Requiere haber corrido antes
--- SETUP-jugador-alias.sql (tabla + funciones).
+-- nombre EXACTO como lo trae la API (tal cual queda en partido_eventos). Los
+-- acentos/mayusculas NO importan (normaliza_jugador los ignora), pero la
+-- ESTRUCTURA si: "H. Kane" != "Harry Kane". Requiere SETUP-jugador-alias.sql.
 --
--- El 'canonico' DEBE calzar (tras normalizar: minusculas, sin acentos) con el
--- nombre que la API HL escribe en partido_eventos.jugador / .asistencia. Los
--- acentos NO importan (se ignoran), pero la ESTRUCTURA si: "Harry Kane" != "Kane".
--- Si al cargarse goles reales algun goleador no calza, se ajusta aca el canonico.
+-- FORMATO CONFIRMADO revisando el worker (MIPROYECTO/worker-vivo/src):
+--   * GOLEADORES: feed worldcup26 (index.js parsearScorers) -> "Inicial. Apellido"
+--     Ej del propio parser: "J. Quiñones", "F. Balogun", "G. Reyna".
+--     => canonico de goleador va ABREVIADO: "H. Kane", "K. Mbappé", "L. Messi".
+--   * ASISTIDORES: Highlightly (enriquecer.js, ev.assist) -> normalmente nombre
+--     COMPLETO. => canonico de asistidor va COMPLETO. (CONFIRMAR con los datos
+--     reales, ver query al final; si HL los abrevia, se ajusta aca.)
 --
--- Usamos normaliza_jugador() en la clave para no equivocarnos al escribirla.
 -- Idempotente (upsert por alias_norm).
 --
--- OJO / ASUNCIONES (confirmar con Felipe):
---   * "D. Rise" -> se asume Declan Rice (error de tipeo Rise/Rice). Corregir si
---     era otro jugador.
+-- ASUNCIONES a confirmar con Felipe:
+--   * "D. Rise" -> se asume Declan Rice (typo Rise/Rice).
 --   * "No existe" (Daniel Abreu) -> NO se mapea: cae solo en 'Desconocido'.
 -- =====================================================================
 
 insert into jugador_alias (alias_norm, canonico) values
-  -- GOLEADORES
-  (normaliza_jugador('H. Kane'),        'Harry Kane'),
-  (normaliza_jugador('Kylian Mbappé'),  'Kylian Mbappé'),
-  (normaliza_jugador('Lionel Messi'),   'Lionel Messi'),
-  -- ASISTIDORES
+  -- GOLEADORES (formato feed: "Inicial. Apellido")
+  (normaliza_jugador('H. Kane'),        'H. Kane'),
+  (normaliza_jugador('Kylian Mbappé'),  'K. Mbappé'),
+  (normaliza_jugador('Lionel Messi'),   'L. Messi'),
+  -- ASISTIDORES (Highlightly, nombre completo)
   (normaliza_jugador('D. Rise'),        'Declan Rice'),      -- ASUNCION: Rise->Rice
   (normaliza_jugador('Vinicius Junior'),'Vinícius Júnior'),
   (normaliza_jugador('Bruno Fernandez'),'Bruno Fernandes'),
@@ -33,7 +35,16 @@ insert into jugador_alias (alias_norm, canonico) values
   (normaliza_jugador('Rafael Leao'),    'Rafael Leão')
 on conflict (alias_norm) do update set canonico = excluded.canonico;
 
--- Verificacion:
---   select * from jugador_alias order by canonico;
---   select jugador_id, canonico_jugador(goleador) gol, canonico_jugador(asistidor) asi
---     from predicciones_especiales order by jugador_id;
+-- =====================================================================
+-- VERIFICACION (correr con datos reales para AJUSTAR los canonicos):
+--   -- Como trae la API los goleadores realmente:
+--   select distinct jugador from partido_eventos
+--     where tipo='gol' and coalesce(detalle,'')<>'autogol' order by jugador;
+--   -- Como trae la API los asistidores realmente:
+--   select distinct asistencia from partido_eventos
+--     where tipo='gol' and asistencia is not null order by asistencia;
+--   -- Como quedan resueltos los picks (deberian NO decir 'Desconocido' salvo
+--   -- el de Daniel Abreu):
+--   select jugador_id, canonico_jugador(goleador) gol,
+--          canonico_jugador(asistidor) asi from predicciones_especiales;
+-- =====================================================================

@@ -34,6 +34,7 @@ import {
   obtenerTabla,
   prediccionesHabilitadas,
   puntosEspeciales,
+  resolverGoleoEspeciales,
   resultadosRealesEspeciales,
   todasEspeciales,
 } from "../lib/data";
@@ -68,6 +69,7 @@ export default function EspecialesDetalle() {
   const { data: partidos } = useAsync(listarPartidos, []);
   const { data: reales } = useAsync(resultadosRealesEspeciales, []);
   const { data: stats } = useAsync(obtenerEstadisticas, []);
+  const { data: resuelto } = useAsync(resolverGoleoEspeciales, []);
   const { data: ventanaAbierta } = useAsync(prediccionesHabilitadas, []);
 
   const mapa = useMemo(() => mapaEquipoPais(partidos ?? []), [partidos]);
@@ -86,6 +88,7 @@ export default function EspecialesDetalle() {
       (x) => x.jugador_id === jugadorId
     ) ?? null;
   const misPuntos = puntos?.get(jugadorId ?? "") ?? null;
+  const canon = resuelto?.get(jugadorId ?? "") ?? null;
 
   const esYo = !!jugador && jugadorId === String(jugador.id);
   const bloqueado = ventanaAbierta === true && !esYo;
@@ -126,6 +129,7 @@ export default function EspecialesDetalle() {
             mapa={mapa}
             reales={reales ?? REALES_VACIO}
             stats={stats ?? null}
+            canon={canon}
           />
         </>
       )}
@@ -142,6 +146,7 @@ function Detalle({
   mapa,
   reales,
   stats,
+  canon,
 }: {
   fila: FilaTabla;
   total: number;
@@ -150,6 +155,7 @@ function Detalle({
   mapa: MapaEquipoPais;
   reales: EspecialesReales;
   stats: Estadisticas | null;
+  canon: GoleoCanonico | null;
 }) {
   const finalistas = [e?.finalista_1, e?.finalista_2];
   const semis = [e?.semifinalista_1, e?.semifinalista_2, e?.semifinalista_3, e?.semifinalista_4];
@@ -184,11 +190,17 @@ function Detalle({
             </div>
           </div>
 
-          <Desglose e={e} puntos={puntos} reales={reales} stats={stats} totalPts={totalPts} />
+          <Desglose e={e} puntos={puntos} reales={reales} stats={stats} totalPts={totalPts} canon={canon} />
         </div>
       )}
     </section>
   );
+}
+
+// Nombres canonicos (oficial HL) del goleador/asistidor de un jugador.
+interface GoleoCanonico {
+  goleador: string | null;
+  asistidor: string | null;
 }
 
 // ------------------------------------------------------------ Desglose de puntos
@@ -199,12 +211,14 @@ function Desglose({
   reales,
   stats,
   totalPts,
+  canon,
 }: {
   e: EspecialesConJugador;
   puntos: EspecialesPuntos | null;
   reales: EspecialesReales;
   stats: Estadisticas | null;
   totalPts: number;
+  canon: GoleoCanonico | null;
 }) {
   // Cuantos de los 7 picks de pais estan hoy en zona de puntos.
   const picksPais = [
@@ -214,8 +228,11 @@ function Desglose({
   const enZona = picksPais.filter((t) => rondaPais(t ?? null, reales)).length;
   const totalPicksPais = picksPais.filter((t) => !!t).length;
 
-  const sitGol = situacionGoleo(e.goleador, stats?.goleadores ?? []);
-  const sitAsi = situacionGoleo(e.asistidor, stats?.asistidores ?? []);
+  // Nombre estandarizado (oficial HL) para mostrar y para cruzar con el ranking.
+  const golPick = canon?.goleador ?? e.goleador;
+  const asiPick = canon?.asistidor ?? e.asistidor;
+  const sitGol = situacionGoleo(golPick, stats?.goleadores ?? []);
+  const sitAsi = situacionGoleo(asiPick, stats?.asistidores ?? []);
 
   const filas: FilaDesglose[] = [
     {
@@ -226,8 +243,8 @@ function Desglose({
       pts: puntos?.puntos_pais ?? 0,
       estado: (puntos?.puntos_pais ?? 0) > 0 ? "suma" : "pendiente",
     },
-    filaGoleo("Goleador", e.goleador, sitGol, "goles", puntos?.puntos_goleador ?? 0),
-    filaGoleo("Asistidor", e.asistidor, sitAsi, "asist.", puntos?.puntos_asistidor ?? 0),
+    filaGoleo("Goleador", golPick, sitGol, "goles", puntos?.puntos_goleador ?? 0),
+    filaGoleo("Asistidor", asiPick, sitAsi, "asist.", puntos?.puntos_asistidor ?? 0),
     filaUnico("Mejor jugador", e.mejor_jugador, reales.mejor_jugador, puntos?.puntos_mejor_jugador ?? 0),
     filaUnico("Mejor arquero", e.mejor_arquero, reales.mejor_arquero, puntos?.puntos_mejor_arquero ?? 0),
     filaUnico("Mejor joven", e.mejor_joven, reales.mejor_joven, puntos?.puntos_mejor_joven ?? 0),
@@ -276,6 +293,8 @@ function filaGoleo(
   pts: number
 ): FilaDesglose {
   if (!pick) return { cat, detalle: "sin elegir", pts, estado: "pendiente" };
+  if (pick === "Desconocido")
+    return { cat, detalle: "jugador no reconocido", pts, estado: "falla" };
   if (!sit || sit.total === 0) {
     return { cat, detalle: `${pick} · sin ${unidad} aún`, pts, estado: "pendiente" };
   }

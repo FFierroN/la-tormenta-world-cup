@@ -7,7 +7,15 @@
 // no la suma final.
 import type { EspecialesReales } from "./types";
 
-const norm = (s: string | null | undefined): string => (s ?? "").trim().toLowerCase();
+// Normaliza igual que normaliza_jugador() en SQL: minusculas, sin acentos,
+// sin espacios dobles. Asi "Vinícius Júnior" == "Vinicius Junior".
+const norm = (s: string | null | undefined): string =>
+  (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
 
 // Ronda mas alta lograda por un equipo elegido, con sus puntos.
 // null = el equipo aun no logra una ronda que puntue (pendiente).

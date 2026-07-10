@@ -28,11 +28,11 @@
 create or replace view especiales_reales as
 with
 gol_counts as (
-  select lower(trim(jugador)) as jugador, count(*) as c
+  select normaliza_jugador(jugador) as jugador, count(*) as c
   from partido_eventos
   where tipo = 'gol' and coalesce(detalle,'') <> 'autogol'
-    and jugador is not null and trim(jugador) <> ''
-  group by lower(trim(jugador))
+    and normaliza_jugador(jugador) is not null
+  group by normaliza_jugador(jugador)
 ),
 gol_lideres as (
   select coalesce(array_agg(jugador), '{}') as arr
@@ -40,10 +40,10 @@ gol_lideres as (
   where c = (select max(c) from gol_counts) and (select max(c) from gol_counts) > 0
 ),
 asi_counts as (
-  select lower(trim(asistencia)) as jugador, count(*) as c
+  select normaliza_jugador(asistencia) as jugador, count(*) as c
   from partido_eventos
-  where tipo = 'gol' and asistencia is not null and trim(asistencia) <> ''
-  group by lower(trim(asistencia))
+  where tipo = 'gol' and normaliza_jugador(asistencia) is not null
+  group by normaliza_jugador(asistencia)
 ),
 asi_lideres as (
   select coalesce(array_agg(jugador), '{}') as arr
@@ -117,8 +117,8 @@ select
       group by t.equipo
     ) s
   ), 0) as puntos_pais,
-  case when lower(trim(coalesce(pe.goleador,'')))  = any(r.goleadores)  then 15 else 0 end as puntos_goleador,
-  case when lower(trim(coalesce(pe.asistidor,''))) = any(r.asistidores) then 10 else 0 end as puntos_asistidor,
+  case when normaliza_jugador(canonico_jugador(pe.goleador))  = any(r.goleadores)  then 15 else 0 end as puntos_goleador,
+  case when normaliza_jugador(canonico_jugador(pe.asistidor)) = any(r.asistidores) then 10 else 0 end as puntos_asistidor,
   case when r.mejor_jugador is not null and lower(trim(coalesce(pe.mejor_jugador,''))) = r.mejor_jugador then 10 else 0 end as puntos_mejor_jugador,
   case when r.mejor_arquero is not null and lower(trim(coalesce(pe.mejor_arquero,''))) = r.mejor_arquero then 10 else 0 end as puntos_mejor_arquero,
   case when r.mejor_joven   is not null and lower(trim(coalesce(pe.mejor_joven,'')))   = r.mejor_joven   then 10 else 0 end as puntos_mejor_joven,
@@ -142,8 +142,8 @@ select
         group by t.equipo
       ) s
     ), 0)
-    + case when lower(trim(coalesce(pe.goleador,'')))  = any(r.goleadores)  then 15 else 0 end
-    + case when lower(trim(coalesce(pe.asistidor,''))) = any(r.asistidores) then 10 else 0 end
+    + case when normaliza_jugador(canonico_jugador(pe.goleador))  = any(r.goleadores)  then 15 else 0 end
+    + case when normaliza_jugador(canonico_jugador(pe.asistidor)) = any(r.asistidores) then 10 else 0 end
     + case when r.mejor_jugador is not null and lower(trim(coalesce(pe.mejor_jugador,''))) = r.mejor_jugador then 10 else 0 end
     + case when r.mejor_arquero is not null and lower(trim(coalesce(pe.mejor_arquero,''))) = r.mejor_arquero then 10 else 0 end
     + case when r.mejor_joven   is not null and lower(trim(coalesce(pe.mejor_joven,'')))   = r.mejor_joven   then 10 else 0 end
@@ -151,6 +151,19 @@ select
 from predicciones_especiales pe cross join r;
 
 grant select on especiales_puntos to anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- 2b) Nombres CANONICOS (oficial HL) de goleador/asistidor por jugador, para
+--     mostrar en el desglose. 'Desconocido' si el pick no esta mapeado.
+-- ---------------------------------------------------------------------
+create or replace view especiales_resuelto as
+select
+  jugador_id,
+  canonico_jugador(goleador)  as goleador,
+  canonico_jugador(asistidor) as asistidor
+from predicciones_especiales;
+
+grant select on especiales_resuelto to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 -- 3) Ranking: especiales suman al total OFICIAL solo si la final (P104) ya

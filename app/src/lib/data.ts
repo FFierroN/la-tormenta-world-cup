@@ -785,6 +785,23 @@ export async function resultadosRealesEspeciales(): Promise<EspecialesReales> {
   };
 }
 
+// Nombres CANONICOS (oficial HL) del goleador/asistidor de cada jugador, para
+// mostrar el pick estandarizado en el desglose. 'Desconocido' si no esta mapeado.
+export async function resolverGoleoEspeciales(): Promise<
+  Map<string, { goleador: string | null; asistidor: string | null }>
+> {
+  const { data, error } = await supabase.from("especiales_resuelto").select("*");
+  lanzarSi(error);
+  const m = new Map<string, { goleador: string | null; asistidor: string | null }>();
+  for (const r of data ?? []) {
+    m.set(String(r.jugador_id), {
+      goleador: r.goleador ?? null,
+      asistidor: r.asistidor ?? null,
+    });
+  }
+  return m;
+}
+
 // Guarda especiales (RPC valida la ventana). Devuelve 'ok' | 'cerrado'.
 export async function guardarEspeciales(
   jugadorId: string,

@@ -52,14 +52,45 @@ export default function ResumenPredicciones({
   return (
     <section className="px-4 mt-3">
       <div className="bg-carbon-card border border-borde rounded-2xl p-4">
-        {/* Cifras principales */}
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <Cifra
-            valor={String(puntos)}
-            etiqueta="puntos"
-            oro
-            sub={puntosDef > 0 ? `+${puntosDef} pts empate/penales` : undefined}
-          />
+        {/* Cifras principales. El puntaje va arriba centrado; si hay puntos de
+            definicion (empate/penales) se muestra desglosado:
+            146 (Gral) + 8 pts (empate/penales). Debajo, en 2 columnas,
+            pts/partido y efectividad -> distribucion simetrica en la caja. */}
+        {puntosDef > 0 ? (
+          <div className="flex items-start justify-center gap-3">
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-black tabular-nums leading-none text-oro">
+                {puntosPron}
+              </span>
+              <span className="text-[10px] uppercase tracking-wide text-neutral-400 mt-1">
+                Gral
+              </span>
+            </div>
+            <span className="text-2xl font-black text-white leading-none mt-1">+</span>
+            <div className="flex flex-col items-center">
+              <span className="leading-none">
+                <span className="text-3xl font-black tabular-nums text-emerald-400">
+                  {puntosDef}
+                </span>
+                <span className="text-lg font-black text-white ml-1">pts</span>
+              </span>
+              <span className="text-[10px] uppercase tracking-wide text-neutral-400 mt-1">
+                empate/penales
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center">
+            <div className="text-3xl font-black tabular-nums leading-none text-oro">
+              {puntos}
+            </div>
+            <div className="text-[10px] uppercase tracking-wide text-neutral-400 mt-1">
+              puntos
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4 grid grid-cols-2 gap-2 text-center">
           <Cifra valor={promedio.toFixed(1)} etiqueta="pts/partido" />
           <Cifra valor={`${efectividad}%`} etiqueta="efectividad" />
         </div>
@@ -130,18 +161,13 @@ function Conteo({
   );
 }
 
-function Cifra({ valor, etiqueta, oro = false, sub }: { valor: string; etiqueta: string; oro?: boolean; sub?: string }) {
+function Cifra({ valor, etiqueta, oro = false }: { valor: string; etiqueta: string; oro?: boolean }) {
   return (
     <div>
       <div className={`text-3xl font-black tabular-nums leading-none ${oro ? "text-oro" : ""}`}>
         {valor}
       </div>
       <div className="text-[10px] uppercase tracking-wide text-neutral-400 mt-1">{etiqueta}</div>
-      {sub && (
-        <div className="text-[10px] font-semibold text-emerald-400 mt-0.5 leading-tight">
-          {sub}
-        </div>
-      )}
     </div>
   );
 }

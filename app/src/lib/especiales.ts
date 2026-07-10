@@ -29,17 +29,6 @@ export function rondaPais(
   return null;
 }
 
-// Distincion contra un set de ganadores (goleador/asistidor pueden empatar en la
-// cima -> array). Devuelve los puntos si el pick esta en el set, 0 si no.
-export function puntosDistincionSet(
-  pick: string | null,
-  ganadores: string[],
-  valor: number
-): number {
-  if (!pick || ganadores.length === 0) return 0;
-  return ganadores.includes(norm(pick)) ? valor : 0;
-}
-
 // Distincion 1-a-1 (mejor jugador/arquero/joven, manuales). real ya normalizado.
 export function puntosDistincionUnico(
   pick: string | null,
@@ -50,10 +39,30 @@ export function puntosDistincionUnico(
   return norm(pick) === real ? valor : 0;
 }
 
-// ¿Ya hay resultado para esta categoria? (distingue "pendiente" de "fallado").
-export function haySet(ganadores: string[]): boolean {
-  return ganadores.length > 0;
-}
+// ¿Ya hay resultado para esta distincion manual? (pendiente vs fallado).
 export function hayUnico(real: string | null): boolean {
   return !!real;
+}
+
+// Situacion EN VIVO de un pick de goleador/asistidor contra el ranking real
+// (goles/asistencias acumulados). Sirve para mostrar "5 goles · lider" o
+// "3 · a 2 del lider" de forma provisional, enganchado a la tabla de goleo.
+export interface SituacionGoleo {
+  total: number; // goles/asist. actuales del pick
+  liderTotal: number; // tope actual del ranking
+  esLider: boolean; // el pick esta en la cima (empatado o solo)
+  aDelLider: number; // cuantos le faltan para alcanzar la cima (0 si ya es lider)
+}
+
+export function situacionGoleo(
+  pick: string | null,
+  ranking: { jugador: string; total: number }[]
+): SituacionGoleo | null {
+  if (!pick) return null;
+  const p = norm(pick);
+  const liderTotal = ranking.length > 0 ? ranking[0].total : 0;
+  const fila = ranking.find((r) => norm(r.jugador) === p);
+  const total = fila?.total ?? 0;
+  const esLider = total > 0 && total === liderTotal;
+  return { total, liderTotal, esLider, aDelLider: Math.max(0, liderTotal - total) };
 }

@@ -1,17 +1,18 @@
 // =====================================================================
 // EspecialesDetalle.tsx  ·  /especiales/:jugadorId
 // =====================================================================
-// Detalle completo de las predicciones especiales de UN jugador, con su puntaje
-// EN VIVO por categoria (vista especiales_puntos) y el estado de cada pick
-// (acertado / pendiente / fallado) contra los resultados reales DERIVADOS solos
-// (vista especiales_reales). Debajo, una mini-tabla con el puntaje de especiales
-// acumulado de TODOS los participantes.
+// Detalle completo de las predicciones especiales de UN jugador:
+//   - Cabecera con el total EN VIVO (vista especiales_puntos).
+//   - Banderas del pick (campeon/finalistas/semis) con badge de ronda lograda.
+//   - DESGLOSE de puntos categoria por categoria (cuanto va sumando provisorio).
+//     Goleador/Asistidor se enganchan a la tabla REAL de goleo (goles/asist.
+//     acumulados + si va liderando).
 //
 // PROVISORIO: mientras no se juegue la final (slot P104), los puntos se ven pero
 // NO cuentan en el ranking oficial. Se avisa con un banner.
 //
 // Guardrail: si la ventana de edicion sigue abierta, solo puedes ver TU propio
-// detalle (mismo criterio que la lista).
+// detalle.
 import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Avatar from "../components/Avatar";
@@ -20,15 +21,16 @@ import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
 import { codigoPais, mapaEquipoPais, type MapaEquipoPais } from "../lib/banderas";
 import {
   rondaPais,
-  puntosDistincionSet,
-  puntosDistincionUnico,
-  haySet,
+  situacionGoleo,
   hayUnico,
+  puntosDistincionUnico,
+  type SituacionGoleo,
 } from "../lib/especiales";
 import { useAuth } from "../lib/auth";
 import { useAsync } from "../lib/useAsync";
 import {
   listarPartidos,
+  obtenerEstadisticas,
   obtenerTabla,
   prediccionesHabilitadas,
   puntosEspeciales,
@@ -39,6 +41,7 @@ import type {
   EspecialesConJugador,
   EspecialesPuntos,
   EspecialesReales,
+  Estadisticas,
   FilaTabla,
 } from "../lib/types";
 
@@ -64,6 +67,7 @@ export default function EspecialesDetalle() {
   const { data: puntos } = useAsync(puntosEspeciales, []);
   const { data: partidos } = useAsync(listarPartidos, []);
   const { data: reales } = useAsync(resultadosRealesEspeciales, []);
+  const { data: stats } = useAsync(obtenerEstadisticas, []);
   const { data: ventanaAbierta } = useAsync(prediccionesHabilitadas, []);
 
   const mapa = useMemo(() => mapaEquipoPais(partidos ?? []), [partidos]);
@@ -121,13 +125,7 @@ export default function EspecialesDetalle() {
             puntos={misPuntos}
             mapa={mapa}
             reales={reales ?? REALES_VACIO}
-          />
-          <MiniTabla
-            filas={filasOrdenadas}
-            total={total}
-            puntos={puntos ?? new Map<string, EspecialesPuntos>()}
-            actualId={jugadorId ?? null}
-            miId={jugador ? String(jugador.id) : null}
+            stats={stats ?? null}
           />
         </>
       )}
@@ -143,6 +141,7 @@ function Detalle({
   puntos,
   mapa,
   reales,
+  stats,
 }: {
   fila: FilaTabla;
   total: number;
@@ -150,44 +149,11 @@ function Detalle({
   puntos: EspecialesPuntos | null;
   mapa: MapaEquipoPais;
   reales: EspecialesReales;
+  stats: Estadisticas | null;
 }) {
   const finalistas = [e?.finalista_1, e?.finalista_2];
   const semis = [e?.semifinalista_1, e?.semifinalista_2, e?.semifinalista_3, e?.semifinalista_4];
   const totalPts = puntos?.puntos_total ?? 0;
-
-  // estado por premio: acertado (+pts) / fallado / pendiente.
-  const premios = [
-    {
-      label: "Goleador",
-      valor: e?.goleador ?? null,
-      pts: puntosDistincionSet(e?.goleador ?? null, reales.goleadores, 15),
-      definido: haySet(reales.goleadores),
-    },
-    {
-      label: "Asistidor",
-      valor: e?.asistidor ?? null,
-      pts: puntosDistincionSet(e?.asistidor ?? null, reales.asistidores, 10),
-      definido: haySet(reales.asistidores),
-    },
-    {
-      label: "Mejor jugador",
-      valor: e?.mejor_jugador ?? null,
-      pts: puntosDistincionUnico(e?.mejor_jugador ?? null, reales.mejor_jugador, 10),
-      definido: hayUnico(reales.mejor_jugador),
-    },
-    {
-      label: "Mejor arquero",
-      valor: e?.mejor_arquero ?? null,
-      pts: puntosDistincionUnico(e?.mejor_arquero ?? null, reales.mejor_arquero, 10),
-      definido: hayUnico(reales.mejor_arquero),
-    },
-    {
-      label: "Mejor joven",
-      valor: e?.mejor_joven ?? null,
-      pts: puntosDistincionUnico(e?.mejor_joven ?? null, reales.mejor_joven, 10),
-      definido: hayUnico(reales.mejor_joven),
-    },
-  ];
 
   return (
     <section className="px-4">
@@ -201,8 +167,8 @@ function Detalle({
           Este participante no dejó predicciones especiales.
         </p>
       ) : (
-        <div className="flex flex-col gap-4 rounded-2xl border border-borde bg-carbon-card p-4">
-          <div className="flex items-start gap-3">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-borde bg-carbon-card p-4">
             <div className="flex-1 min-w-0">
               <Avatar
                 src={avatarPorPosicion(fila, total)}
@@ -212,33 +178,141 @@ function Detalle({
               />
             </div>
             <div className="shrink-0 flex flex-col gap-3">
-              <BloqueEquipos
-                titulo="Campeón"
-                subtotal={puntos?.puntos_pais}
-                subtotalLabel="País"
-                equipos={[e.campeon]}
-                mapa={mapa}
-                reales={reales}
-                campeon
-              />
+              <BloqueEquipos titulo="Campeón" equipos={[e.campeon]} mapa={mapa} reales={reales} campeon />
               <BloqueEquipos titulo="Finalistas" equipos={finalistas} mapa={mapa} reales={reales} />
               <BloqueEquipos titulo="Semifinalistas" equipos={semis} mapa={mapa} reales={reales} size={30} />
             </div>
           </div>
 
-          <div className="border-t border-oro/40 pt-3 grid grid-cols-1 gap-2">
-            {premios.map((p) => {
-              const estado = p.pts > 0 ? "acertado" : p.definido ? "fallado" : "pendiente";
-              return <Premio key={p.label} label={p.label} valor={p.valor} pts={p.pts} estado={estado} />;
-            })}
-          </div>
+          <Desglose e={e} puntos={puntos} reales={reales} stats={stats} totalPts={totalPts} />
         </div>
       )}
     </section>
   );
 }
 
-// Bloque de banderas con titulo (Campeon / Finalistas / Semis) + estado por pick.
+// ------------------------------------------------------------ Desglose de puntos
+// Tabla propia del jugador: cuanto suma cada categoria (provisorio).
+function Desglose({
+  e,
+  puntos,
+  reales,
+  stats,
+  totalPts,
+}: {
+  e: EspecialesConJugador;
+  puntos: EspecialesPuntos | null;
+  reales: EspecialesReales;
+  stats: Estadisticas | null;
+  totalPts: number;
+}) {
+  // Cuantos de los 7 picks de pais estan hoy en zona de puntos.
+  const picksPais = [
+    e.campeon, e.finalista_1, e.finalista_2,
+    e.semifinalista_1, e.semifinalista_2, e.semifinalista_3, e.semifinalista_4,
+  ];
+  const enZona = picksPais.filter((t) => rondaPais(t ?? null, reales)).length;
+  const totalPicksPais = picksPais.filter((t) => !!t).length;
+
+  const sitGol = situacionGoleo(e.goleador, stats?.goleadores ?? []);
+  const sitAsi = situacionGoleo(e.asistidor, stats?.asistidores ?? []);
+
+  const filas: FilaDesglose[] = [
+    {
+      cat: "País (campeón, finalistas, semis, 3ro)",
+      detalle: totalPicksPais
+        ? `${enZona}/${totalPicksPais} en zona de puntos`
+        : "sin picks",
+      pts: puntos?.puntos_pais ?? 0,
+      estado: (puntos?.puntos_pais ?? 0) > 0 ? "suma" : "pendiente",
+    },
+    filaGoleo("Goleador", e.goleador, sitGol, "goles", puntos?.puntos_goleador ?? 0),
+    filaGoleo("Asistidor", e.asistidor, sitAsi, "asist.", puntos?.puntos_asistidor ?? 0),
+    filaUnico("Mejor jugador", e.mejor_jugador, reales.mejor_jugador, puntos?.puntos_mejor_jugador ?? 0),
+    filaUnico("Mejor arquero", e.mejor_arquero, reales.mejor_arquero, puntos?.puntos_mejor_arquero ?? 0),
+    filaUnico("Mejor joven", e.mejor_joven, reales.mejor_joven, puntos?.puntos_mejor_joven ?? 0),
+  ];
+
+  return (
+    <div className="rounded-2xl border border-borde bg-carbon-card overflow-hidden">
+      <h2 className="px-4 pt-3 pb-2 text-sm font-bold text-oro uppercase tracking-wide">
+        Cómo va sumando
+      </h2>
+      <ul>
+        {filas.map((f) => (
+          <li key={f.cat} className="flex items-center gap-3 px-4 py-2.5 border-t border-borde/40">
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotEstado(f.estado)}`} aria-hidden="true" />
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold leading-tight truncate">{f.cat}</span>
+              <span className="block text-[11px] text-neutral-400 leading-tight truncate">{f.detalle}</span>
+            </span>
+            <span className={`shrink-0 text-sm font-bold tabular-nums ${f.pts > 0 ? "text-emerald-400" : "text-neutral-500"}`}>
+              {f.pts > 0 ? `+${f.pts}` : "—"}
+            </span>
+          </li>
+        ))}
+        <li className="flex items-center gap-3 px-4 py-3 border-t border-oro/40 bg-oro/5">
+          <span className="flex-1 text-sm font-bold">Total provisorio</span>
+          <span className="shrink-0 text-base font-black tabular-nums text-oro">{totalPts}</span>
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+interface FilaDesglose {
+  cat: string;
+  detalle: string;
+  pts: number;
+  estado: "suma" | "pendiente" | "falla";
+}
+
+// Fila de goleador/asistidor enganchada al ranking real de goleo.
+function filaGoleo(
+  cat: string,
+  pick: string | null,
+  sit: SituacionGoleo | null,
+  unidad: string,
+  pts: number
+): FilaDesglose {
+  if (!pick) return { cat, detalle: "sin elegir", pts, estado: "pendiente" };
+  if (!sit || sit.total === 0) {
+    return { cat, detalle: `${pick} · sin ${unidad} aún`, pts, estado: "pendiente" };
+  }
+  const cola = sit.esLider ? "líder" : `a ${sit.aDelLider} del líder`;
+  return {
+    cat,
+    detalle: `${pick} · ${sit.total} ${unidad} · ${cola}`,
+    pts,
+    estado: pts > 0 ? "suma" : "pendiente",
+  };
+}
+
+// Fila de distincion manual (mejor jugador/arquero/joven).
+function filaUnico(
+  cat: string,
+  pick: string | null,
+  real: string | null,
+  pts: number
+): FilaDesglose {
+  if (!pick) return { cat, detalle: "sin elegir", pts, estado: "pendiente" };
+  if (!hayUnico(real)) return { cat, detalle: `${pick} · aún sin definir`, pts, estado: "pendiente" };
+  const acerto = puntosDistincionUnico(pick, real, 1) > 0;
+  return {
+    cat,
+    detalle: `${pick} · ${acerto ? "acertado" : "no acertado"}`,
+    pts,
+    estado: acerto ? "suma" : "falla",
+  };
+}
+
+function dotEstado(estado: FilaDesglose["estado"]): string {
+  if (estado === "suma") return "bg-emerald-400";
+  if (estado === "falla") return "bg-rose-500";
+  return "bg-neutral-500";
+}
+
+// ------------------------------------------------------------ Banderas
 function BloqueEquipos({
   titulo,
   equipos,
@@ -246,8 +320,6 @@ function BloqueEquipos({
   reales,
   campeon,
   size = 44,
-  subtotal,
-  subtotalLabel,
 }: {
   titulo: string;
   equipos: (string | null | undefined)[];
@@ -255,19 +327,10 @@ function BloqueEquipos({
   reales: EspecialesReales;
   campeon?: boolean;
   size?: number;
-  subtotal?: number;
-  subtotalLabel?: string;
 }) {
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">{titulo}</h3>
-        {typeof subtotal === "number" && (
-          <span className="text-[11px] font-bold text-emerald-400 tabular-nums">
-            {subtotalLabel ? `${subtotalLabel} ` : ""}+{subtotal}
-          </span>
-        )}
-      </div>
+      <h3 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-neutral-400">{titulo}</h3>
       <div className="flex flex-wrap gap-2">
         {equipos.map((t, i) => (
           <BanderaEtiqueta key={i} mapa={mapa} equipo={t ?? null} campeon={campeon} size={size} reales={reales} />
@@ -277,7 +340,6 @@ function BloqueEquipos({
   );
 }
 
-// Bandera + nombre + badge de ronda lograda (verde) si el equipo ya puntua.
 function BanderaEtiqueta({
   mapa,
   equipo,
@@ -319,100 +381,5 @@ function BanderaEtiqueta({
         </span>
       )}
     </div>
-  );
-}
-
-// Fila de premio individual con estado y puntos.
-function Premio({
-  label,
-  valor,
-  pts,
-  estado,
-}: {
-  label: string;
-  valor: string | null;
-  pts: number;
-  estado: "acertado" | "fallado" | "pendiente";
-}) {
-  const dot =
-    estado === "acertado" ? "bg-emerald-400" : estado === "fallado" ? "bg-rose-500" : "bg-neutral-500";
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} aria-hidden="true" />
-      <span className="text-neutral-400 w-28 shrink-0">{label}</span>
-      <span className={`flex-1 min-w-0 truncate ${valor ? "font-semibold" : "text-neutral-500"}`}>
-        {valor ?? "Sin elegir"}
-      </span>
-      {estado === "acertado" && (
-        <span className="text-[11px] font-bold text-emerald-400 tabular-nums shrink-0">+{pts}</span>
-      )}
-    </div>
-  );
-}
-
-// ------------------------------------------------------------ Mini-tabla
-function MiniTabla({
-  filas,
-  total,
-  puntos,
-  actualId,
-  miId,
-}: {
-  filas: FilaTabla[];
-  total: number;
-  puntos: Map<string, EspecialesPuntos>;
-  actualId: string | null;
-  miId: string | null;
-}) {
-  // Ranking por puntos de especiales (desc); desempate por posicion de tabla.
-  const ranking = useMemo(() => {
-    const posMap = new Map(filas.map((f) => [f.jugador_id, f.posicion] as const));
-    return [...filas]
-      .map((f) => ({ fila: f, pts: puntos.get(f.jugador_id)?.puntos_total ?? 0 }))
-      .sort(
-        (a, b) =>
-          b.pts - a.pts ||
-          (posMap.get(a.fila.jugador_id) ?? 0) - (posMap.get(b.fila.jugador_id) ?? 0)
-      );
-  }, [filas, puntos]);
-
-  if (ranking.length === 0) return null;
-
-  return (
-    <section className="px-4 mt-6">
-      <h2 className="mb-2 text-sm font-bold text-oro uppercase tracking-wide">
-        Puntos especiales · todos
-      </h2>
-      <div className="overflow-hidden rounded-2xl border border-borde bg-carbon-card">
-        <ul>
-          {ranking.map(({ fila, pts }, i) => {
-            const activo = fila.jugador_id === actualId;
-            return (
-              <li
-                key={fila.jugador_id}
-                className={`flex items-center gap-3 px-3 py-2 border-t border-borde/40 first:border-0 ${
-                  activo ? "bg-oro/10" : ""
-                }`}
-              >
-                <span className="w-5 shrink-0 text-center text-neutral-400 tabular-nums text-sm">
-                  {i + 1}
-                </span>
-                <Avatar
-                  src={avatarPorPosicion(fila, total)}
-                  nombre={fila.nombre}
-                  width={28}
-                  variante={bordePorPosicion(fila.posicion, total)}
-                />
-                <span className={`flex-1 min-w-0 truncate text-sm ${activo ? "font-semibold text-white" : "text-neutral-200"}`}>
-                  {fila.alias ?? fila.nombre}
-                  {fila.jugador_id === miId ? " (tú)" : ""}
-                </span>
-                <span className="shrink-0 text-sm font-bold tabular-nums text-oro">{pts}</span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </section>
   );
 }

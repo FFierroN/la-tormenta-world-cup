@@ -7,6 +7,8 @@ import type {
   EstadoPartido,
   Especiales,
   EspecialesConJugador,
+  EspecialesPuntos,
+  EspecialesReales,
   Estadisticas,
   EventoPartido,
   FilaGoleo,
@@ -740,6 +742,49 @@ export async function todasEspeciales(): Promise<EspecialesConJugador[]> {
   }));
 }
 
+// Puntaje EN VIVO de especiales por jugador (vista especiales_puntos). Se usa
+// para el detalle de un jugador y la mini-tabla de acumulados. Devuelve un mapa
+// jugador_id -> EspecialesPuntos.
+export async function puntosEspeciales(): Promise<Map<string, EspecialesPuntos>> {
+  const { data, error } = await supabase.from("especiales_puntos").select("*");
+  lanzarSi(error);
+  const m = new Map<string, EspecialesPuntos>();
+  for (const r of data ?? []) {
+    const id = String(r.jugador_id);
+    m.set(id, {
+      jugador_id: id,
+      puntos_pais: Number(r.puntos_pais ?? 0),
+      puntos_goleador: Number(r.puntos_goleador ?? 0),
+      puntos_asistidor: Number(r.puntos_asistidor ?? 0),
+      puntos_mejor_jugador: Number(r.puntos_mejor_jugador ?? 0),
+      puntos_mejor_arquero: Number(r.puntos_mejor_arquero ?? 0),
+      puntos_mejor_joven: Number(r.puntos_mejor_joven ?? 0),
+      puntos_total: Number(r.puntos_total ?? 0),
+    });
+  }
+  return m;
+}
+
+// Resultados REALES de especiales, DERIVADOS solos (vista especiales_reales).
+// Los usa el detalle para pintar los badges de acierto/pendiente por pick.
+export async function resultadosRealesEspeciales(): Promise<EspecialesReales> {
+  const { data, error } = await supabase.from("especiales_reales").select("*").single();
+  lanzarSi(error);
+  const r: any = data ?? {};
+  const arr = (v: any): string[] => (Array.isArray(v) ? v.filter(Boolean).map(String) : []);
+  return {
+    campeon: r.campeon ?? null,
+    tercer: r.tercer ?? null,
+    finalistas: arr(r.finalistas),
+    semifinalistas: arr(r.semifinalistas),
+    goleadores: arr(r.goleadores),
+    asistidores: arr(r.asistidores),
+    mejor_jugador: r.mejor_jugador ?? null,
+    mejor_arquero: r.mejor_arquero ?? null,
+    mejor_joven: r.mejor_joven ?? null,
+  };
+}
+
 // Guarda especiales (RPC valida la ventana). Devuelve 'ok' | 'cerrado'.
 export async function guardarEspeciales(
   jugadorId: string,
@@ -816,11 +861,6 @@ export async function guardarResultadoReal(
     .from("configuracion")
     .update({ valor, updated_at: new Date().toISOString() })
     .eq("clave", clave);
-  lanzarSi(error);
-}
-
-export async function recalcularEspeciales(): Promise<void> {
-  const { error } = await supabase.rpc("recalcular_especiales");
   lanzarSi(error);
 }
 

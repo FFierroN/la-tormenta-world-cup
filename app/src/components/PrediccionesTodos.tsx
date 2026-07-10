@@ -1,15 +1,16 @@
-// Lista de las predicciones especiales de TODOS los participantes, en orden de
-// tabla. Cuerpo REUTILIZABLE (DRY): lo usan la pestana "Predicciones" de Tabla
-// y la ruta /especiales-todos (EspecialesWC). No trae header propio -> cada
-// consumidor pone el suyo (o ninguno, como la pestana).
+// Lista de participantes para la pestana "Predicciones > Especiales" (dentro de
+// Tabla) y la ruta /especiales-todos. Cada fila = posicion + avatar + alias +
+// bandera del CAMPEON elegido. Al tocar una fila se abre el detalle completo de
+// ese jugador (/especiales/:jugadorId) con sus especiales y puntajes.
 //
 // Guardrail anti-copia: si la ventana de edicion sigue ABIERTA, solo se ve tu
-// propia tarjeta (para no copiarle a nadie). Cuando el admin cierra la ventana,
-// se revelan las de todos.
-//
-// Acordeon: una sola tarjeta abierta a la vez (mas prolijo en celular).
-import { useMemo, useState } from "react";
-import EspecialesJugador from "./EspecialesJugador";
+// propia fila (para no copiarle a nadie). Al cerrarla, se revelan las de todos.
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Avatar from "./Avatar";
+import Flag from "./Flag";
+import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
+import { codigoPais, mapaEquipoPais } from "../lib/banderas";
 import { useAuth } from "../lib/auth";
 import { useAsync } from "../lib/useAsync";
 import {
@@ -18,28 +19,24 @@ import {
   prediccionesHabilitadas,
   todasEspeciales,
 } from "../lib/data";
-import { mapaEquipoPais } from "../lib/banderas";
-import type { Especiales } from "../lib/types";
+import type { EspecialesConJugador } from "../lib/types";
 
 export default function PrediccionesTodos() {
+  const navigate = useNavigate();
   const { jugador } = useAuth();
   const { data: filas, cargando: cargF, error: errF } = useAsync(obtenerTabla, []);
   const { data: especiales } = useAsync(todasEspeciales, []);
   const { data: partidos } = useAsync(listarPartidos, []);
   const { data: ventanaAbierta } = useAsync(prediccionesHabilitadas, []);
 
-  // Cual acordeon esta abierto (jugador_id) -> uno a la vez.
-  const [abiertoId, setAbiertoId] = useState<string | null>(null);
-
   // Mapa nombre-equipo -> ISO para las banderas (se arma una vez).
   const mapa = useMemo(() => mapaEquipoPais(partidos ?? []), [partidos]);
 
-  // Especiales indexadas por jugador_id para cruzar con la tabla.
-  const porJugador = useMemo(() => {
-    const m = new Map<string, Especiales>();
-    for (const e of especiales ?? []) {
-      const { jugador_id, ...resto } = e;
-      m.set(jugador_id, resto);
+  // Campeon elegido por jugador_id.
+  const campeonPorJugador = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const e of (especiales ?? []) as EspecialesConJugador[]) {
+      m.set(e.jugador_id, e.campeon ?? null);
     }
     return m;
   }, [especiales]);
@@ -48,7 +45,6 @@ export default function PrediccionesTodos() {
   const total = filasOrdenadas.length;
   const oculto = ventanaAbierta === true; // mientras este abierta, ocultar ajenas
 
-  // Si la ventana sigue abierta, solo mostramos tu propia fila.
   const visibles = oculto
     ? filasOrdenadas.filter((f) => jugador && f.jugador_id === String(jugador.id))
     : filasOrdenadas;
@@ -69,22 +65,70 @@ export default function PrediccionesTodos() {
         </div>
       )}
 
-      <ul className="px-4 pb-10 flex flex-col gap-3">
-        {visibles.map((f) => (
-          <EspecialesJugador
-            key={f.jugador_id}
-            fila={f}
-            total={total}
-            especiales={porJugador.get(f.jugador_id) ?? null}
-            mapa={mapa}
-            esYo={!!jugador && f.jugador_id === String(jugador.id)}
-            abierto={abiertoId === f.jugador_id}
-            onToggle={() =>
-              setAbiertoId((id) => (id === f.jugador_id ? null : f.jugador_id))
-            }
-          />
-        ))}
+      <ul className="px-4 pb-10 flex flex-col gap-2.5">
+        {visibles.map((f) => {
+          const esYo = !!jugador && f.jugador_id === String(jugador.id);
+          const campeon = campeonPorJugador.get(f.jugador_id) ?? null;
+          return (
+            <li key={f.jugador_id}>
+              <button
+                onClick={() => navigate(`/especiales/${f.jugador_id}`)}
+                aria-label={`Ver especiales de ${f.alias ?? f.nombre}`}
+                className={`w-full flex items-center gap-3 rounded-2xl border bg-carbon-card px-3 py-3 text-left active:scale-[0.99] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-oro ${
+                  esYo ? "border-oro/60" : "border-borde"
+                }`}
+              >
+                <span className="w-6 shrink-0 text-center font-bold text-oro tabular-nums">
+                  {f.posicion}
+                </span>
+                <Avatar
+                  src={avatarPorPosicion(f, total)}
+                  nombre={f.nombre}
+                  width={44}
+                  variante={bordePorPosicion(f.posicion, total)}
+                />
+                <span className="flex-1 min-w-0">
+                  <span className="block font-bold leading-tight truncate">
+                    {f.alias ?? f.nombre}
+                    {esYo && (
+                      <span className="ml-1.5 text-[10px] font-bold text-oro">(tú)</span>
+                    )}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-[11px] text-neutral-400">
+                    Campeón:
+                    {campeon ? (
+                      <>
+                        <span className="inline-flex rounded ring-1 ring-oro">
+                          <Flag code={codigoPais(mapa, campeon)} nombre={campeon} size={22} rect />
+                        </span>
+                        <span className="text-neutral-200 truncate">{campeon}</span>
+                      </>
+                    ) : (
+                      <span className="text-neutral-500">sin elegir</span>
+                    )}
+                  </span>
+                </span>
+                <Chevron />
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg
+      className="w-5 h-5 shrink-0 text-neutral-400"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

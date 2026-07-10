@@ -17,6 +17,7 @@ import AdminPartido from "./pages/AdminPartido";
 import AdminEspeciales from "./pages/AdminEspeciales";
 import AdminParticipantes from "./pages/AdminParticipantes";
 import PrediccionesEspeciales from "./pages/PrediccionesEspeciales";
+import EspecialesDetalle from "./pages/EspecialesDetalle";
 import Reglas from "./pages/Reglas";
 import { useAuth } from "./lib/auth";
 import type { ReactNode } from "react";
@@ -45,6 +46,7 @@ export default function App() {
     location.pathname.startsWith("/partido/") ||
     location.pathname.startsWith("/admin/") ||
     location.pathname === "/especiales" ||
+    location.pathname.startsWith("/especiales/") ||
     location.pathname === "/especiales-todos" ||
     location.pathname === "/cambiar-pin" ||
     location.pathname.startsWith("/mis-predicciones") ||
@@ -76,6 +78,7 @@ export default function App() {
           <Route path="/mis-predicciones" element={<Privada><MisPredicciones /></Privada>} />
           <Route path="/mis-predicciones/:jugadorId" element={<Privada><MisPredicciones /></Privada>} />
           <Route path="/especiales" element={<Privada><PrediccionesEspeciales /></Privada>} />
+          <Route path="/especiales/:jugadorId" element={<Privada><EspecialesDetalle /></Privada>} />
         <Route path="/sandbox/:jugadorId" element={<Privada><SandboxJugador /></Privada>} />
           <Route path="/reglas" element={<Privada><Reglas /></Privada>} />
           <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />

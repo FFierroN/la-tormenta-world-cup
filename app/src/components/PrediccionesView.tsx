@@ -2,8 +2,8 @@
 // PrediccionesView.tsx  ·  Pestana "Predicciones" (dentro de Tabla).
 // =====================================================================
 // Dos sub-pestanas:
-//   - "Especiales" (default): las predicciones especiales del inicio de todos
-//     (lista + acordeon) -> PrediccionesTodos.
+//   - "Especiales" (default): lista de participantes (avatar + campeon elegido);
+//     al tocar uno se abre su detalle -> PrediccionesTodos.
 //   - "Llaves": el sandbox "que pasaria si" (cuadro del campeon) -> lista de
 //     participantes + podio mas elegido -> LlavesPredicciones.
 import { useState, type ReactNode } from "react";

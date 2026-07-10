@@ -181,6 +181,36 @@ export interface EspecialesConJugador extends Especiales {
   jugador_id: string;
 }
 
+// Puntaje EN VIVO de las predicciones especiales de un jugador (vista
+// especiales_puntos). Desglose por categoria + total. Se calcula solo desde los
+// picks + resultados reales DERIVADOS (llaves + eventos + distinciones manuales).
+export interface EspecialesPuntos {
+  jugador_id: string;
+  puntos_pais: number;
+  puntos_goleador: number;
+  puntos_asistidor: number;
+  puntos_mejor_jugador: number;
+  puntos_mejor_arquero: number;
+  puntos_mejor_joven: number;
+  puntos_total: number;
+}
+
+// Resultados REALES de especiales, DERIVADOS solos (vista especiales_reales).
+// Pais/goleador/asistidor salen de partidos+eventos; las 3 distinciones
+// subjetivas siguen manuales. Todo normalizado (minusculas) para comparar.
+// goleadores/asistidores son ARRAYS: si hay empate en la cima, cuentan todos.
+export interface EspecialesReales {
+  campeon: string | null;
+  tercer: string | null;
+  finalistas: string[];
+  semifinalistas: string[];
+  goleadores: string[];
+  asistidores: string[];
+  mejor_jugador: string | null;
+  mejor_arquero: string | null;
+  mejor_joven: string | null;
+}
+
 // Fila de la tabla de posiciones de un grupo del Mundial.
 export interface FilaGrupo {
   grupo: string; // A..L

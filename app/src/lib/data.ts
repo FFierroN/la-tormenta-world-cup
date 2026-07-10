@@ -262,6 +262,7 @@ function aMiPrediccion(r: any): MiPrediccion {
     pred_visita: r.pred_visita,
     puntos: r.puntos ?? null,
     resultado: r.resultado ?? null,
+    puntos_definicion: Number(r.puntos_definicion ?? 0),
   };
 }
 

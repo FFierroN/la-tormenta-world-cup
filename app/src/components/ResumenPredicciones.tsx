@@ -33,7 +33,11 @@ export default function ResumenPredicciones({
 
   const jugados = filas.filter((p) => p.estado === "final" && p.resultado);
   const conPron = jugados.length; // partidos jugados que SI pronostico
-  const puntos = jugados.reduce((s, p) => s + (p.puntos ?? 0), 0);
+  // Puntos de pronostico + puntos de la definicion del empate (empate/penales).
+  // El total que se muestra debe incluir AMBOS (antes solo sumaba pronostico).
+  const puntosPron = jugados.reduce((s, p) => s + (p.puntos ?? 0), 0);
+  const puntosDef = jugados.reduce((s, p) => s + (p.puntos_definicion ?? 0), 0);
+  const puntos = puntosPron + puntosDef;
   const counts = Object.fromEntries(
     CATS.map((c) => [c.key, jugados.filter((p) => p.resultado === c.key).length])
   ) as Record<ResultadoPrediccion, number>;
@@ -50,7 +54,12 @@ export default function ResumenPredicciones({
       <div className="bg-carbon-card border border-borde rounded-2xl p-4">
         {/* Cifras principales */}
         <div className="grid grid-cols-3 gap-2 text-center">
-          <Cifra valor={String(puntos)} etiqueta="puntos" oro />
+          <Cifra
+            valor={String(puntos)}
+            etiqueta="puntos"
+            oro
+            sub={puntosDef > 0 ? `+${puntosDef} pts empate/penales` : undefined}
+          />
           <Cifra valor={promedio.toFixed(1)} etiqueta="pts/partido" />
           <Cifra valor={`${efectividad}%`} etiqueta="efectividad" />
         </div>
@@ -121,13 +130,18 @@ function Conteo({
   );
 }
 
-function Cifra({ valor, etiqueta, oro = false }: { valor: string; etiqueta: string; oro?: boolean }) {
+function Cifra({ valor, etiqueta, oro = false, sub }: { valor: string; etiqueta: string; oro?: boolean; sub?: string }) {
   return (
     <div>
       <div className={`text-3xl font-black tabular-nums leading-none ${oro ? "text-oro" : ""}`}>
         {valor}
       </div>
       <div className="text-[10px] uppercase tracking-wide text-neutral-400 mt-1">{etiqueta}</div>
+      {sub && (
+        <div className="text-[10px] font-semibold text-emerald-400 mt-0.5 leading-tight">
+          {sub}
+        </div>
+      )}
     </div>
   );
 }

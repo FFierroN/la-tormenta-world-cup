@@ -147,6 +147,9 @@ export interface MiPrediccion {
   pred_visita: number;
   puntos: number | null;
   resultado: ResultadoPrediccion | null;
+  // Puntos de la definicion del empate (empate/penales). 0 en grupos o si no
+  // aplica. Se suman al total en el resumen del jugador.
+  puntos_definicion: number;
 }
 
 // Igual que MiPrediccion pero con el dueno del pronostico. La devuelve la RPC

@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
 import ResumenPredicciones from "../components/ResumenPredicciones";
+import EspecialesPanel from "../components/EspecialesPanel";
 import { listarJugadores, listarPartidos, misPrediccionesDetalle, prediccionesJugadasTodas } from "../lib/data";
 import { soloCasi, rankingCasi } from "../lib/casi";
 import { useAsync } from "../lib/useAsync";
@@ -35,6 +36,7 @@ const PUNTOS: Record<ResultadoPrediccion, string> = {
 };
 
 type Tab = "lista" | "casi";
+type TabOtro = "pronosticos" | "especiales";
 
 export default function MisPredicciones() {
   const navigate = useNavigate();
@@ -42,6 +44,7 @@ export default function MisPredicciones() {
   const { jugadorId: paramId } = useParams();
   const { jugador } = useAuth();
   const [tab, setTab] = useState<Tab>("lista");
+  const [tabOtro, setTabOtro] = useState<TabOtro>("pronosticos");
 
   const miId = jugador?.id ?? null;
   // Si la URL trae un id distinto al mio, estoy mirando a OTRO participante:
@@ -75,8 +78,28 @@ export default function MisPredicciones() {
       </header>
 
       {viendoOtro ? (
-        // Vista de otro participante: solo lectura, solo jugados.
-        <ListaTab jugadorId={targetId} soloJugados />
+        // Vista de otro participante: pestanas Pronosticos (solo lectura, solo
+        // jugados) y Especiales (panel de predicciones especiales).
+        <>
+          <div className="px-4">
+            <div className="grid grid-cols-2 border-b border-borde">
+              <TabBtn activo={tabOtro === "pronosticos"} onClick={() => setTabOtro("pronosticos")}>
+                Pronósticos
+              </TabBtn>
+              <TabBtn activo={tabOtro === "especiales"} onClick={() => setTabOtro("especiales")}>
+                Especiales
+              </TabBtn>
+            </div>
+          </div>
+
+          {tabOtro === "pronosticos" ? (
+            <ListaTab jugadorId={targetId} soloJugados />
+          ) : (
+            <div className="mt-3">
+              <EspecialesPanel jugadorId={targetId} />
+            </div>
+          )}
+        </>
       ) : (
         <>
           {/* Pestanas (solo en mi propia vista) */}

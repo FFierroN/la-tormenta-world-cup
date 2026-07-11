@@ -366,17 +366,20 @@ function BanderaEtiqueta({
   const ronda = rondaPais(equipo, reales);
   return (
     <div className="flex flex-col items-center gap-1" style={{ width: ancho }}>
-      <div className={campeon ? "rounded-lg ring-2 ring-oro p-0.5" : ""}>
+      <div className={`relative ${campeon ? "rounded-lg ring-2 ring-oro p-0.5" : ""}`}>
         <Flag code={codigoPais(mapa, equipo)} nombre={equipo} size={size} rect />
+        {ronda && (
+          <span
+            className="absolute -top-1.5 -right-1.5 grid place-items-center rounded-full bg-carbon px-1 py-0.5 text-[9px] font-black leading-none text-emerald-400 shadow ring-1 ring-emerald-500/50"
+            title={`${ronda.label} +${ronda.pts}`}
+          >
+            +{ronda.pts}
+          </span>
+        )}
       </div>
       <span className="text-[10px] text-center leading-tight text-neutral-200 line-clamp-2">
         {equipo}
       </span>
-      {ronda && (
-        <span className="rounded-full bg-emerald-500/15 px-1.5 text-[9px] font-bold text-emerald-400 leading-relaxed">
-          {ronda.label} +{ronda.pts}
-        </span>
-      )}
     </div>
   );
 }

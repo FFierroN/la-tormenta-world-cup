@@ -34,14 +34,13 @@ insert into jugador_alias (alias_norm, canonico) values
   -- Messi (HL: DOBLE grafia -> unificar a "Lionel Messi")
   (normaliza_jugador('Messi'),          'Lionel Messi'),
   (normaliza_jugador('Lionel messi'),   'Lionel Messi'),
-  (normaliza_jugador('Lionel Messi'),   'Lionel Messi'),
   (normaliza_jugador('L. Messi'),       'Lionel Messi'),
   -- Mbappe (HL: DOBLE grafia -> unificar a "Kylian Mbappé")
   (normaliza_jugador('Kyliam mbappé'),  'Kylian Mbappé'),
   (normaliza_jugador('Kylian Mbappé'),  'Kylian Mbappé'),
   (normaliza_jugador('Mbappe'),         'Kylian Mbappé'),
   (normaliza_jugador('K. Mbappe'),      'Kylian Mbappé'),
-  (normaliza_jugador('K. Mbappé'),      'Kylian Mbappé'),
+  -- (unaccent ya cubre "K. Mbappé": normaliza a la misma clave que "K. Mbappe")
   -- Ronaldo (BROMA id6): identidad, NO mapear "C. Ronaldo" -> 0 pts
   (normaliza_jugador('Ronaldo'),        'Ronaldo'),
   -- ASISTIDORES (best-guess, CONFIRMAR con select distinct asistencia) -------

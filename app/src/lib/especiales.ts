@@ -17,6 +17,12 @@ const norm = (s: string | null | undefined): string =>
     .toLowerCase()
     .replace(/\s+/g, " ");
 
+// Para PAISES el SQL (especiales_reales) normaliza con solo lower(trim), SIN
+// quitar acentos. Debemos comparar IGUAL o "España" (front sin tilde "espana")
+// no calzaria con "españa" (SQL) y el badge no saldria aunque el punto SI sume.
+const normPais = (s: string | null | undefined): string =>
+  (s ?? "").trim().toLowerCase();
+
 // Ronda mas alta lograda por un equipo elegido, con sus puntos.
 // null = el equipo aun no logra una ronda que puntue (pendiente).
 export interface RondaLograda {
@@ -29,7 +35,7 @@ export function rondaPais(
   reales: EspecialesReales
 ): RondaLograda | null {
   if (!equipo) return null;
-  const e = norm(equipo);
+  const e = normPais(equipo);
   if (reales.campeon && e === reales.campeon) return { label: "Campeón", pts: 30 };
   if (reales.finalistas.includes(e)) return { label: "Finalista", pts: 12 };
   if (reales.tercer && e === reales.tercer) return { label: "3er lugar", pts: 8 };
@@ -44,7 +50,7 @@ export function puntosDistincionUnico(
   valor: number
 ): number {
   if (!pick || !real) return 0;
-  return norm(pick) === real ? valor : 0;
+  return normPais(pick) === real ? valor : 0;
 }
 
 // ¿Ya hay resultado para esta distincion manual? (pendiente vs fallado).

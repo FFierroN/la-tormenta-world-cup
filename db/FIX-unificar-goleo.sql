@@ -26,8 +26,20 @@ where lower(replace(jugador, ' ', '')) in ('k.mbappé', 'k.mbappe');
 update partido_eventos set asistencia = 'Kylian Mbappé'
 where lower(replace(coalesce(asistencia, ''), ' ', '')) in ('k.mbappé', 'k.mbappe');
 
+-- ----- OLISE (asistidor): "M. Olise" -> "Michael Olise" -----
+update partido_eventos set asistencia = 'Michael Olise'
+where lower(replace(coalesce(asistencia, ''), ' ', '')) in ('m.olise', 'olise');
+update partido_eventos set jugador = 'Michael Olise'
+where lower(replace(jugador, ' ', '')) in ('m.olise', 'olise');
+
 -- Verificacion: una sola fila por jugador, con el total sumado.
 select jugador, count(*) as goles
 from partido_eventos
 where tipo = 'gol' and (jugador ilike '%messi%' or jugador ilike '%mbapp%')
 group by jugador order by jugador;
+
+-- Verificacion asistencias unificadas:
+select asistencia, count(*) as asist
+from partido_eventos
+where tipo = 'gol' and asistencia ilike '%olise%'
+group by asistencia order by asistencia;

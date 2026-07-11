@@ -43,24 +43,30 @@ insert into jugador_alias (alias_norm, canonico) values
   -- (unaccent ya cubre "K. Mbappé": normaliza a la misma clave que "K. Mbappe")
   -- Ronaldo (BROMA id6): identidad, NO mapear "C. Ronaldo" -> 0 pts
   (normaliza_jugador('Ronaldo'),        'Ronaldo'),
-  -- ASISTIDORES (best-guess, CONFIRMAR con select distinct asistencia) -------
-  (normaliza_jugador('Declan Rise'),     'Declan Rice'),
-  (normaliza_jugador('Declan Rice'),     'Declan Rice'),
-  (normaliza_jugador('D. Rice'),         'Declan Rice'),
-  (normaliza_jugador('Bruno Fernandes'), 'Bruno Fernandes'),
-  (normaliza_jugador('Bruno Fernandez'), 'Bruno Fernandes'),
-  (normaliza_jugador('B. Fernandes'),    'Bruno Fernandes'),
+  -- ASISTIDORES (CONFIRMADOS contra select distinct asistencia) -------------
+  -- Rice (HL: "D. Rice")
+  (normaliza_jugador('Declan Rise'),     'D. Rice'),
+  (normaliza_jugador('Declan Rice'),     'D. Rice'),
+  (normaliza_jugador('D. Rice'),         'D. Rice'),
+  -- Bruno Fernandes (HL: "B. Fernandes")
+  (normaliza_jugador('Bruno Fernandes'), 'B. Fernandes'),
+  (normaliza_jugador('Bruno Fernandez'), 'B. Fernandes'),
+  (normaliza_jugador('B. Fernandes'),    'B. Fernandes'),
+  -- Vinicius (HL: "Vinicius Junior", una sola)
   (normaliza_jugador('Vinicius'),        'Vinicius Junior'),
   (normaliza_jugador('Vinicius Junior'), 'Vinicius Junior'),
   (normaliza_jugador('Vinicius Jr'),     'Vinicius Junior'),
-  (normaliza_jugador('Kimich'),          'Joshua Kimmich'),
-  (normaliza_jugador('Joshua Kimmich'),  'Joshua Kimmich'),
-  (normaliza_jugador('J. Kimmich'),      'Joshua Kimmich'),
+  -- Kimmich (HL: "J. Kimmich")
+  (normaliza_jugador('Kimich'),          'J. Kimmich'),
+  (normaliza_jugador('Joshua Kimmich'),  'J. Kimmich'),
+  (normaliza_jugador('J. Kimmich'),      'J. Kimmich'),
+  -- Olise (HL: DOBLE grafia "M. Olise"+"Michael Olise" -> unificar) -----------
   (normaliza_jugador('Olisse'),          'Michael Olise'),
   (normaliza_jugador('Michael Olise'),   'Michael Olise'),
   (normaliza_jugador('M. Olise'),        'Michael Olise'),
-  (normaliza_jugador('Rafael leao'),     'Rafael Leao'),
-  (normaliza_jugador('R. Leao'),         'Rafael Leao'),
+  -- Leao (HL: "R. Leao")
+  (normaliza_jugador('Rafael leao'),     'R. Leao'),
+  (normaliza_jugador('R. Leao'),         'R. Leao'),
   -- Iniesta (BROMA id6): identidad -> 0 pts
   (normaliza_jugador('Iniesta'),         'Iniesta')
 on conflict (alias_norm) do update set canonico = excluded.canonico;

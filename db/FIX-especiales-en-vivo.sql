@@ -28,11 +28,11 @@
 create or replace view especiales_reales as
 with
 gol_counts as (
-  select normaliza_jugador(jugador) as jugador, count(*) as c
+  select resuelve_jugador(jugador) as jugador, count(*) as c
   from partido_eventos
   where tipo = 'gol' and coalesce(detalle,'') <> 'autogol'
-    and normaliza_jugador(jugador) is not null
-  group by normaliza_jugador(jugador)
+    and resuelve_jugador(jugador) is not null
+  group by resuelve_jugador(jugador)
 ),
 gol_lideres as (
   select coalesce(array_agg(jugador), '{}') as arr
@@ -40,10 +40,10 @@ gol_lideres as (
   where c = (select max(c) from gol_counts) and (select max(c) from gol_counts) > 0
 ),
 asi_counts as (
-  select normaliza_jugador(asistencia) as jugador, count(*) as c
+  select resuelve_jugador(asistencia) as jugador, count(*) as c
   from partido_eventos
-  where tipo = 'gol' and normaliza_jugador(asistencia) is not null
-  group by normaliza_jugador(asistencia)
+  where tipo = 'gol' and resuelve_jugador(asistencia) is not null
+  group by resuelve_jugador(asistencia)
 ),
 asi_lideres as (
   select coalesce(array_agg(jugador), '{}') as arr
@@ -117,8 +117,8 @@ select
       group by t.equipo
     ) s
   ), 0) as puntos_pais,
-  case when normaliza_jugador(canonico_jugador(pe.goleador))  = any(r.goleadores)  then 15 else 0 end as puntos_goleador,
-  case when normaliza_jugador(canonico_jugador(pe.asistidor)) = any(r.asistidores) then 10 else 0 end as puntos_asistidor,
+  case when resuelve_jugador(pe.goleador)  = any(r.goleadores)  then 15 else 0 end as puntos_goleador,
+  case when resuelve_jugador(pe.asistidor) = any(r.asistidores) then 10 else 0 end as puntos_asistidor,
   case when r.mejor_jugador is not null and lower(trim(coalesce(pe.mejor_jugador,''))) = r.mejor_jugador then 10 else 0 end as puntos_mejor_jugador,
   case when r.mejor_arquero is not null and lower(trim(coalesce(pe.mejor_arquero,''))) = r.mejor_arquero then 10 else 0 end as puntos_mejor_arquero,
   case when r.mejor_joven   is not null and lower(trim(coalesce(pe.mejor_joven,'')))   = r.mejor_joven   then 10 else 0 end as puntos_mejor_joven,
@@ -142,8 +142,8 @@ select
         group by t.equipo
       ) s
     ), 0)
-    + case when normaliza_jugador(canonico_jugador(pe.goleador))  = any(r.goleadores)  then 15 else 0 end
-    + case when normaliza_jugador(canonico_jugador(pe.asistidor)) = any(r.asistidores) then 10 else 0 end
+    + case when resuelve_jugador(pe.goleador)  = any(r.goleadores)  then 15 else 0 end
+    + case when resuelve_jugador(pe.asistidor) = any(r.asistidores) then 10 else 0 end
     + case when r.mejor_jugador is not null and lower(trim(coalesce(pe.mejor_jugador,''))) = r.mejor_jugador then 10 else 0 end
     + case when r.mejor_arquero is not null and lower(trim(coalesce(pe.mejor_arquero,''))) = r.mejor_arquero then 10 else 0 end
     + case when r.mejor_joven   is not null and lower(trim(coalesce(pe.mejor_joven,'')))   = r.mejor_joven   then 10 else 0 end

@@ -1,53 +1,76 @@
 -- =====================================================================
 -- SEED-jugador-alias.sql
 -- =====================================================================
--- Mapa curado: TEXTO REAL que escribio cada participante (visto con
--- 'select goleador, asistidor from predicciones_especiales') -> nombre HL.
--- Requiere SETUP-jugador-alias.sql corrido ANTES (usa normaliza_jugador).
+-- Mapa curado: TODAS las grafias con que aparece un jugador (el pick del
+-- participante Y las variantes con que HL lo escribe en partido_eventos) ->
+-- un unico 'canonico'. Requiere SETUP-jugador-alias.sql corrido ANTES.
 --
--- Las llaves son los picks REALES (con typos y variantes): "Kane", "Harry Kane",
--- "Kyliam mbappé", "Messi", "Lionel messi", etc. normaliza_jugador ignora
--- acentos/mayusculas, pero NO typos ni palabras faltantes, por eso van explicitos.
+-- POR QUE VARIAS FILAS POR JUGADOR: HL escribe al MISMO futbolista de 2 formas
+-- (confirmado en la lista real): abreviada "L. Messi" / "K. Mbappe" (feed gratis
+-- en vivo) y completa "Lionel Messi" / "Kylian Mbappé" (Highlightly). Si no las
+-- unificamos, sus goles se parten y nadie llega a lider -> 0 pts. Mapeando TODAS
+-- las variantes al mismo canonico, resuelve_jugador() las fusiona al contar.
 --
--- El 'canonico' es como lo trae HL (formato MEZCLADO: abreviado "H. Kane",
--- "F. Balogun", "G. Reyna", "J. Quinones" -sin tilde-; o completo "Erling
--- Haaland", "Casemiro"). CONFIRMADOS contra partido_eventos: "H. Kane".
+-- El 'canonico' se elige = la grafia a la que UNIFICAMOS los eventos
+-- (ver FIX-unificar-goleo.sql), para que la tabla de goleo del front tambien
+-- calce. Confirmados contra la lista real de partido_eventos:
+--   GOLEADORES: "H. Kane" (una sola), "L. Messi"+"Lionel Messi",
+--               "K. Mbappe"+"Kylian Mbappé".
+--   Ronaldo/Iniesta (id6 broma): identidad, no calzan con "C. Ronaldo" -> 0 pts.
 --
--- OJO RIESGO: HL a veces escribe al MISMO jugador de 2 formas ("E. Haaland" y
--- "Erling Haaland" aparecen ambas). Si eso pasa con un pick, sus goles se parten
--- y puede fallar el liderato. Vigilar y, si ocurre, agregar ambos alias aca.
---
--- PENDIENTE de confirmar (la lista de HL llegaba solo hasta la "K"): el formato
--- de Messi y Mbappe, y el de las asistencias. Ajustar canonico cuando se vea.
---
--- BROMA (id6): escribio "Ronaldo"/"Iniesta" a proposito (no juegan el Mundial).
--- Se mapean a si mismos: NO calzan con el formato HL, asi que dan 0 pts. OK.
+-- ASISTIDORES: aun sin ver el 'select distinct asistencia' -> canonicos best-guess
+--   (Highlightly suele traer nombre completo). Se agregan variantes por si acaso.
+--   AJUSTAR cuando Felipe pase la lista de asistencias reales.
 --
 -- Idempotente (upsert por alias_norm).
 -- =====================================================================
 
 insert into jugador_alias (alias_norm, canonico) values
-  -- GOLEADORES (pick real -> HL). Confirmados contra partido_eventos:
-  (normaliza_jugador('Harry Kane'),    'H. Kane'),        -- HL: "H. Kane" CONFIRMADO
-  (normaliza_jugador('Kane'),          'H. Kane'),        -- HL: "H. Kane" CONFIRMADO
-  (normaliza_jugador('Kyliam mbappé'), 'Kylian Mbappé'),  -- POR CONFIRMAR formato HL
-  (normaliza_jugador('Messi'),         'Lionel Messi'),   -- POR CONFIRMAR formato HL
-  (normaliza_jugador('Lionel messi'),  'Lionel Messi'),   -- POR CONFIRMAR formato HL
-  (normaliza_jugador('Ronaldo'),       'Ronaldo'),        -- BROMA id6: identidad, no calza con "C. Ronaldo" -> 0 pts
-  -- ASISTIDORES (pick real -> HL). POR CONFIRMAR contra partido_eventos.asistencia:
-  (normaliza_jugador('Declan Rise'),     'D. Rise'),
-  (normaliza_jugador('Bruno Fernandes'), 'Bruno Fernandez'),
+  -- GOLEADORES ------------------------------------------------------------
+  -- Kane (HL: una sola grafia "H. Kane")
+  (normaliza_jugador('Harry Kane'),     'H. Kane'),
+  (normaliza_jugador('Kane'),           'H. Kane'),
+  (normaliza_jugador('H. Kane'),        'H. Kane'),
+  -- Messi (HL: DOBLE grafia -> unificar a "Lionel Messi")
+  (normaliza_jugador('Messi'),          'Lionel Messi'),
+  (normaliza_jugador('Lionel messi'),   'Lionel Messi'),
+  (normaliza_jugador('Lionel Messi'),   'Lionel Messi'),
+  (normaliza_jugador('L. Messi'),       'Lionel Messi'),
+  -- Mbappe (HL: DOBLE grafia -> unificar a "Kylian Mbappé")
+  (normaliza_jugador('Kyliam mbappé'),  'Kylian Mbappé'),
+  (normaliza_jugador('Kylian Mbappé'),  'Kylian Mbappé'),
+  (normaliza_jugador('Mbappe'),         'Kylian Mbappé'),
+  (normaliza_jugador('K. Mbappe'),      'Kylian Mbappé'),
+  (normaliza_jugador('K. Mbappé'),      'Kylian Mbappé'),
+  -- Ronaldo (BROMA id6): identidad, NO mapear "C. Ronaldo" -> 0 pts
+  (normaliza_jugador('Ronaldo'),        'Ronaldo'),
+  -- ASISTIDORES (best-guess, CONFIRMAR con select distinct asistencia) -------
+  (normaliza_jugador('Declan Rise'),     'Declan Rice'),
+  (normaliza_jugador('Declan Rice'),     'Declan Rice'),
+  (normaliza_jugador('D. Rice'),         'Declan Rice'),
+  (normaliza_jugador('Bruno Fernandes'), 'Bruno Fernandes'),
+  (normaliza_jugador('Bruno Fernandez'), 'Bruno Fernandes'),
+  (normaliza_jugador('B. Fernandes'),    'Bruno Fernandes'),
   (normaliza_jugador('Vinicius'),        'Vinicius Junior'),
+  (normaliza_jugador('Vinicius Junior'), 'Vinicius Junior'),
+  (normaliza_jugador('Vinicius Jr'),     'Vinicius Junior'),
   (normaliza_jugador('Kimich'),          'Joshua Kimmich'),
-  (normaliza_jugador('Iniesta'),         'Iniesta'),      -- BROMA id6: identidad -> 0 pts
+  (normaliza_jugador('Joshua Kimmich'),  'Joshua Kimmich'),
+  (normaliza_jugador('J. Kimmich'),      'Joshua Kimmich'),
   (normaliza_jugador('Olisse'),          'Michael Olise'),
-  (normaliza_jugador('Rafael leao'),     'Rafael Leao')
+  (normaliza_jugador('Michael Olise'),   'Michael Olise'),
+  (normaliza_jugador('M. Olise'),        'Michael Olise'),
+  (normaliza_jugador('Rafael leao'),     'Rafael Leao'),
+  (normaliza_jugador('R. Leao'),         'Rafael Leao'),
+  -- Iniesta (BROMA id6): identidad -> 0 pts
+  (normaliza_jugador('Iniesta'),         'Iniesta')
 on conflict (alias_norm) do update set canonico = excluded.canonico;
 
 -- =====================================================================
--- VERIFICACION (debe salir todo con nombre, ninguno 'Desconocido' salvo
--- picks que decidas dejar fuera):
+-- VERIFICACION:
 --   select jugador_id, goleador, canonico_jugador(goleador) gol,
 --          asistidor, canonico_jugador(asistidor) asi
 --     from predicciones_especiales order by jugador_id;
+--   -- Y como quedan los picks para MATCHING (deben calzar con los eventos):
+--   select distinct resuelve_jugador(goleador) from predicciones_especiales;
 -- =====================================================================

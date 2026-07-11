@@ -77,6 +77,33 @@ grant execute on function normaliza_jugador(text) to anon, authenticated;
 grant execute on function canonico_jugador(text)  to anon, authenticated;
 
 -- ---------------------------------------------------------------------
+-- 3b) resuelve_jugador(txt): clave de MATCHING (no de display).
+--     Devuelve la forma NORMALIZADA del canonico si el texto esta mapeado; si
+--     no, la forma normalizada del propio texto. Sirve para 2 cosas:
+--       * Unificar las variantes con que HL escribe al MISMO jugador en los
+--         eventos (ej. "L. Messi" y "Lionel Messi" -> ambas a "lionel messi"),
+--         asi sus goles NO se parten y el liderato se calcula bien.
+--       * Cruzar el pick del participante contra esos eventos ya unificados.
+--     A diferencia de canonico_jugador, los NO mapeados NO caen en 'Desconocido'
+--     (se quedan con su nombre normalizado), para no mezclar a todos los
+--     desconocidos en un mismo cubo y romper el conteo.
+-- ---------------------------------------------------------------------
+create or replace function resuelve_jugador(txt text)
+returns text
+language sql
+stable
+set search_path = public, extensions
+as $$
+  select normaliza_jugador(coalesce(
+    (select a.canonico from jugador_alias a
+      where a.alias_norm = normaliza_jugador(txt)),
+    txt
+  ));
+$$;
+
+grant execute on function resuelve_jugador(text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------
 -- Ayuda para armar el SEED: distintos textos que escribieron (con su forma
 -- normalizada). Copia el resultado y lo convertimos en INSERTs.
 --   select distinct campo, texto, normaliza_jugador(texto) as norma from (

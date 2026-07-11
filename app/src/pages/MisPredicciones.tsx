@@ -35,7 +35,7 @@ const PUNTOS: Record<ResultadoPrediccion, string> = {
   falla: "text-red-400",
 };
 
-type Tab = "lista" | "casi";
+type Tab = "lista" | "casi" | "especiales";
 type TabOtro = "pronosticos" | "especiales";
 
 export default function MisPredicciones() {
@@ -104,20 +104,27 @@ export default function MisPredicciones() {
         <>
           {/* Pestanas (solo en mi propia vista) */}
           <div className="px-4">
-            <div className="grid grid-cols-2 border-b border-borde">
+            <div className="grid grid-cols-3 border-b border-borde">
               <TabBtn activo={tab === "lista"} onClick={() => setTab("lista")}>
                 Lista
               </TabBtn>
               <TabBtn activo={tab === "casi"} onClick={() => setTab("casi")}>
                 Casi
               </TabBtn>
+              <TabBtn activo={tab === "especiales"} onClick={() => setTab("especiales")}>
+                Especiales
+              </TabBtn>
             </div>
           </div>
 
           {tab === "lista" ? (
             <ListaTab jugadorId={miId} />
-          ) : (
+          ) : tab === "casi" ? (
             <CasiTab miId={miId} />
+          ) : (
+            <div className="mt-3">
+              <EspecialesPanel jugadorId={miId} />
+            </div>
           )}
         </>
       )}

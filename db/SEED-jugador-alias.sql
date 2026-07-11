@@ -1,43 +1,47 @@
 -- =====================================================================
 -- SEED-jugador-alias.sql
 -- =====================================================================
--- Mapa curado: pick del participante -> nombre EXACTO como lo trae la API HL
--- (tal cual queda en partido_eventos). Requiere SETUP-jugador-alias.sql.
+-- Mapa curado: TEXTO REAL que escribio cada participante (visto con
+-- 'select goleador, asistidor from predicciones_especiales') -> nombre HL.
+-- Requiere SETUP-jugador-alias.sql corrido ANTES (usa normaliza_jugador).
 --
--- IMPORTANTE: la lista la entrego Felipe y ES como HL escribe cada nombre
--- (formato MEZCLADO: algunos abreviados "H. Kane" / "D. Rise", otros completos
--- "Kylian Mbappé" / "Vinicius Junior"). Por eso el canonico = el texto tal cual,
--- SIN abreviar ni expandir. Los acentos/mayusculas igual se ignoran al comparar
--- (normaliza_jugador), pero respetamos la estructura que usa HL.
+-- Las llaves son los picks REALES (con typos y variantes): "Kane", "Harry Kane",
+-- "Kyliam mbappé", "Messi", "Lionel messi", etc. normaliza_jugador ignora
+-- acentos/mayusculas, pero NO typos ni palabras faltantes, por eso van explicitos.
 --
--- En este pool no hubo variantes de escritura entre participantes (cada uno lo
--- escribio como HL lo tiene), asi que el mapa es casi identidad; su unico efecto
--- real es dejar 'No existe' (Daniel Abreu) fuera -> cae en 'Desconocido'.
+-- El 'canonico' es como lo trae HL (ver la lista que dio Felipe). Cuando haya
+-- goles reales, verificar contra partido_eventos y ajustar si HL escribe distinto.
+--
+-- A CONFIRMAR por Felipe (no estaban en la lista original):
+--   * id 6 escribio "Ronaldo" (goleador) e "Iniesta" (asistidor). Mapeados a
+--     Cristiano Ronaldo / Andrés Iniesta. Si NO juegan el Mundial no sumaran
+--     nunca (0 pts) igual. Si prefieres que salgan 'Desconocido', borra esas 2.
 --
 -- Idempotente (upsert por alias_norm).
 -- =====================================================================
 
 insert into jugador_alias (alias_norm, canonico) values
-  -- GOLEADORES
-  (normaliza_jugador('H. Kane'),        'H. Kane'),
-  (normaliza_jugador('Kylian Mbappé'),  'Kylian Mbappé'),
-  (normaliza_jugador('Lionel Messi'),   'Lionel Messi'),
-  -- ASISTIDORES
-  (normaliza_jugador('D. Rise'),        'D. Rise'),
-  (normaliza_jugador('Vinicius Junior'),'Vinicius Junior'),
-  (normaliza_jugador('Bruno Fernandez'),'Bruno Fernandez'),
-  (normaliza_jugador('Joshua Kimmich'), 'Joshua Kimmich'),
-  (normaliza_jugador('Michael Olise'),  'Michael Olise'),
-  (normaliza_jugador('Rafael Leao'),    'Rafael Leao')
+  -- GOLEADORES (pick real -> HL)
+  (normaliza_jugador('Harry Kane'),    'H. Kane'),
+  (normaliza_jugador('Kane'),          'H. Kane'),
+  (normaliza_jugador('Kyliam mbappé'), 'Kylian Mbappé'),
+  (normaliza_jugador('Messi'),         'Lionel Messi'),
+  (normaliza_jugador('Lionel messi'),  'Lionel Messi'),
+  (normaliza_jugador('Ronaldo'),       'Cristiano Ronaldo'),   -- CONFIRMAR
+  -- ASISTIDORES (pick real -> HL)
+  (normaliza_jugador('Declan Rise'),     'D. Rise'),
+  (normaliza_jugador('Bruno Fernandes'), 'Bruno Fernandez'),
+  (normaliza_jugador('Vinicius'),        'Vinicius Junior'),
+  (normaliza_jugador('Kimich'),          'Joshua Kimmich'),
+  (normaliza_jugador('Iniesta'),         'Andrés Iniesta'),     -- CONFIRMAR
+  (normaliza_jugador('Olisse'),          'Michael Olise'),
+  (normaliza_jugador('Rafael leao'),     'Rafael Leao')
 on conflict (alias_norm) do update set canonico = excluded.canonico;
 
 -- =====================================================================
--- VERIFICACION (con datos reales, por si HL escribe algo distinto a lo listado):
---   select distinct jugador from partido_eventos
---     where tipo='gol' and coalesce(detalle,'')<>'autogol' order by jugador;
---   select distinct asistencia from partido_eventos
---     where tipo='gol' and asistencia is not null order by asistencia;
---   select jugador_id, canonico_jugador(goleador) gol,
---          canonico_jugador(asistidor) asi from predicciones_especiales;
---   -- Todos con nombre; solo Daniel Abreu -> 'Desconocido'.
+-- VERIFICACION (debe salir todo con nombre, ninguno 'Desconocido' salvo
+-- picks que decidas dejar fuera):
+--   select jugador_id, goleador, canonico_jugador(goleador) gol,
+--          asistidor, canonico_jugador(asistidor) asi
+--     from predicciones_especiales order by jugador_id;
 -- =====================================================================

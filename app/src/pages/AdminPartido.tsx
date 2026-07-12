@@ -149,8 +149,8 @@ function EquiposForm({
           value={paL}
           onChange={(e) => setPaL(e.target.value)}
           placeholder="ISO"
-          maxLength={3}
-          className="w-16 px-2 py-2 rounded-lg bg-carbon-soft border border-borde text-sm text-center uppercase"
+          maxLength={6}
+          className="w-20 px-2 py-2 rounded-lg bg-carbon-soft border border-borde text-sm text-center uppercase"
         />
       </div>
       <div className="grid grid-cols-[1fr_auto] gap-2 mb-3">
@@ -164,8 +164,8 @@ function EquiposForm({
           value={paV}
           onChange={(e) => setPaV(e.target.value)}
           placeholder="ISO"
-          maxLength={3}
-          className="w-16 px-2 py-2 rounded-lg bg-carbon-soft border border-borde text-sm text-center uppercase"
+          maxLength={6}
+          className="w-20 px-2 py-2 rounded-lg bg-carbon-soft border border-borde text-sm text-center uppercase"
         />
       </div>
 

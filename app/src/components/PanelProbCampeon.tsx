@@ -4,7 +4,6 @@
 // La simulacion (Monte Carlo) vive en el hook useProbCampeon (compartido con
 // la cajita de % del detalle de cada participante).
 import { useProbCampeon, SEMIS } from "../lib/useProbCampeon";
-import { FUERZA_EQUIPOS } from "../lib/probCampeon";
 
 export default function PanelProbCampeon() {
   const { sim, cargando, error } = useProbCampeon();
@@ -24,8 +23,9 @@ export default function PanelProbCampeon() {
       <div className="mb-2">
         <h3 className="text-sm font-bold text-oro">Probabilidad de campeon de la quiniela</h3>
         <p className="text-[10px] text-neutral-500 leading-tight mt-0.5">
-          Monte Carlo ({sim.iteraciones.toLocaleString()} escenarios): bracket ({SEMIS.a} vs {SEMIS.b} · {SEMIS.c} vs {SEMIS.d})
-          ponderado por fuerza ({FUERZA_EQUIPOS.map((f) => `${f.alias[0]} ${f.fuerza}%`).join(" · ")}) + premios por cuota de mercado.
+          Monte Carlo ({sim.iteraciones.toLocaleString()} escenarios). Considera: puntos actuales +
+          los 4 partidos que faltan segun la tendencia de acierto de cada uno + puntos pais (bracket
+          {" "}{SEMIS.a} vs {SEMIS.b} · {SEMIS.c} vs {SEMIS.d}) + premios por cuota de mercado.
         </p>
       </div>
 

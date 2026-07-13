@@ -111,15 +111,33 @@ const PTS_FINALISTA = 12;
 const PTS_TERCERO = 8;
 const PTS_SEMI = 6;
 
+// Puntos por categoria de pronostico de partido (tarifa unica de la copa).
+// Se usan para modelar los partidos FUTUROS via la tendencia de cada jugador.
+const PTS_EXACTO = 6;
+const PTS_DIFERENCIA = 3;
+const PTS_ACIERTO = 2;
+
 // ----- Tipos de entrada/salida ---------------------------------------------
+// Tendencia historica de un jugador: con que frecuencia cae en cada categoria
+// (sobre TODOS los partidos ya finalizados). Suman ~1. Modela sus partidos
+// futuros: si suele acertar, tiene upside; si suele no pronosticar, poco.
+export interface Tendencia {
+  exacto: number;
+  diferencia: number;
+  acierto: number;
+  falla: number;
+  sin: number; // no pronostico
+}
+
 export interface ParticipanteSim {
   id: string;
   nombre: string;
-  baseEstable: number; // puntos - TODOS los especiales actuales (pais + premios)
+  baseEstable: number; // puntos actuales (partidos + ajuste; especiales en 0 hoy)
   exactos: number;
   aciertos: number;
   fallas: number;
   sinPron: number;
+  tendencia: Tendencia; // tasas historicas para simular los partidos futuros
   picksPais: (string | null)[]; // los 7 slots de pais (campeon..semi4)
   picksPremio: Record<Premio["campo"], string | null>;
 }
@@ -127,6 +145,7 @@ export interface ParticipanteSim {
 export interface EntradaSim {
   participantes: ParticipanteSim[];
   semis: { a: string; b: string; c: string; d: string };
+  partidosFuturos?: number; // cuantos partidos faltan (default 4: 2 semis+3ro+final)
   iteraciones?: number;
 }
 
@@ -234,9 +253,47 @@ function puntosPais(picks: (string | null)[], tiers: Map<string, number>): numbe
   return total;
 }
 
+// Simula los partidos FUTUROS de un jugador segun su tendencia historica.
+// Devuelve los puntos ganados + cuantos cayeron en cada categoria (para el
+// desempate dinamico). Cada partido se sortea independiente por las tasas.
+function simularFuturos(
+  t: Tendencia,
+  n: number
+): { puntos: number; exactos: number; aciertos: number; fallasSin: number } {
+  let puntos = 0;
+  let exactos = 0;
+  let aciertos = 0;
+  let fallasSin = 0;
+  for (let k = 0; k < n; k++) {
+    const r = Math.random();
+    let acc = t.exacto;
+    if (r < acc) {
+      puntos += PTS_EXACTO;
+      exactos++;
+      continue;
+    }
+    acc += t.diferencia;
+    if (r < acc) {
+      puntos += PTS_DIFERENCIA;
+      aciertos++; // una diferencia tambien acerta el signo (cuenta como acierto)
+      continue;
+    }
+    acc += t.acierto;
+    if (r < acc) {
+      puntos += PTS_ACIERTO;
+      aciertos++;
+      continue;
+    }
+    // falla o sin-pronostico: 0 puntos, penaliza el desempate.
+    fallasSin++;
+  }
+  return { puntos, exactos, aciertos, fallasSin };
+}
+
 // ----- Simulacion completa -------------------------------------------------
 export function simularQuiniela(entrada: EntradaSim): SalidaSim {
   const N = entrada.iteraciones ?? 10000;
+  const NF = entrada.partidosFuturos ?? 4; // partidos que faltan
   const P = entrada.participantes;
   const wins = new Map<string, number>();
   for (const p of P) wins.set(p.id, 0);
@@ -269,17 +326,20 @@ export function simularQuiniela(entrada: EntradaSim): SalidaSim {
     let mejores: number[] = [];
     for (let i = 0; i < P.length; i++) {
       const p = P[i];
-      let total = p.baseEstable + puntosPais(p.picksPais, tiers);
+      // Partidos futuros por tendencia (upside real de los que estan atras).
+      const fut = simularFuturos(p.tendencia, NF);
+      let total = p.baseEstable + fut.puntos + puntosPais(p.picksPais, tiers);
       for (const pr of PREMIOS) {
         const g = ganadores[pr.key];
         if (g && picksResueltos[i][pr.campo] === g) total += pr.pts;
       }
       // Desempate: puntos desc, exactos desc, aciertos desc, (fallas+sin) asc.
+      // Los conteos incluyen los partidos futuros simulados (dinamico).
       const score =
         total * 1e12 +
-        p.exactos * 1e9 +
-        p.aciertos * 1e6 -
-        (p.fallas + p.sinPron) * 1e3;
+        (p.exactos + fut.exactos) * 1e9 +
+        (p.aciertos + fut.aciertos) * 1e6 -
+        (p.fallas + p.sinPron + fut.fallasSin) * 1e3;
       if (score > mejor) {
         mejor = score;
         mejores = [i];

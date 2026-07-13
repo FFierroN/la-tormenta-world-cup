@@ -928,6 +928,21 @@ export async function guardarResultadoReal(
   lanzarSi(error);
 }
 
+// ---------- ADMIN: cierre oficial de especiales (suma a la tabla) ----------
+// recalcular_especiales() copia la vista especiales_puntos (derivada: pais +
+// goleador/asistidor de eventos + 3 distinciones) a las columnas guardadas que
+// suma tabla_posiciones. Tras la final, un clic y los especiales son oficiales.
+export async function cerrarEspeciales(): Promise<void> {
+  const { error } = await supabase.rpc("recalcular_especiales");
+  lanzarSi(error);
+}
+
+// Revierte: vuelve la tabla a provisional (especiales en 0).
+export async function revertirEspeciales(): Promise<void> {
+  const { error } = await supabase.rpc("revertir_especiales");
+  lanzarSi(error);
+}
+
 // ---------- ADMIN: gestion de participantes (baja blanda + ajuste manual) ----------
 
 function aJugadorAdmin(r: any): JugadorAdmin {

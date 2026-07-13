@@ -154,6 +154,9 @@ export interface EntradaSim {
   // Cuotas de premios (premioKey -> candidatoNorm -> prob 0..1). Override del
   // mercado por defecto; tambien editable por el admin.
   cuotas?: Record<string, Record<string, number>>;
+  // Premios YA CONFIRMADOS (premioKey -> nombre real del ganador). Si esta,
+  // ese premio NO se simula: suma fijo a quien lo acerto (Pieza B).
+  confirmados?: Record<string, string | null>;
   iteraciones?: number;
 }
 
@@ -238,6 +241,18 @@ export function resolverCandidato(
     }
   }
   return null;
+}
+
+// Compara dos nombres de persona (tolerante a typos/espacios/acentos). Se usa
+// para saber si el pick de un participante coincide con un ganador YA confirmado.
+export function mismaPersona(
+  a: string | null | undefined,
+  b: string | null | undefined
+): boolean {
+  const na = norm(a);
+  const nb = norm(b);
+  if (!na || !nb) return false;
+  return na === nb || na.includes(nb) || nb.includes(na);
 }
 
 function ganaA(fa: number, fb: number): boolean {
@@ -382,10 +397,11 @@ export function simularQuiniela(entrada: EntradaSim): SalidaSim {
   for (let it = 0; it < N; it++) {
     const tiers = simularBracket(entrada.bracket, entrada.fuerzas);
 
-    // Sortea ganador de cada premio.
+    // Sortea ganador de cada premio (o lo FIJA si ya esta confirmado).
     const ganadores: Record<string, string | null> = {};
     for (const pr of premiosEff) {
-      const g = sortearPremio(pr);
+      const conf = entrada.confirmados?.[pr.key];
+      const g = conf && conf.trim() ? norm(conf) : sortearPremio(pr);
       ganadores[pr.key] = g;
       if (g) premioWins[pr.key].set(g, (premioWins[pr.key].get(g) ?? 0) + 1);
     }
@@ -399,8 +415,14 @@ export function simularQuiniela(entrada: EntradaSim): SalidaSim {
       const fut = simularFuturos(p.tendencia, NF);
       let total = p.baseEstable + fut.puntos + puntosPais(p.picksPais, tiers);
       for (const pr of PREMIOS) {
-        const g = ganadores[pr.key];
-        if (g && picksResueltos[i][pr.campo] === g) total += pr.pts;
+        const conf = entrada.confirmados?.[pr.key];
+        if (conf && conf.trim()) {
+          // Premio confirmado: suma fijo a quien lo acerto (match tolerante).
+          if (mismaPersona(p.picksPremio[pr.campo], conf)) total += pr.pts;
+        } else {
+          const g = ganadores[pr.key];
+          if (g && picksResueltos[i][pr.campo] === g) total += pr.pts;
+        }
       }
       // Desempate: puntos desc, exactos desc, aciertos desc, (fallas+sin) asc.
       // Los conteos incluyen los partidos futuros simulados (dinamico).

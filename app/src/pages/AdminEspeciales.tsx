@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   guardarResultadoReal,
   leerResultadosReales,
+  cerrarEspeciales,
+  revertirEspeciales,
   type ClaveReal,
 } from "../lib/data";
 
@@ -21,6 +23,8 @@ export default function AdminEspeciales() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [cerrando, setCerrando] = useState(false);
+  const [msgCierre, setMsgCierre] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -47,6 +51,39 @@ export default function AdminEspeciales() {
       setMsg("No se pudo guardar.");
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const cerrar = async () => {
+    if (
+      !confirm(
+        "Cerrar el Mundial y SUMAR los especiales a la tabla oficial?\n\nUsa los resultados YA definidos (llaves, goleador/asistidor de eventos y las 3 distinciones cargadas). Puedes revertir despues."
+      )
+    )
+      return;
+    setCerrando(true);
+    setMsgCierre(null);
+    try {
+      await cerrarEspeciales();
+      setMsgCierre("Especiales sumados a la tabla oficial.");
+    } catch {
+      setMsgCierre("No se pudo cerrar.");
+    } finally {
+      setCerrando(false);
+    }
+  };
+
+  const revertir = async () => {
+    if (!confirm("Revertir: volver la tabla a PROVISIONAL (especiales en 0)?")) return;
+    setCerrando(true);
+    setMsgCierre(null);
+    try {
+      await revertirEspeciales();
+      setMsgCierre("Revertido. La tabla vuelve a provisional (especiales en 0).");
+    } catch {
+      setMsgCierre("No se pudo revertir.");
+    } finally {
+      setCerrando(false);
     }
   };
 
@@ -93,6 +130,33 @@ export default function AdminEspeciales() {
           {guardando ? "Guardando..." : "Guardar distinciones"}
         </button>
         {msg && <p className="text-center text-xs text-neutral-300">{msg}</p>}
+      </div>
+
+      {/* Cierre oficial: suma los especiales (pais + goleador/asistidor + las 3
+          distinciones) a la tabla. Hacerlo tras la final. */}
+      <div className="mx-4 mt-6 rounded-xl border border-oro/40 bg-carbon-card p-3">
+        <h2 className="text-sm font-bold text-oro mb-1">Cierre del Mundial</h2>
+        <p className="text-xs text-neutral-400 mb-3">
+          Suma los especiales a la tabla oficial. Antes de esto, la tabla no los
+          incluye (provisional). Hazlo cuando termine la final.
+        </p>
+        <div className="flex gap-2">
+          <button
+            onClick={cerrar}
+            disabled={cerrando}
+            className="flex-1 py-2.5 rounded-full bg-oro text-carbon font-bold text-sm disabled:opacity-50"
+          >
+            {cerrando ? "..." : "Cerrar y sumar especiales"}
+          </button>
+          <button
+            onClick={revertir}
+            disabled={cerrando}
+            className="px-4 py-2.5 rounded-full bg-carbon-soft border border-borde font-semibold text-sm disabled:opacity-50"
+          >
+            Revertir
+          </button>
+        </div>
+        {msgCierre && <p className="mt-2 text-center text-xs text-emerald-400">{msgCierre}</p>}
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import {
   todasEspeciales,
   listarPartidos,
   leerProbConfig,
+  resultadosRealesEspeciales,
 } from "./data";
 import {
   simularQuiniela,
@@ -44,15 +45,17 @@ interface DatosSim {
   bracket: PartidoBracket[];
   partidosFuturos: number;
   config: ProbConfig | null;
+  confirmados: Record<string, string | null>;
 }
 
 async function reunirDatos(): Promise<DatosSim> {
-  const [tabla, desglose, todasEsp, partidos, config] = await Promise.all([
+  const [tabla, desglose, todasEsp, partidos, config, reales] = await Promise.all([
     obtenerTabla(),
     obtenerDesgloseTormenta(),
     todasEspeciales(),
     listarPartidos(),
     leerProbConfig(),
+    resultadosRealesEspeciales(),
   ]);
 
   // ----- Bracket real desde la BD -----
@@ -75,6 +78,19 @@ async function reunirDatos(): Promise<DatosSim> {
 
   const sinPronPorId = new Map<string, number>();
   for (const d of desglose) sinPronPorId.set(d.jugador_id, d.no_pronosticados);
+
+  // ----- Premios YA CONFIRMADOS (Pieza B: fijar lo decidido, no simularlo) -----
+  // Las 3 distinciones FIFA: confirmadas apenas el admin las carga.
+  // Goleador/asistidor: confirmados solo cuando la FINAL ya se jugo (torneo
+  // terminado) y hay un lider unico (si hay empate, se sigue simulando).
+  const finalJugada = bracket.find((b) => b.slot === "P104")?.jugado ?? false;
+  const confirmados: Record<string, string | null> = {
+    mejor_jugador: reales.mejor_jugador || null,
+    mejor_arquero: reales.mejor_arquero || null,
+    mejor_joven: reales.mejor_joven || null,
+    goleador: finalJugada && reales.goleadores.length === 1 ? reales.goleadores[0] : null,
+    asistidor: finalJugada && reales.asistidores.length === 1 ? reales.asistidores[0] : null,
+  };
 
   // Tendencia historica de cada jugador (tasas por categoria sobre TODOS los
   // partidos finalizados). Modela sus partidos futuros: quien suele acertar
@@ -135,7 +151,7 @@ async function reunirDatos(): Promise<DatosSim> {
     };
   });
 
-  return { participantes, bracket, partidosFuturos, config };
+  return { participantes, bracket, partidosFuturos, config, confirmados };
 }
 
 export interface ProbCampeon {
@@ -156,6 +172,7 @@ export function useProbCampeon(): ProbCampeon {
       partidosFuturos: data.partidosFuturos,
       fuerzas: data.config?.fuerzas,
       cuotas: data.config?.cuotas,
+      confirmados: data.confirmados,
       iteraciones: 10000,
     });
   }, [data]);

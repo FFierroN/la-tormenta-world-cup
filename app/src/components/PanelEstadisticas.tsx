@@ -5,6 +5,7 @@
 // con la lista completa. Los 6 tipos, su orden y su metadata (label, icono,
 // sufijo) viven en components/estadisticasMeta.tsx (fuente unica).
 import ListaGoleo from "./ListaGoleo";
+import PanelProbCampeon from "./PanelProbCampeon";
 import { obtenerEstadisticas } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
 import { TIPOS_ESTADISTICA } from "./estadisticasMeta";
@@ -44,6 +45,10 @@ export default function PanelEstadisticas() {
 
   return (
     <div className="flex flex-col gap-4 px-4 py-4 pb-2">
+      {/* Probabilidad de salir campeon de la quiniela (Monte Carlo). Va arriba
+          porque es la stat mas conversable con 4 partidos restantes. */}
+      <PanelProbCampeon />
+
       {TIPOS_ESTADISTICA.map((t) => (
         <ListaGoleo
           key={t.key}

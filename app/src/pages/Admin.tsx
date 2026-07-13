@@ -87,6 +87,15 @@ export default function Admin() {
       </div>
 
       <div className="px-4 mb-3">
+        <button
+          onClick={() => navigate("/admin/probabilidades")}
+          className="w-full bg-carbon-card border border-borde rounded-xl py-2.5 text-sm font-semibold active:bg-carbon-soft"
+        >
+          Probabilidad de campeon (fuerzas y cuotas)
+        </button>
+      </div>
+
+      <div className="px-4 mb-3">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}

@@ -21,11 +21,11 @@
 //
 // FUERZA de cada semifinalista = su prob de salir campeon. Se usa como PESO
 // relativo en cada cruce (Bradley-Terry): P(A gana a B) = fa / (fa + fb).
-export const FUERZA_EQUIPOS: { alias: string[]; fuerza: number }[] = [
-  { alias: ["francia", "france"], fuerza: 39 },
-  { alias: ["espana", "spain"], fuerza: 23 },
-  { alias: ["inglaterra", "england"], fuerza: 20 },
-  { alias: ["argentina"], fuerza: 18 },
+export const FUERZA_EQUIPOS: { nombre: string; alias: string[]; fuerza: number }[] = [
+  { nombre: "Francia", alias: ["francia", "france"], fuerza: 39 },
+  { nombre: "España", alias: ["espana", "spain"], fuerza: 23 },
+  { nombre: "Inglaterra", alias: ["inglaterra", "england"], fuerza: 20 },
+  { nombre: "Argentina", alias: ["argentina"], fuerza: 18 },
 ];
 
 // PREMIOS individuales, con la probabilidad de MERCADO (punto medio del rango)
@@ -151,7 +151,31 @@ export interface EntradaSim {
   // Fuerza por equipo (nombre normalizado -> peso). Si falta, usa el default
   // FUERZA_EQUIPOS. Permite hacerla editable por el admin sin tocar codigo.
   fuerzas?: Record<string, number>;
+  // Cuotas de premios (premioKey -> candidatoNorm -> prob 0..1). Override del
+  // mercado por defecto; tambien editable por el admin.
+  cuotas?: Record<string, Record<string, number>>;
   iteraciones?: number;
+}
+
+// Config editable por el admin (se guarda en la tabla configuracion como JSON).
+// fuerzas: nombre-de-equipo-normalizado -> peso.
+// cuotas: premioKey -> candidatoNorm -> PORCENTAJE (0..100, como lo piensa el admin).
+export interface ProbConfig {
+  fuerzas: Record<string, number>;
+  cuotas: Record<string, Record<string, number>>;
+}
+
+// Config por defecto derivada de los valores cableados (FUERZA_EQUIPOS +
+// PREMIOS). Sirve para pre-llenar el formulario del admin la primera vez.
+export function configPorDefecto(): ProbConfig {
+  const fuerzas: Record<string, number> = {};
+  for (const e of FUERZA_EQUIPOS) fuerzas[norm(e.nombre)] = e.fuerza;
+  const cuotas: Record<string, Record<string, number>> = {};
+  for (const pr of PREMIOS) {
+    cuotas[pr.key] = {};
+    for (const c of pr.candidatos) cuotas[pr.key][norm(c.nombre)] = Math.round(c.prob * 1000) / 10;
+  }
+  return { fuerzas, cuotas };
 }
 
 // Una llave final tal como viene de la BD (ya resuelta o por jugar).
@@ -337,6 +361,16 @@ export function simularQuiniela(entrada: EntradaSim): SalidaSim {
   const premioWins: Record<string, Map<string, number>> = {};
   for (const pr of PREMIOS) premioWins[pr.key] = new Map();
 
+  // PREMIOS efectivos: si el admin edito las cuotas, sobreescribimos la prob de
+  // cada candidato (config guarda PORCENTAJE 0..100 -> aca a fraccion 0..1).
+  const premiosEff: Premio[] = PREMIOS.map((pr) => ({
+    ...pr,
+    candidatos: pr.candidatos.map((c) => {
+      const pct = entrada.cuotas?.[pr.key]?.[norm(c.nombre)];
+      return pct != null ? { ...c, prob: pct / 100 } : c;
+    }),
+  }));
+
   // Pre-RESOLVEMOS los picks de premio a su candidato canonico (tolerante a
   // typos/espacios). Si no matchea a ningun candidato, queda null -> no puntua.
   const picksResueltos = P.map((p) => {
@@ -350,7 +384,7 @@ export function simularQuiniela(entrada: EntradaSim): SalidaSim {
 
     // Sortea ganador de cada premio.
     const ganadores: Record<string, string | null> = {};
-    for (const pr of PREMIOS) {
+    for (const pr of premiosEff) {
       const g = sortearPremio(pr);
       ganadores[pr.key] = g;
       if (g) premioWins[pr.key].set(g, (premioWins[pr.key].get(g) ?? 0) + 1);

@@ -13,6 +13,7 @@ import {
   obtenerDesgloseTormenta,
   todasEspeciales,
   listarPartidos,
+  leerProbConfig,
 } from "./data";
 import {
   simularQuiniela,
@@ -20,6 +21,7 @@ import {
   type SalidaSim,
   type Tendencia,
   type PartidoBracket,
+  type ProbConfig,
 } from "./probCampeon";
 import type { Partido } from "./types";
 
@@ -41,14 +43,16 @@ interface DatosSim {
   participantes: ParticipanteSim[];
   bracket: PartidoBracket[];
   partidosFuturos: number;
+  config: ProbConfig | null;
 }
 
 async function reunirDatos(): Promise<DatosSim> {
-  const [tabla, desglose, todasEsp, partidos] = await Promise.all([
+  const [tabla, desglose, todasEsp, partidos, config] = await Promise.all([
     obtenerTabla(),
     obtenerDesgloseTormenta(),
     todasEspeciales(),
     listarPartidos(),
+    leerProbConfig(),
   ]);
 
   // ----- Bracket real desde la BD -----
@@ -131,7 +135,7 @@ async function reunirDatos(): Promise<DatosSim> {
     };
   });
 
-  return { participantes, bracket, partidosFuturos };
+  return { participantes, bracket, partidosFuturos, config };
 }
 
 export interface ProbCampeon {
@@ -150,6 +154,8 @@ export function useProbCampeon(): ProbCampeon {
       participantes: data.participantes,
       bracket: data.bracket,
       partidosFuturos: data.partidosFuturos,
+      fuerzas: data.config?.fuerzas,
+      cuotas: data.config?.cuotas,
       iteraciones: 10000,
     });
   }, [data]);

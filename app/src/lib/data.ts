@@ -3,6 +3,7 @@
 // las filas crudas de Postgres. Los ids serial (number) se pasan a string
 // para encajar con los tipos del frontend sin tocar las pantallas.
 import { supabase } from "./supabase";
+import type { ProbConfig } from "./probCampeon";
 import type {
   EstadoPartido,
   Especiales,
@@ -699,6 +700,52 @@ export async function setFotoPrimeroHabilitada(on: boolean): Promise<void> {
     .update({ valor: on ? "true" : "false", updated_at: new Date().toISOString() })
     .eq("clave", "foto_primero_habilitada");
   lanzarSi(error);
+}
+
+// ---------- CONFIG DE PROBABILIDAD DE CAMPEON (fuerzas + cuotas) ----------
+// Se guarda como JSON en configuracion.clave='prob_campeon_config'. Editable
+// por el admin sin re-deploy. Si no existe, el motor usa configPorDefecto().
+const CLAVE_PROB = "prob_campeon_config";
+
+export async function leerProbConfig(): Promise<ProbConfig | null> {
+  const { data, error } = await supabase
+    .from("configuracion")
+    .select("valor")
+    .eq("clave", CLAVE_PROB)
+    .maybeSingle();
+  lanzarSi(error);
+  if (!data?.valor) return null;
+  try {
+    return JSON.parse(data.valor) as ProbConfig;
+  } catch {
+    return null; // JSON corrupto -> el motor cae al default
+  }
+}
+
+export async function guardarProbConfig(cfg: ProbConfig): Promise<void> {
+  const valor = JSON.stringify(cfg);
+  const updated_at = new Date().toISOString();
+  // update-or-insert (evita depender del onConflict, que difiere si la PK es
+  // (clave) o (copa_id, clave) segun se aplico o no el multicopa). Instancia de
+  // una sola copa: la fila con esta clave es unica.
+  const { data: existe } = await supabase
+    .from("configuracion")
+    .select("clave")
+    .eq("clave", CLAVE_PROB)
+    .maybeSingle();
+  if (existe) {
+    const { error } = await supabase
+      .from("configuracion")
+      .update({ valor, updated_at })
+      .eq("clave", CLAVE_PROB);
+    lanzarSi(error);
+  } else {
+    // copa_id (si existe la columna) toma su default 1; en el schema base no aplica.
+    const { error } = await supabase
+      .from("configuracion")
+      .insert({ clave: CLAVE_PROB, valor });
+    lanzarSi(error);
+  }
 }
 
 export async function misEspeciales(

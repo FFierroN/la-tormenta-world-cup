@@ -159,6 +159,29 @@ export function fuerzaDe(equipo: string): number {
   return f ? f.fuerza : 1;
 }
 
+// Resuelve el pick de un participante a un candidato (por alias, tolerante a
+// typos de nombre de pila y espacios). Ej: "Kyliam Mbappé", "Lionel messi ",
+// "Lamin Yamal" -> el candidato correcto. Devuelve el nombre CANONICO
+// normalizado del candidato, o null si no matchea a ninguno.
+// Estrategia: el pick (normalizado) CONTIENE algun alias del candidato (los
+// alias incluyen el apellido corto, que sobrevive a los typos del nombre).
+export function resolverCandidato(
+  pick: string | null | undefined,
+  candidatos: Candidato[]
+): string | null {
+  const p = norm(pick);
+  if (!p) return null;
+  for (const c of candidatos) {
+    for (const a of c.alias) {
+      const an = norm(a);
+      if (an && (p === an || p.includes(an) || an.includes(p))) {
+        return norm(c.nombre);
+      }
+    }
+  }
+  return null;
+}
+
 function ganaA(fa: number, fb: number): boolean {
   return Math.random() < fa / (fa + fb);
 }
@@ -222,11 +245,12 @@ export function simularQuiniela(entrada: EntradaSim): SalidaSim {
   const premioWins: Record<string, Map<string, number>> = {};
   for (const pr of PREMIOS) premioWins[pr.key] = new Map();
 
-  // Pre-normalizamos los picks de premio de cada participante.
-  const picksNorm = P.map((p) => {
-    const m: Partial<Record<Premio["campo"], string>> = {};
-    for (const pr of PREMIOS) m[pr.campo] = norm(p.picksPremio[pr.campo]);
-    return m as Record<Premio["campo"], string>;
+  // Pre-RESOLVEMOS los picks de premio a su candidato canonico (tolerante a
+  // typos/espacios). Si no matchea a ningun candidato, queda null -> no puntua.
+  const picksResueltos = P.map((p) => {
+    const m: Partial<Record<Premio["campo"], string | null>> = {};
+    for (const pr of PREMIOS) m[pr.campo] = resolverCandidato(p.picksPremio[pr.campo], pr.candidatos);
+    return m as Record<Premio["campo"], string | null>;
   });
 
   for (let it = 0; it < N; it++) {
@@ -248,7 +272,7 @@ export function simularQuiniela(entrada: EntradaSim): SalidaSim {
       let total = p.baseEstable + puntosPais(p.picksPais, tiers);
       for (const pr of PREMIOS) {
         const g = ganadores[pr.key];
-        if (g && picksNorm[i][pr.campo] === g) total += pr.pts;
+        if (g && picksResueltos[i][pr.campo] === g) total += pr.pts;
       }
       // Desempate: puntos desc, exactos desc, aciertos desc, (fallas+sin) asc.
       const score =

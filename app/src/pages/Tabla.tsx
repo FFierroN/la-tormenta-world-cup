@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Avatar from "../components/Avatar";
 import IndicadorMovimiento from "../components/IndicadorMovimiento";
 import PrediccionesView from "../components/PrediccionesView";
+import PanelProbCampeon from "../components/PanelProbCampeon";
 import { avatarPorPosicion, bordePorPosicion } from "../lib/avatares";
 import { obtenerTabla, obtenerTablaLive, obtenerPosicionesBase, fotoUltimoHabilitada, fotoPrimeroHabilitada } from "../lib/data";
 import { useAsync } from "../lib/useAsync";
@@ -216,7 +217,7 @@ function Stat({ label, valor }: { label: string; valor: number }) {
 function Clasica({ filas, posLive, posBase, onSelect }: { filas: FilaTabla[]; posLive: Map<string, number>; posBase: Map<string, number>; onSelect: (f: FilaTabla) => void }) {
   const total = filas.length;
   return (
-    <div className="px-4 py-4">
+    <div className="px-4 py-4 flex flex-col gap-4">
       <div className="overflow-hidden rounded-2xl border border-borde">
         <table className="w-full text-sm">
           <thead className="bg-carbon-soft text-neutral-400 text-xs uppercase">
@@ -262,6 +263,9 @@ function Clasica({ filas, posLive, posBase, onSelect }: { filas: FilaTabla[]; po
           </tbody>
         </table>
       </div>
+
+      {/* Probabilidad de campeon de la quiniela (Monte Carlo), debajo de la tabla. */}
+      <PanelProbCampeon />
     </div>
   );
 }

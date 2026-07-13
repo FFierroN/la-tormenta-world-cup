@@ -4,6 +4,7 @@ import Flag from "../components/Flag";
 import EstadoBadge from "../components/EstadoBadge";
 import ResumenPredicciones from "../components/ResumenPredicciones";
 import EspecialesPanel from "../components/EspecialesPanel";
+import CajaProbCampeon from "../components/CajaProbCampeon";
 import { listarJugadores, listarPartidos, misPrediccionesDetalle, prediccionesJugadasTodas } from "../lib/data";
 import { soloCasi, rankingCasi } from "../lib/casi";
 import { useAsync } from "../lib/useAsync";
@@ -76,6 +77,10 @@ export default function MisPredicciones() {
           {viendoOtro ? `Predicciones de ${nombreOtro}` : "Mis predicciones"}
         </h1>
       </header>
+
+      {/* Cajita con la probabilidad de ser campeon de la quiniela del participante
+          que estamos viendo (o la mia en mi propia vista). */}
+      <CajaProbCampeon jugadorId={targetId} />
 
       {viendoOtro ? (
         // Vista de otro participante: pestanas Pronosticos (solo lectura, solo

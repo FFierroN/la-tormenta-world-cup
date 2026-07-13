@@ -5,6 +5,7 @@ import EstadoBadge from "../components/EstadoBadge";
 import ResumenPredicciones from "../components/ResumenPredicciones";
 import EspecialesPanel from "../components/EspecialesPanel";
 import CajaProbCampeon from "../components/CajaProbCampeon";
+import PanelEfectividad from "../components/PanelEfectividad";
 import { listarJugadores, listarPartidos, misPrediccionesDetalle, prediccionesJugadasTodas } from "../lib/data";
 import { soloCasi, rankingCasi } from "../lib/casi";
 import { useAsync } from "../lib/useAsync";
@@ -209,6 +210,8 @@ function ListaTab({
       )}
 
       {!cargando && !error && <ResumenPredicciones filas={filasResumen} totalJugados={totalJugados} />}
+
+      {!cargando && !error && <PanelEfectividad jugadorId={jugadorId} />}
 
       {!cargando && !error && vacio && (
         <p className="px-4 mt-3 text-neutral-400 text-sm">

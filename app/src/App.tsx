@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import AdminPartido from "./pages/AdminPartido";
 import AdminEspeciales from "./pages/AdminEspeciales";
 import AdminParticipantes from "./pages/AdminParticipantes";
+import AdminProbabilidades from "./pages/AdminProbabilidades";
 import PrediccionesEspeciales from "./pages/PrediccionesEspeciales";
 import EspecialesDetalle from "./pages/EspecialesDetalle";
 import Reglas from "./pages/Reglas";

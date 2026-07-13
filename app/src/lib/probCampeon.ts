@@ -259,6 +259,24 @@ function ganaA(fa: number, fb: number): boolean {
   return Math.random() < fa / (fa + fb);
 }
 
+// Fuerza efectiva de un equipo: primero el override (BD/admin), si no el default.
+function fuerzaEff(equipo: string, fuerzas?: Record<string, number>): number {
+  const n = norm(equipo);
+  if (fuerzas && fuerzas[n] != null) return fuerzas[n];
+  return fuerzaDe(equipo);
+}
+
+// Resuelve un cruce simulandolo por fuerza. Devuelve [ganador, perdedor].
+function resolverCruce(
+  local: string,
+  visita: string,
+  fuerzas: Record<string, number> | undefined
+): [string, string] {
+  return ganaA(fuerzaEff(local, fuerzas), fuerzaEff(visita, fuerzas))
+    ? [local, visita]
+    : [visita, local];
+}
+
 // Sortea el ganador de un premio segun probabilidades de mercado.
 // Devuelve el nombre normalizado, o null si gano "otro" (fuera de la lista).
 function sortearPremio(premio: Premio): string | null {

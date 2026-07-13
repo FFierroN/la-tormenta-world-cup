@@ -144,9 +144,24 @@ export interface ParticipanteSim {
 
 export interface EntradaSim {
   participantes: ParticipanteSim[];
-  semis: { a: string; b: string; c: string; d: string };
-  partidosFuturos?: number; // cuantos partidos faltan (default 4: 2 semis+3ro+final)
+  // Estado REAL de las 4 llaves finales (leido de la BD). Cada corrida usa el
+  // resultado si ya se jugo, o lo simula por fuerza si falta.
+  bracket: PartidoBracket[];
+  partidosFuturos?: number; // cuantos partidos faltan (para la tendencia)
+  // Fuerza por equipo (nombre normalizado -> peso). Si falta, usa el default
+  // FUERZA_EQUIPOS. Permite hacerla editable por el admin sin tocar codigo.
+  fuerzas?: Record<string, number>;
   iteraciones?: number;
+}
+
+// Una llave final tal como viene de la BD (ya resuelta o por jugar).
+export interface PartidoBracket {
+  slot: "P101" | "P102" | "P103" | "P104";
+  local: string;
+  visita: string;
+  jugado: boolean;
+  ganador: string | null; // solo si jugado
+  perdedor: string | null; // solo si jugado
 }
 
 export interface FilaProb {
@@ -220,22 +235,42 @@ function sortearPremio(premio: Premio): string | null {
 }
 
 // Bracket simulado -> tier de puntos por equipo (nombre normalizado).
-function simularBracket(semis: EntradaSim["semis"]): Map<string, number> {
-  const { a, b, c, d } = semis;
-  const gan1 = ganaA(fuerzaDe(a), fuerzaDe(b)) ? a : b;
-  const per1 = gan1 === a ? b : a;
-  const gan2 = ganaA(fuerzaDe(c), fuerzaDe(d)) ? c : d;
-  const per2 = gan2 === c ? d : c;
-  const campeon = ganaA(fuerzaDe(gan1), fuerzaDe(gan2)) ? gan1 : gan2;
-  const sub = campeon === gan1 ? gan2 : gan1;
-  const tercero = ganaA(fuerzaDe(per1), fuerzaDe(per2)) ? per1 : per2;
-  const cuarto = tercero === per1 ? per2 : per1;
+// Usa el resultado REAL de cada llave si ya se jugo; si no, lo simula por fuerza.
+function simularBracket(
+  bracket: PartidoBracket[],
+  fuerzas?: Record<string, number>
+): Map<string, number> {
+  const slot = (s: string) => bracket.find((b) => b.slot === s);
+  const sf1 = slot("P101");
+  const sf2 = slot("P102");
+  const fin = slot("P104");
+  const ter = slot("P103");
+
+  // Semis: ganador a la final, perdedor al 3er puesto.
+  const [g1, p1] = sf1
+    ? sf1.jugado
+      ? [sf1.ganador!, sf1.perdedor!]
+      : resolverCruce(sf1.local, sf1.visita, fuerzas)
+    : ["", ""];
+  const [g2, p2] = sf2
+    ? sf2.jugado
+      ? [sf2.ganador!, sf2.perdedor!]
+      : resolverCruce(sf2.local, sf2.visita, fuerzas)
+    : ["", ""];
+
+  // Final: real si existe, si no simula ganador SF1 vs ganador SF2.
+  const [campeon, sub] =
+    fin && fin.jugado ? [fin.ganador!, fin.perdedor!] : resolverCruce(g1, g2, fuerzas);
+
+  // 3er puesto: real si existe, si no simula perdedor SF1 vs perdedor SF2.
+  const [tercero, cuarto] =
+    ter && ter.jugado ? [ter.ganador!, ter.perdedor!] : resolverCruce(p1, p2, fuerzas);
 
   const tiers = new Map<string, number>();
-  tiers.set(norm(campeon), PTS_CAMPEON);
-  tiers.set(norm(sub), PTS_FINALISTA);
-  tiers.set(norm(tercero), PTS_TERCERO);
-  tiers.set(norm(cuarto), PTS_SEMI);
+  if (campeon) tiers.set(norm(campeon), PTS_CAMPEON);
+  if (sub) tiers.set(norm(sub), PTS_FINALISTA);
+  if (tercero) tiers.set(norm(tercero), PTS_TERCERO);
+  if (cuarto) tiers.set(norm(cuarto), PTS_SEMI);
   return tiers;
 }
 
@@ -311,7 +346,7 @@ export function simularQuiniela(entrada: EntradaSim): SalidaSim {
   });
 
   for (let it = 0; it < N; it++) {
-    const tiers = simularBracket(entrada.semis);
+    const tiers = simularBracket(entrada.bracket, entrada.fuerzas);
 
     // Sortea ganador de cada premio.
     const ganadores: Record<string, string | null> = {};

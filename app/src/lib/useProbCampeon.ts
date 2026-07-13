@@ -2,31 +2,78 @@
 // (lib/probCampeon) y devuelve el resultado + un mapa jugador_id -> prob.
 // Lo usan la pestana Clasica (ranking completo) y el detalle de cada
 // participante (su cajita de %), sin duplicar logica.
+//
+// El BRACKET se lee de la tabla partidos (slots P101/P102 semis, P103 3er,
+// P104 final): si una llave ya se jugo usa el resultado real; si falta, el motor
+// la simula. Asi la estadistica AVANZA SOLA a medida que se juegan los partidos.
 import { useMemo } from "react";
 import { useAsync } from "./useAsync";
 import {
   obtenerTabla,
   obtenerDesgloseTormenta,
   todasEspeciales,
+  listarPartidos,
 } from "./data";
-import { simularQuiniela, type ParticipanteSim, type SalidaSim, type Tendencia } from "./probCampeon";
+import {
+  simularQuiniela,
+  type ParticipanteSim,
+  type SalidaSim,
+  type Tendencia,
+  type PartidoBracket,
+} from "./probCampeon";
+import type { Partido } from "./types";
 
-// Semifinales cableadas aca (matchean con FUERZA_EQUIPOS en probCampeon.ts).
-// Si cambian los cruces, se ajustan ambos lugares.
-export const SEMIS = { a: "Francia", b: "España", c: "Inglaterra", d: "Argentina" };
+// Slots de las 4 llaves finales, en orden.
+const SLOTS_FINALES: PartidoBracket["slot"][] = ["P101", "P102", "P103", "P104"];
 
-async function reunirDatos(): Promise<ParticipanteSim[]> {
-  const [tabla, desglose, todasEsp] = await Promise.all([
+// Ganador/perdedor REAL de una llave ya jugada (penales > alargue > 90').
+function ganadorReal(p: Partido): [string, string] {
+  if (p.ganador_penales === "local") return [p.equipo_local, p.equipo_visita];
+  if (p.ganador_penales === "visita") return [p.equipo_visita, p.equipo_local];
+  const gl = (p.goles_local ?? 0) + (p.alargue_local ?? 0);
+  const gv = (p.goles_visita ?? 0) + (p.alargue_visita ?? 0);
+  return gl >= gv
+    ? [p.equipo_local, p.equipo_visita]
+    : [p.equipo_visita, p.equipo_local];
+}
+
+interface DatosSim {
+  participantes: ParticipanteSim[];
+  bracket: PartidoBracket[];
+  partidosFuturos: number;
+}
+
+async function reunirDatos(): Promise<DatosSim> {
+  const [tabla, desglose, todasEsp, partidos] = await Promise.all([
     obtenerTabla(),
     obtenerDesgloseTormenta(),
     todasEspeciales(),
+    listarPartidos(),
   ]);
+
+  // ----- Bracket real desde la BD -----
+  const bracket: PartidoBracket[] = [];
+  let partidosFuturos = 0;
+  for (const slot of SLOTS_FINALES) {
+    const p = partidos.find((x) => x.slot === slot);
+    const jugado = !!p && p.estado === "final" && p.goles_local != null;
+    if (!jugado) partidosFuturos++;
+    const [ganador, perdedor] = jugado ? ganadorReal(p!) : [null, null];
+    bracket.push({
+      slot,
+      local: p?.equipo_local ?? "",
+      visita: p?.equipo_visita ?? "",
+      jugado,
+      ganador,
+      perdedor,
+    });
+  }
 
   const sinPronPorId = new Map<string, number>();
   for (const d of desglose) sinPronPorId.set(d.jugador_id, d.no_pronosticados);
 
   // Tendencia historica de cada jugador (tasas por categoria sobre TODOS los
-  // partidos finalizados). Modela sus 4 partidos futuros: quien suele acertar
+  // partidos finalizados). Modela sus partidos futuros: quien suele acertar
   // tiene upside real -> nadie queda en 0% artificial.
   const tendenciaPorId = new Map<string, Tendencia>();
   for (const d of desglose) {
@@ -49,7 +96,7 @@ async function reunirDatos(): Promise<ParticipanteSim[]> {
   const picksPorId = new Map<string, (typeof todasEsp)[number]>();
   for (const e of todasEsp) picksPorId.set(e.jugador_id, e);
 
-  return tabla.map((f) => {
+  const participantes = tabla.map((f): ParticipanteSim => {
     // tabla.puntos HOY = solo partidos + ajuste (los especiales estan en 0 hasta
     // la final). Por eso baseEstable = puntos directo; el sim suma pais + premios
     // simulados encima, sin restar nada (evita el bug de restar puntos fantasma).
@@ -83,6 +130,8 @@ async function reunirDatos(): Promise<ParticipanteSim[]> {
       },
     };
   });
+
+  return { participantes, bracket, partidosFuturos };
 }
 
 export interface ProbCampeon {
@@ -97,7 +146,12 @@ export function useProbCampeon(): ProbCampeon {
 
   const sim = useMemo(() => {
     if (!data) return null;
-    return simularQuiniela({ participantes: data, semis: SEMIS, iteraciones: 10000 });
+    return simularQuiniela({
+      participantes: data.participantes,
+      bracket: data.bracket,
+      partidosFuturos: data.partidosFuturos,
+      iteraciones: 10000,
+    });
   }, [data]);
 
   const probPorId = useMemo(() => {

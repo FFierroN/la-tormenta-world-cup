@@ -3,7 +3,7 @@
 // cada participante de terminar 1o + los favoritos de cada premio individual.
 // La simulacion (Monte Carlo) vive en el hook useProbCampeon (compartido con
 // la cajita de % del detalle de cada participante).
-import { useProbCampeon, SEMIS } from "../lib/useProbCampeon";
+import { useProbCampeon } from "../lib/useProbCampeon";
 
 export default function PanelProbCampeon() {
   const { sim, cargando, error } = useProbCampeon();
@@ -24,8 +24,8 @@ export default function PanelProbCampeon() {
         <h3 className="text-sm font-bold text-oro">Probabilidad de campeon de la quiniela</h3>
         <p className="text-[10px] text-neutral-500 leading-tight mt-0.5">
           Monte Carlo ({sim.iteraciones.toLocaleString()} escenarios). Considera: puntos actuales +
-          los 4 partidos que faltan segun la tendencia de acierto de cada uno + puntos pais (bracket
-          {" "}{SEMIS.a} vs {SEMIS.b} · {SEMIS.c} vs {SEMIS.d}) + premios por cuota de mercado.
+          los partidos que faltan segun la tendencia de acierto de cada uno + puntos pais (bracket
+          real, avanza solo al jugarse cada llave) + premios por cuota de mercado.
         </p>
       </div>
 

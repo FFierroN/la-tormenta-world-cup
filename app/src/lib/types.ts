@@ -238,6 +238,21 @@ export interface JugadorAdmin {
   ajuste_motivo: string | null;
 }
 
+// Puntos ESPECIALES cargados a mano por el admin (una fila por jugador). Cada
+// clave corresponde a una de las 9 categorias especiales. La suma se refleja en
+// la tabla general. Fuente real: tabla puntos_especiales_manual (Supabase).
+export interface PuntosEspeciales {
+  campeon: number;
+  finalista: number;
+  tercer: number;
+  semi: number;
+  goleador: number;
+  asistidor: number;
+  mejor_jugador: number;
+  mejor_arquero: number;
+  mejor_joven: number;
+}
+
 // Una entrada del ranking de goleadores o asistidores (Top N).
 export interface FilaGoleo {
   jugador: string;

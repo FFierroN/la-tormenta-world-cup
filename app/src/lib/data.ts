@@ -24,6 +24,7 @@ MiPrediccion,
   Partido,
   PrediccionJugada,
   PronosticoVista,
+  PuntosEspeciales,
   TipoEvento,
 } from "./types";
 
@@ -986,6 +987,55 @@ export async function setAjustePuntos(
     p_jugador_id: Number(jugadorId),
     p_puntos: puntos,
     p_motivo: motivo,
+  });
+  lanzarSi(error);
+}
+
+// ---------- ADMIN: puntos especiales MANUALES (9 categorias, carga a mano) ----------
+
+// Todo en cero: fila de arranque para un jugador que aun no tiene puntos cargados.
+export const PUNTOS_ESPECIALES_CERO: PuntosEspeciales = {
+  campeon: 0, finalista: 0, tercer: 0, semi: 0,
+  goleador: 0, asistidor: 0, mejor_jugador: 0, mejor_arquero: 0, mejor_joven: 0,
+};
+
+// Trae los puntos especiales manuales de todos los jugadores (jugador_id -> puntos).
+export async function listarPuntosEspeciales(): Promise<Map<string, PuntosEspeciales>> {
+  const { data, error } = await supabase.rpc("listar_puntos_especiales");
+  lanzarSi(error);
+  const m = new Map<string, PuntosEspeciales>();
+  for (const r of (data ?? []) as any[]) {
+    m.set(String(r.jugador_id), {
+      campeon: Number(r.campeon ?? 0),
+      finalista: Number(r.finalista ?? 0),
+      tercer: Number(r.tercer ?? 0),
+      semi: Number(r.semi ?? 0),
+      goleador: Number(r.goleador ?? 0),
+      asistidor: Number(r.asistidor ?? 0),
+      mejor_jugador: Number(r.mejor_jugador ?? 0),
+      mejor_arquero: Number(r.mejor_arquero ?? 0),
+      mejor_joven: Number(r.mejor_joven ?? 0),
+    });
+  }
+  return m;
+}
+
+// Guarda (upsert) los 9 puntajes especiales de un jugador.
+export async function setPuntosEspeciales(
+  jugadorId: string,
+  p: PuntosEspeciales
+): Promise<void> {
+  const { error } = await supabase.rpc("set_puntos_especiales", {
+    p_jugador_id: Number(jugadorId),
+    p_campeon: p.campeon,
+    p_finalista: p.finalista,
+    p_tercer: p.tercer,
+    p_semi: p.semi,
+    p_goleador: p.goleador,
+    p_asistidor: p.asistidor,
+    p_mejor_jugador: p.mejor_jugador,
+    p_mejor_arquero: p.mejor_arquero,
+    p_mejor_joven: p.mejor_joven,
   });
   lanzarSi(error);
 }

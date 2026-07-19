@@ -156,6 +156,24 @@ create table if not exists predicciones_especiales (
   created_at      timestamptz not null default now()
 );
 
+-- Puntos ESPECIALES cargados a MANO por el admin (una fila por jugador). Este
+-- total se suma en tabla_posiciones y REEMPLAZA el calculo automatico de las
+-- predicciones especiales (los pronosticos siguen guardados arriba, solo dejan
+-- de puntuarse solos; el admin escribe el puntaje de cada categoria).
+create table if not exists puntos_especiales_manual (
+  jugador_id     int primary key references jugadores(id) on delete cascade,
+  campeon        int not null default 0,
+  finalista      int not null default 0,
+  tercer         int not null default 0,
+  semi           int not null default 0,
+  goleador       int not null default 0,
+  asistidor      int not null default 0,
+  mejor_jugador  int not null default 0,
+  mejor_arquero  int not null default 0,
+  mejor_joven    int not null default 0,
+  actualizado_en timestamptz not null default now()
+);
+
 create table if not exists configuracion (
   clave      text primary key,
   valor      text not null default 'false',
@@ -604,6 +622,52 @@ returns void language sql security definer set search_path = public, extensions 
    where id = p_jugador_id;
 $$;
 
+-- Puntos ESPECIALES manuales: leer todos (para el panel admin).
+create or replace function listar_puntos_especiales()
+returns setof puntos_especiales_manual
+language sql security definer set search_path = public, extensions as $$
+  select * from puntos_especiales_manual;
+$$;
+
+-- Puntos ESPECIALES manuales: guardar (upsert) los 9 puntajes de un jugador.
+create or replace function set_puntos_especiales(
+  p_jugador_id    int,
+  p_campeon       int,
+  p_finalista     int,
+  p_tercer        int,
+  p_semi          int,
+  p_goleador      int,
+  p_asistidor     int,
+  p_mejor_jugador int,
+  p_mejor_arquero int,
+  p_mejor_joven   int
+) returns text
+language plpgsql security definer set search_path = public, extensions as $$
+begin
+  insert into puntos_especiales_manual as m (
+    jugador_id, campeon, finalista, tercer, semi,
+    goleador, asistidor, mejor_jugador, mejor_arquero, mejor_joven, actualizado_en
+  ) values (
+    p_jugador_id,
+    coalesce(p_campeon,0), coalesce(p_finalista,0), coalesce(p_tercer,0), coalesce(p_semi,0),
+    coalesce(p_goleador,0), coalesce(p_asistidor,0), coalesce(p_mejor_jugador,0),
+    coalesce(p_mejor_arquero,0), coalesce(p_mejor_joven,0), now()
+  )
+  on conflict (jugador_id) do update set
+    campeon        = excluded.campeon,
+    finalista      = excluded.finalista,
+    tercer         = excluded.tercer,
+    semi           = excluded.semi,
+    goleador       = excluded.goleador,
+    asistidor      = excluded.asistidor,
+    mejor_jugador  = excluded.mejor_jugador,
+    mejor_arquero  = excluded.mejor_arquero,
+    mejor_joven    = excluded.mejor_joven,
+    actualizado_en = now();
+  return 'ok';
+end;
+$$;
+
 -- =====================================================================
 -- 4. VISTAS PUBLICAS (lo unico que el frontend lee de jugadores)
 -- =====================================================================
@@ -629,9 +693,10 @@ with base as (
         contar_exactos(p.id))),0)
       + coalesce(j.ajuste_puntos, 0)            -- ajuste manual del admin (suma/resta)
       + coalesce((
-          select pe.puntos_pais + pe.puntos_goleador + pe.puntos_asistidor
-               + pe.puntos_mejor_jugador + pe.puntos_mejor_arquero + pe.puntos_mejor_joven
-          from predicciones_especiales pe where pe.jugador_id = j.id), 0) as puntos,
+          select m.campeon + m.finalista + m.tercer + m.semi
+               + m.goleador + m.asistidor + m.mejor_jugador
+               + m.mejor_arquero + m.mejor_joven
+          from puntos_especiales_manual m where m.jugador_id = j.id), 0) as puntos,
     count(*) filter (where p.estado='final'
         and pr.pred_local=p.goles_local and pr.pred_visita=p.goles_visita) as exactos,
     count(*) filter (where p.estado='final'
@@ -706,6 +771,7 @@ alter table partidos               enable row level security;
 alter table partido_eventos        enable row level security;
 alter table pronosticos            enable row level security;
 alter table predicciones_especiales enable row level security;
+alter table puntos_especiales_manual enable row level security;
 alter table configuracion          enable row level security;
 -- equipos_api_map y api_cuota: RLS activo SIN politicas = solo el robot
 -- (service_role) puede tocarlas. El frontend ni las ve.
@@ -745,6 +811,8 @@ grant execute on function recalcular_especiales()         to anon, authenticated
 grant execute on function listar_jugadores_admin()        to anon, authenticated;
 grant execute on function set_jugador_activo(int,boolean)  to anon, authenticated;
 grant execute on function set_ajuste_puntos(int,int,text)  to anon, authenticated;
+grant execute on function listar_puntos_especiales()      to anon, authenticated;
+grant execute on function set_puntos_especiales(int,int,int,int,int,int,int,int,int,int) to anon, authenticated;
 
 -- =====================================================================
 -- 6. REALTIME (la app escucha cambios en vivo)

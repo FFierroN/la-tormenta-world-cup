@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import AdminPartido from "./pages/AdminPartido";
 import AdminEspeciales from "./pages/AdminEspeciales";
 import AdminParticipantes from "./pages/AdminParticipantes";
+import AdminPuntosEspeciales from "./pages/AdminPuntosEspeciales";
 import AdminProbabilidades from "./pages/AdminProbabilidades";
 import PrediccionesEspeciales from "./pages/PrediccionesEspeciales";
 import EspecialesDetalle from "./pages/EspecialesDetalle";
@@ -85,6 +86,7 @@ export default function App() {
           <Route path="/admin" element={<SoloAdmin><Admin /></SoloAdmin>} />
           <Route path="/admin/especiales" element={<SoloAdmin><AdminEspeciales /></SoloAdmin>} />
           <Route path="/admin/participantes" element={<SoloAdmin><AdminParticipantes /></SoloAdmin>} />
+<Route path="/admin/puntos-especiales" element={<SoloAdmin><AdminPuntosEspeciales /></SoloAdmin>} />
           <Route path="/admin/probabilidades" element={<SoloAdmin><AdminProbabilidades /></SoloAdmin>} />
           <Route path="/admin/:id" element={<SoloAdmin><AdminPartido /></SoloAdmin>} />
           <Route path="*" element={<Navigate to="/partidos" replace />} />

@@ -79,6 +79,15 @@ export default function Admin() {
 
       <div className="px-4 mb-3">
         <button
+          onClick={() => navigate("/admin/puntos-especiales")}
+          className="w-full bg-oro text-carbon rounded-xl py-2.5 text-sm font-bold active:opacity-90"
+        >
+          Cargar puntos especiales (a mano)
+        </button>
+      </div>
+
+      <div className="px-4 mb-3">
+        <button
           onClick={() => navigate("/admin/participantes")}
           className="w-full bg-carbon-card border border-borde rounded-xl py-2.5 text-sm font-semibold active:bg-carbon-soft"
         >
